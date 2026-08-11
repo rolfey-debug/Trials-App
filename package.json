@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "tsx test/parsers.test.ts"
+    "test": "tsx test/parsers.test.ts && tsx test/groundwork.test.ts",
+    "products:build": "node shared/products/build-products.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.2",
