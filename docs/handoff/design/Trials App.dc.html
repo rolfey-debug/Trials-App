@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EDEEED;font-family:'Mulish',Arial,sans-serif;color:#141414}
+a{color:#007749;text-decoration:none}a:hover{color:#00623C;text-decoration:underline}
+.dv-turn{padding:36px 40px 30px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 16px}
+.dv-tid{font:600 10px 'IBM Plex Mono',monospace;padding:3px 7px;background:#141414;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:700 13px/1.2 'Mulish',sans-serif;color:#141414}
+.dv-opts{display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px 'IBM Plex Mono',monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#141414;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 'Mulish',sans-serif;color:rgba(0,0,0,.55)}
+.dv-opt:target .dv-oid{background:#007749;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 'Mulish',sans-serif;color:rgba(0,0,0,.5)}
+</style>
+</helmet>
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">The full app — login &amp; roles, site setup, grower details, photos, storage, reports</span></div>
+<div style="max-width:780px;background:#fff;border:1px solid #DDE0DD;border-radius:12px;padding:18px 22px;margin:0 0 24px;font-size:12.5px;line-height:1.55;color:#3E403E">
+<div style="font-weight:700;font-size:13px;color:#141414;margin-bottom:6px">Seven new screens — the app is now handoff-complete</div>
+<a href="#3a">3a</a> login (role decides what you see) · <a href="#3b">3b</a> site setup — mark two GPS corners at pegging and every plot gets a footprint · <a href="#3c">3c</a> grower + paddock details incl. fertiliser applications · <a href="#3d">3d</a> geo-tagged plot photos · <a href="#3e">3e</a> storage &amp; sync (phone-first, portal keeps the master copy) · <a href="#3f">3f</a> team &amp; access — invite chem reps with a limited, coded view · <a href="#3g">3g</a> reports &amp; export with blind codes for rep copies.
+<div style="font-weight:700;font-size:13px;color:#141414;margin:12px 0 6px">Every phone is fully tappable</div>
+Each one runs the whole app — use the bottom tabs or links to wander off its labelled screen. Turn 2's phones (below) show the field flows: assessing, the map, spray day, issues.
+<div style="font-weight:700;font-size:13px;color:#141414;margin:12px 0 6px">Next step when you're happy</div>
+Say the word and I'll produce the <b>Claude Code handoff package</b> — screens, data model, GPS + sync + access rules, ready to build as the portal.
+</div>
+<div class="dv-opts">
+<div class="dv-opt" id="3a"><div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Login — role sets the view</div><dc-import name="Phone" start="login" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="3b"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Site setup — two GPS corners lay the grid</div><dc-import name="Phone" start="setup" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="3c"><div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Site details — grower, sowing, fertiliser</div><dc-import name="Phone" start="site" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="3d"><div class="dv-olabel"><a class="dv-oid" href="#3d">3d</a>Plot photos — geo-tagged, filterable</div><dc-import name="Phone" start="photos" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="3e"><div class="dv-olabel"><a class="dv-oid" href="#3e">3e</a>Storage &amp; sync — phone first, portal master</div><dc-import name="Phone" start="storage" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="3f"><div class="dv-olabel"><a class="dv-oid" href="#3f">3f</a>Team &amp; access — limited rep logins</div><dc-import name="Phone" start="team" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="3g"><div class="dv-olabel"><a class="dv-oid" href="#3g">3g</a>Reports &amp; export — blind codes for reps</div><dc-import name="Phone" start="reports" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+</div>
+<p class="dv-next">Try next: "build the handoff package" · "dark high-vis mode" · "grower's view of the portal" · "photo timeline for one plot"</p>
+</section>
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">AGnVET brand + spray issues, species lists, trial import</span></div>
+<div style="max-width:780px;background:#fff;border:1px solid #DDE0DD;border-radius:12px;padding:18px 22px;margin:0 0 24px;font-size:12.5px;line-height:1.55;color:#3E403E">
+<div style="display:flex;gap:14px;align-items:center;margin-bottom:10px">
+<div style="font:800 20px 'Mulish';color:#007749">AGnVET <span style="color:#141414;font-weight:700">Trial Work</span></div>
+<div style="display:flex;gap:5px"><span style="width:16px;height:16px;border-radius:4px;background:#007749"></span><span style="width:16px;height:16px;border-radius:4px;background:#cf4520"></span><span style="width:16px;height:16px;border-radius:4px;background:#58585B"></span><span style="width:16px;height:16px;border-radius:4px;background:#fff;border:1px solid #DDD"></span></div>
+</div>
+Styled to your May 2026 guidelines: FIELD <b style="color:#007749">#007749</b> primary, LAND BURNT <b style="color:#cf4520">#cf4520</b> for issues/alerts, grey #58585B, white surfaces. Proxima Nova isn't web-licensed here — <b>Mulish</b> stands in (Arial is your approved electronic fallback); the wordmark is text for now — drop in the logo JPG from <span style="font-family:'IBM Plex Mono',monospace;font-size:11px">Docs Marketing AVS/Logos/</span> and it replaces it.
+<div style="font-weight:700;font-size:13px;color:#141414;margin:12px 0 6px">This round</div>
+<a href="#2e">2e</a> spray issues + the wrong-plot fix (mirrors your ARM correction log — try resolving plot 505) · <a href="#2b">2b</a> disease/weed/crop pick-lists behind the score chips · <a href="#2f">2f</a> upload a trial from protocol / mixing plan / spray map / ARM · map (<a href="#2c">2c</a>) shows issues. Round 1 archived: <a href="Trials%20App%20v1.dc.html">Trials App v1</a>.
+</div>
+<div class="dv-opts">
+<div class="dv-opt" id="2a"><div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Today — AGnVET brand + add trial</div><dc-import name="Phone" start="home" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="2b"><div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Assess — pick-list measures + pad (deep flow)</div><dc-import name="Phone" start="assess" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="2c"><div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Map — issue on 505, marginal 702/802</div><dc-import name="Phone" start="map" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="2d"><div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Spray day — mix · order · record</div><dc-import name="Phone" start="spray" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="2e"><div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a>Spray issues — fix the wrong plot here</div><dc-import name="Phone" start="spray:issues" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="2f"><div class="dv-olabel"><a class="dv-oid" href="#2f">2f</a>Add a trial — import from your files</div><dc-import name="Phone" start="add" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+<div class="dv-opt" id="2g"><div class="dv-olabel"><a class="dv-oid" href="#2g">2g</a>Field-day walk — Rep 1 in order</div><dc-import name="Phone" start="walk" blind-default="{{ tBlind }}" gps-accuracy="{{ tGps }}" hint-size="428px,910px"></dc-import></div>
+</div>
+<p class="dv-next">Try next: "report + export screens" · "dark high-vis mode" · "let Log issue take a photo" · "left-handed pad"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;blindDefault&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Assessing&quot;}, &quot;gpsAccuracy&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 4, &quot;min&quot;: 2, &quot;max&quot;: 12, &quot;step&quot;: 1, &quot;unit&quot;: &quot;m&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;GPS&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tBlind: !!(this.props.blindDefault ?? false),
+      tGps: Number(this.props.gpsAccuracy ?? 4)
+    };
+  }
+}
+</script>
+</body>
+</html>

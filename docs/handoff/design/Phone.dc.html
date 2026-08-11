@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EDEEED;font-family:'Mulish',Arial,sans-serif;color:#141414}
+a{color:#007749;text-decoration:none}a:hover{color:#00623C;text-decoration:underline}
+@keyframes gpsPulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="428px,910px">
+<div style="height:100%;display:flex;flex-direction:column;background:#F4F5F4;color:#141414;font-family:'Mulish',Arial,sans-serif;overflow:hidden;padding-top:62px;box-sizing:border-box">
+
+<sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ goHome }}" style="padding:2px 16px 6px;font-size:13px;font-weight:700;color:#007749;cursor:pointer">‹ Today</div>
+</sc-if>
+
+<sc-if value="{{ sLogin }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:34px 22px 20px;display:flex;flex-direction:column">
+  <div style="font-size:31px;font-weight:800;letter-spacing:-0.3px;margin-top:26px"><span style="color:#007749">AGnVET</span> Trial Work</div>
+  <div style="font-size:13px;color:#58585B;margin:4px 0 26px">Spray · assess · present — from the plot</div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:16px;padding:16px;margin-bottom:14px">
+    <div style="font-size:10px;color:#8A8C8A;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px">Email</div>
+    <div style="font:500 14px 'IBM Plex Mono',monospace;padding:10px 12px;background:#F4F5F4;border-radius:9px;margin-bottom:12px">andrew.rolfe@agnvet.com.au</div>
+    <div style="font-size:10px;color:#8A8C8A;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:3px">Password</div>
+    <div style="font:500 14px 'IBM Plex Mono',monospace;padding:10px 12px;background:#F4F5F4;border-radius:9px;margin-bottom:14px;letter-spacing:3px">••••••••••</div>
+    <div onClick="{{ signIn }}" style="background:#007749;color:#fff;border-radius:11px;padding:14px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">Sign in</div>
+    <div style="text-align:center;padding:10px;font-size:12.5px;font-weight:700;color:#007749">Email me a sign-in link instead</div>
+  </div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:12px;padding:11px 14px;font-size:11.5px;color:#58585B;line-height:1.55;margin-bottom:8px">Your login sets what you see — <b style="color:#141414">trials team</b> gets everything, <b style="color:#141414">growers</b> their own site, <b style="color:#141414">chem reps</b> a limited view you control.</div>
+  <div style="font-size:11px;color:#8A8C8A;text-align:center;margin-top:auto">Works offline once signed in — syncs when you're back in signal</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sHome }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;overflow:auto;padding:10px 16px 12px">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+    <div><div style="font-size:23px;font-weight:800;letter-spacing:-0.2px"><span style="color:#007749">AGnVET</span> Trials</div><div style="font-size:12px;color:#58585B">Tue 11 Aug · 2026 season</div></div>
+    <div style="display:flex;align-items:center;gap:6px;background:#E3F1EA;border-radius:99px;padding:5px 10px;margin-top:4px"><div style="width:7px;height:7px;border-radius:50%;background:#007749;animation:gpsPulse 1.6s infinite"></div><span style="font:500 11px 'IBM Plex Mono',monospace;color:#00623C">{{ gpsPill }}</span></div>
+  </div>
+  <div style="background:#fff;border:1.5px solid #007749;border-radius:16px;padding:16px 16px 14px;margin-bottom:10px">
+    <div style="font:600 10px 'IBM Plex Mono',monospace;color:#007749;letter-spacing:.08em;margin-bottom:4px">NEAREST · 40 M — YOU'RE STANDING IN IT</div>
+    <div style="font-size:19px;font-weight:800;line-height:1.2">Matong — Wheat Fungicide</div>
+    <div style="font-size:12px;color:#58585B;margin:3px 0 10px">24 treatments · 3 reps · 72 plots · 2 × 12 m · 100 L/ha</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;margin-bottom:12px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:50%;background:#007749;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span>App A sprayed — 6 Aug · <span style="color:#cf4520;font-weight:700">{{ issueCount }}</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:50%;background:#cf4520;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700">!</span>Assessment 1 — open now (14–21 DAA)</div>
+      <div style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid #B9BBB9;box-sizing:border-box"></span>App B — at GS39</div>
+    </div>
+    <div onClick="{{ goAssess }}" style="background:#007749;color:#fff;border-radius:12px;padding:14px;text-align:center;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">{{ resumeLbl }}</div>
+    <div style="display:flex;justify-content:center;gap:7px;font-size:12px;font-weight:700;color:#007749">
+      <span onClick="{{ goSite }}" style="cursor:pointer">Site details</span><span style="color:#D6D7D6">·</span>
+      <span onClick="{{ goPhotos }}" style="cursor:pointer">Photos</span><span style="color:#D6D7D6">·</span>
+      <span onClick="{{ goReports }}" style="cursor:pointer">Reports</span><span style="color:#D6D7D6">·</span>
+      <span onClick="{{ goTeam }}" style="cursor:pointer">Team</span>
+    </div>
+  </div>
+  <div onClick="{{ goStorage }}" style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E4E4E6;border-radius:11px;padding:9px 13px;margin-bottom:14px;cursor:pointer">
+    <div style="width:7px;height:7px;border-radius:50%;background:#cf4520"></div>
+    <div style="flex:1;font-size:11.5px;color:#3E403E">{{ syncLine }}</div>
+    <div style="font-size:11px;font-weight:700;color:#007749">Sync ›</div>
+  </div>
+  <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 0 8px">ALL TRIALS</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:14px;font-weight:700">Junee Reefs — Knockdown</div><div style="font-size:11.5px;color:#58585B">28 trts · Assessment 2 done</div></div><span style="font:500 10.5px 'IBM Plex Mono',monospace;background:#E3F1EA;color:#00623C;padding:4px 8px;border-radius:6px">REPORT</span></div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:14px;font-weight:700">Junee — Pre-em Wheat + Canola</div><div style="font-size:11.5px;color:#58585B">192 plots · Count 2 in progress</div></div><span style="font:500 10.5px 'IBM Plex Mono',monospace;background:#EEEFEE;color:#58585B;padding:4px 8px;border-radius:6px">42–56 DAB</span></div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:14px;font-weight:700">Corowa (Ringwood) — Wheat Fungicide</div><div style="font-size:11.5px;color:#58585B">Sequential A + B design</div></div><span style="font:500 10.5px 'IBM Plex Mono',monospace;background:#EEEFEE;color:#58585B;padding:4px 8px;border-radius:6px">APP A</span></div>
+  </div>
+  <div onClick="{{ goAdd }}" style="border:1.5px dashed #B9BBB9;border-radius:13px;padding:12px;text-align:center;font-size:13px;font-weight:700;color:#007749;cursor:pointer">＋ Add a trial — import protocol, map or ARM file</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sAssess }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:8px 14px 8px;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:8px;background:{{ assess.gpsBg }};border-radius:10px;padding:8px 12px;margin-bottom:8px">
+    <div style="width:8px;height:8px;border-radius:50%;background:{{ assess.gpsDot }};animation:gpsPulse 1.6s infinite"></div>
+    <div style="flex:1;font-size:12px;font-weight:600;color:{{ assess.gpsInk }}">{{ assess.gpsTxt }}</div>
+    <div style="font:500 10.5px 'IBM Plex Mono',monospace;color:{{ assess.gpsInk }}">{{ gpsAccTxt }}</div>
+  </div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:14px;padding:12px 14px 11px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font:700 32px 'IBM Plex Mono',monospace;letter-spacing:-1px">{{ assess.pid }}</div>
+      <div onClick="{{ assess.onBlind }}" style="cursor:pointer;font-size:11px;font-weight:700;padding:6px 11px;border-radius:99px;background:{{ assess.blindBg }};color:{{ assess.blindInk }}">{{ assess.blindLbl }}</div>
+    </div>
+    <div style="display:flex;gap:5px;margin:2px 0 8px">
+      <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">{{ assess.repLbl }}</span>
+      <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">{{ assess.rowLbl }}</span>
+      <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">{{ assess.posLbl }}</span>
+    </div>
+    <sc-if value="{{ assess.blind }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#EEEFEE;border-radius:8px;padding:8px 10px;font-size:12px;color:#58585B">Treatment hidden — blind scoring on</div>
+    </sc-if>
+    <sc-if value="{{ assess.notBlind }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:14.5px;font-weight:700;color:#007749">{{ assess.trtLbl }}</div>
+      <div style="font-size:11.5px;color:#58585B;margin-top:1px">{{ assess.prodLbl }}</div>
+    </sc-if>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin:0 2px 6px">
+    <div style="flex:1;height:4px;background:#E0E1E0;border-radius:2px;overflow:hidden"><div style="{{ assess.progSt }}"></div></div>
+    <div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#58585B">{{ assess.progTxt }}</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 5px">
+    <span style="font:600 9.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em">{{ assess.msLbl }}</span>
+    <span onClick="{{ assess.onEditMs }}" style="font-size:11px;font-weight:700;color:#007749;cursor:pointer">{{ assess.editLbl }}</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+    <sc-for list="{{ assess.fields }}" as="fd" hint-placeholder-count="2">
+      <div onClick="{{ fd.on }}" style="{{ fd.st }}">
+        <div style="font-size:11px;font-weight:700;color:{{ fd.lblInk }};white-space:nowrap">{{ fd.lbl }}</div>
+        <div style="font:600 24px 'IBM Plex Mono',monospace;margin-top:1px">{{ fd.val }}<span style="font-size:12px;color:#8A8C8A"> {{ fd.unit }}</span></div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ assess.showPad }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <div onClick="{{ assess.onPhoto }}" style="flex:1;text-align:center;padding:9px 0;border-radius:9px;border:1px solid #E4E4E6;background:{{ assess.phBg }};font-size:11.5px;font-weight:700;color:#3E403E;cursor:pointer">{{ assess.phLbl }}</div>
+      <div onClick="{{ assess.onVoice }}" style="flex:1;text-align:center;padding:9px 0;border-radius:9px;border:1px solid #E4E4E6;background:{{ assess.vcBg }};font-size:11.5px;font-weight:700;color:{{ assess.vcInk }};cursor:pointer;{{ assess.vcAnim }}">{{ assess.vcLbl }}</div>
+      <div onClick="{{ assess.onNote }}" style="flex:1;text-align:center;padding:9px 0;border-radius:9px;border:1px solid #E4E4E6;background:{{ assess.ntBg }};font-size:11.5px;font-weight:700;color:#3E403E;cursor:pointer">{{ assess.ntLbl }}</div>
+    </div>
+    <sc-if value="{{ assess.flash }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:11.5px;color:#00623C;margin:0 2px 6px">{{ assess.flash }}</div>
+    </sc-if>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <sc-for list="{{ assess.pads }}" as="pk" hint-placeholder-count="12">
+        <div onClick="{{ pk.on }}" style="{{ pk.st }}">{{ pk.t }}</div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:auto">
+      <div onClick="{{ assess.onSame }}" style="flex:1;text-align:center;padding:15px 0;border-radius:12px;border:1.5px solid #D6D7D6;font-size:13px;font-weight:700;color:#3E403E;cursor:pointer;background:#fff">Same as last</div>
+      <div onClick="{{ assess.onSave }}" style="flex:1.4;text-align:center;padding:15px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer">{{ assess.saveLbl }}</div>
+    </div>
+    <div onClick="{{ assess.onPrev }}" style="text-align:center;font:500 11px 'IBM Plex Mono',monospace;color:#8A8C8A;padding:7px 0 2px;cursor:pointer">{{ assess.prevLbl }}</div>
+  </sc-if>
+  <sc-if value="{{ assess.msOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:14px;padding:12px 14px;margin-bottom:8px;flex:1;overflow:auto">
+      <div style="font-size:13px;font-weight:800;margin-bottom:2px">What are we scoring?</div>
+      <div style="font-size:11px;color:#58585B;margin-bottom:10px">Saved per trial — these become the chips above and the columns in your export.</div>
+      <sc-for list="{{ assess.msGroups }}" as="mg" hint-placeholder-count="3">
+        <div style="font:600 9.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:8px 0 5px">{{ mg.t }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          <sc-for list="{{ mg.items }}" as="mi" hint-placeholder-count="5">
+            <div onClick="{{ mi.on }}" style="{{ mi.st }}">{{ mi.t }}<span style="font-size:9px;opacity:.65"> {{ mi.u }}</span></div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <div onClick="{{ assess.onEditMs }}" style="text-align:center;padding:14px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Done — back to scoring</div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ sMap }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:10px 14px 12px">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Spray map — Matong</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:10px">12 rows × 8 positions · reps run as vertical bands</div>
+  <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+    <sc-for list="{{ map.legend }}" as="lg" hint-placeholder-count="4">
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#58585B;background:#fff;border:1px solid #E4E4E6;border-radius:6px;padding:3px 6px"><span style="{{ lg.sw }}"></span>{{ lg.t }}</span>
+    </sc-for>
+  </div>
+  <div style="display:flex;margin-bottom:3px;padding-left:24px">
+    <div style="flex:2;text-align:center;font:500 9.5px 'IBM Plex Mono',monospace;color:#00623C;background:#E3F1EA;border-radius:4px;padding:2px 0;margin-right:2px">REP 1</div>
+    <div style="flex:3;text-align:center;font:500 9.5px 'IBM Plex Mono',monospace;color:#58585B;background:#EEEFEE;border-radius:4px;padding:2px 0;margin-right:2px">REP 2</div>
+    <div style="flex:3;text-align:center;font:500 9.5px 'IBM Plex Mono',monospace;color:#58585B;background:#EEEFEE;border-radius:4px;padding:2px 0">REP 3</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:2px">
+    <sc-for list="{{ map.rows }}" as="mr" hint-placeholder-count="12">
+      <div style="display:flex;gap:2px;align-items:center">
+        <div style="width:22px;font:500 9.5px 'IBM Plex Mono',monospace;color:#8A8C8A">{{ mr.r }}</div>
+        <sc-for list="{{ mr.cells }}" as="cl" hint-placeholder-count="8">
+          <div onClick="{{ cl.on }}" style="{{ cl.st }}">{{ cl.t }}</div>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ map.sheet }}" hint-placeholder-val="{{ false }}">
+    <div style="position:sticky;bottom:0;margin-top:12px;background:#fff;border:1px solid #D6D7D6;border-radius:16px;padding:14px 16px;box-shadow:0 -6px 20px rgba(20,20,20,.09)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <div style="font:700 20px 'IBM Plex Mono',monospace">{{ map.shPid }}</div>
+        <div onClick="{{ map.onClose }}" style="font-size:11px;font-weight:700;color:#8A8C8A;cursor:pointer;padding:4px 6px">CLOSE ✕</div>
+      </div>
+      <div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#58585B;margin-bottom:7px">{{ map.shMeta }}</div>
+      <sc-if value="{{ map.shTrt }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:14px;font-weight:700;color:#007749">{{ map.shTrt }}</div>
+        <div style="font-size:11.5px;color:#58585B;margin-bottom:6px">{{ map.shProd }}</div>
+      </sc-if>
+      <sc-for list="{{ map.shLines }}" as="ln" hint-placeholder-count="2">
+        <div style="font-size:12px;color:#3E403E;padding:2px 0">{{ ln.t }}</div>
+      </sc-for>
+      <sc-if value="{{ map.shCanFlag }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ map.onFlag }}" style="margin-top:8px;text-align:center;padding:10px 0;border-radius:10px;border:1.5px solid #cf4520;color:#cf4520;font-size:12.5px;font-weight:700;cursor:pointer">⚑ Log spray issue on {{ map.shPid }}</div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ sSpray }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:10px 14px 12px">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Spray day — App A</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:10px">6 Aug 2026 · hand boom 2 m · 100 L/ha · 240 mL/plot</div>
+  <div style="display:flex;background:#E0E1E0;border-radius:10px;padding:3px;margin-bottom:12px">
+    <sc-for list="{{ spray.tabs }}" as="tb" hint-placeholder-count="4">
+      <div onClick="{{ tb.on }}" style="{{ tb.st }}">{{ tb.t }}</div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ spray.isMix }}" hint-placeholder-val="{{ true }}">
+    <div style="background:#E3F1EA;border-radius:10px;padding:9px 12px;font-size:11.5px;color:#00623C;margin-bottom:10px"><b>1.5 L bottle per treatment</b> · covers 3 reps + overage. Adjuvant last, agitate. Under 2 mL — use a syringe.</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 7px"><span style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em">MIX CHECKLIST</span><span style="font:600 11px 'IBM Plex Mono',monospace;color:#007749">{{ spray.mixProg }}</span></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <sc-for list="{{ spray.mixItems }}" as="mi" hint-placeholder-count="6">
+        <div onClick="{{ mi.on }}" style="{{ mi.st }}">
+          <div style="{{ mi.ckSt }}">{{ mi.ck }}</div>
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">{{ mi.name }}</div><div style="font-size:11px;color:#58585B">{{ mi.sub }}</div></div>
+          <div style="font:500 10px 'IBM Plex Mono',monospace;color:#8A8C8A">{{ mi.tn }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ spray.isOrder }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#E3F1EA;border-radius:10px;padding:9px 12px;font-size:11.5px;color:#00623C;margin-bottom:10px"><b>Water first</b> — clean boom for T1, then work down. Each bottle sprays its 3 plots before the next mix.</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <sc-for list="{{ spray.orderItems }}" as="oi" hint-placeholder-count="8">
+        <div onClick="{{ oi.on }}" style="{{ oi.st }}">
+          <div style="{{ oi.ckSt }}">{{ oi.ck }}</div>
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">{{ oi.name }}</div><div style="font:500 11px 'IBM Plex Mono',monospace;color:#58585B">{{ oi.plots }}</div></div>
+          <sc-if value="{{ oi.aOnly }}" hint-placeholder-val="{{ false }}"><span style="font:600 9px 'IBM Plex Mono',monospace;background:#EEEFEE;color:#58585B;padding:3px 6px;border-radius:5px">A ONLY</span></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ spray.isRec }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+      <sc-for list="{{ spray.rec }}" as="rc" hint-placeholder-count="8">
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:9px 12px"><div style="font-size:10px;color:#8A8C8A;font-weight:700;letter-spacing:.04em;text-transform:uppercase">{{ rc.k }}</div><div style="font:500 14px 'IBM Plex Mono',monospace;margin-top:2px">{{ rc.v }}</div></div>
+      </sc-for>
+    </div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:10px 12px;font-size:12px;color:#3E403E"><b style="font-size:11px;color:#8A8C8A;letter-spacing:.04em">NOTES</b><br>Conditions auto-filled from phone GPS + BOM at start of run. App B gets its own record at GS39.</div>
+  </sc-if>
+  <sc-if value="{{ spray.isIssues }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#FAE8E1;border-radius:10px;padding:9px 12px;font-size:11.5px;color:#A93414;margin-bottom:10px">Anything off-plan gets logged here on the spot — and lands in the <b>correction log</b> so the analysis stays honest.</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+      <sc-for list="{{ spray.issues }}" as="iu" hint-placeholder-count="2">
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:12px;padding:11px 13px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+            <div style="display:flex;gap:8px;align-items:baseline"><span style="font:700 14px 'IBM Plex Mono',monospace">{{ iu.pid }}</span><span style="font-size:12.5px;font-weight:800;color:#cf4520">{{ iu.type }}</span></div>
+            <span style="{{ iu.chipSt }}">{{ iu.chip }}</span>
+          </div>
+          <div style="font-size:12px;color:#3E403E;line-height:1.45">{{ iu.txt }}</div>
+          <div style="font:400 10px 'IBM Plex Mono',monospace;color:#8A8C8A;margin-top:3px">{{ iu.when }}</div>
+          <sc-if value="{{ iu.open }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px">
+              <sc-for list="{{ iu.fixes }}" as="fx" hint-placeholder-count="2">
+                <div onClick="{{ fx.on }}" style="{{ fx.st }}">{{ fx.t }}</div>
+              </sc-for>
+              <div style="font-size:10.5px;color:#8A8C8A">Either way it writes to the correction log.</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ iu.fix }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:8px;background:#E3F1EA;border-radius:8px;padding:7px 10px;font-size:11.5px;font-weight:700;color:#00623C">✓ {{ iu.fix }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ spray.corr }}" hint-placeholder-val="{{ false }}">
+      <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 2px 6px">CORRECTION LOG</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
+        <sc-for list="{{ spray.corrLines }}" as="cr" hint-placeholder-count="2">
+          <div style="background:#fff;border:1px solid #E4E4E6;border-radius:9px;padding:8px 11px;font:500 11px 'IBM Plex Mono',monospace;color:#3E403E">{{ cr.t }}</div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="font-size:11px;color:#8A8C8A;margin:0 2px">To flag a new one: open the <b>Map</b>, tap the plot, ⚑ Log spray issue.</div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ sAdd }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:4px 16px 12px;display:flex;flex-direction:column">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Add a trial</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:12px">Point it at the files you already make — it builds the trial</div>
+  <sc-if value="{{ add.s0 }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <sc-for list="{{ add.sources }}" as="sr" hint-placeholder-count="5">
+        <div onClick="{{ sr.on }}" style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:13px 15px;cursor:pointer">
+          <div style="font-size:14px;font-weight:800;color:#007749">{{ sr.t }}</div>
+          <div style="font-size:11.5px;color:#58585B;margin-top:1px">{{ sr.s }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ add.s1 }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:14px;padding:22px 18px;text-align:center;animation:gpsPulse 1.2s infinite">
+      <div style="font:600 12px 'IBM Plex Mono',monospace;color:#007749;margin-bottom:4px">READING…</div>
+      <div style="font-size:13px;color:#3E403E">Matong_Wheat_Spray_Map.pdf<br>finding the grid, reps and OUT plots</div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ add.s2 }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1.5px solid #007749;border-radius:14px;padding:14px 16px;margin-bottom:10px">
+      <div style="font:600 10px 'IBM Plex Mono',monospace;color:#007749;letter-spacing:.08em;margin-bottom:4px">FOUND IN {{ add.src }}</div>
+      <div style="font-size:17px;font-weight:800">Matong — Wheat Fungicide</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 10px">
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">24 TREATMENTS</span>
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">3 REPS · RCB</span>
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">96 POSITIONS</span>
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#FAE8E1;padding:3px 7px;border-radius:5px;color:#A93414">5 OUT · 2 MARGINAL</span>
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">A + B TIMINGS</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:10px">
+        <sc-for list="{{ add.mini }}" as="mr" hint-placeholder-count="12">
+          <div style="display:flex;gap:2px">
+            <sc-for list="{{ mr.cells }}" as="mc" hint-placeholder-count="8">
+              <div style="{{ mc }}"></div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size:11.5px;color:#58585B;line-height:1.5">T1 Untreated · T2 Aviator Xpro · T3 Elatus Ace · T4 Opera … +20 more · reserves at 703/803 honoured</div>
+    </div>
+    <div onClick="{{ add.onConfirm }}" style="text-align:center;padding:14px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:7px">Looks right — create trial</div>
+    <div style="text-align:center;padding:11px 0;border-radius:12px;border:1.5px solid #D6D7D6;font-size:12.5px;font-weight:700;color:#3E403E;background:#fff">Fix mapping first</div>
+  </sc-if>
+  <sc-if value="{{ add.s3 }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:14px;padding:22px 18px;text-align:center;margin-bottom:10px">
+      <div style="width:44px;height:44px;border-radius:50%;background:#007749;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">✓</div>
+      <div style="font-size:16px;font-weight:800;margin-bottom:3px">Matong — Wheat Fungicide added</div>
+      <div style="font-size:12px;color:#58585B;line-height:1.5">On Today for the whole team · Assessment 1 scheduled 14–21 DAA</div>
+    </div>
+    <div onClick="{{ goSetup }}" style="text-align:center;padding:14px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:7px">Next: map the site with GPS →</div>
+    <div onClick="{{ goHome }}" style="text-align:center;padding:11px 0;border-radius:12px;border:1.5px solid #D6D7D6;font-size:12.5px;font-weight:700;color:#3E403E;background:#fff;cursor:pointer">Later — open Today</div>
+  </sc-if>
+  <sc-if value="{{ add.notS0 }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ add.onReset }}" style="text-align:center;font:500 11px 'IBM Plex Mono',monospace;color:#8A8C8A;padding:10px 0 2px;cursor:pointer;margin-top:auto">↩ start over with a different file</div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ sSetup }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:4px 16px 12px;display:flex;flex-direction:column">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Map the site — Matong</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:12px">Two corners set the whole grid · do it once, at pegging</div>
+  <sc-if value="{{ setup.s0 }}" hint-placeholder-val="{{ true }}">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:14px;padding:16px;margin-bottom:10px">
+      <div style="font:600 10px 'IBM Plex Mono',monospace;color:#007749;letter-spacing:.08em;margin-bottom:5px">STEP 1 OF 2</div>
+      <div style="font-size:15px;font-weight:800;line-height:1.35;margin-bottom:6px">Stand on the front-left corner of Plot 101 — Row 1, Pos 1 — and hold still.</div>
+      <div style="font-size:12px;color:#58585B;line-height:1.5">The phone averages ~30 s of GPS fixes, so the pin lands well inside the ±{{ gpsAccN }} m a single fix gives you.</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;background:#E3F1EA;border-radius:10px;padding:8px 12px;margin-bottom:10px"><div style="width:8px;height:8px;border-radius:50%;background:#007749;animation:gpsPulse 1.6s infinite"></div><div style="font-size:12px;font-weight:600;color:#00623C">Averaging fixes… ±2.8 m and tightening</div></div>
+    <div onClick="{{ setup.onMarkA }}" style="text-align:center;padding:15px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Mark corner A</div>
+  </sc-if>
+  <sc-if value="{{ setup.s1 }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:14px;padding:16px;margin-bottom:10px">
+      <div style="font:600 10px 'IBM Plex Mono',monospace;color:#007749;letter-spacing:.08em;margin-bottom:5px">STEP 2 OF 2</div>
+      <div style="font-size:15px;font-weight:800;line-height:1.35;margin-bottom:6px">Walk the front edge to the far end — past Pos 8 — and mark again.</div>
+      <div style="font-size:12px;color:#58585B;line-height:1.5">The A→B line gives the bearing; plot sizes from the trial spec lay out the rest of the grid.</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:9px 12px;margin-bottom:10px;font:500 11px 'IBM Plex Mono',monospace;color:#3E403E">✓ Corner A locked · 34.7085° S, 146.9241° E · ±1.9 m</div>
+    <div onClick="{{ setup.onMarkB }}" style="text-align:center;padding:15px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Mark corner B</div>
+  </sc-if>
+  <sc-if value="{{ setup.s2 }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1.5px solid #007749;border-radius:14px;padding:14px 16px;margin-bottom:10px">
+      <div style="font:600 10px 'IBM Plex Mono',monospace;color:#007749;letter-spacing:.08em;margin-bottom:6px">GRID LAID FROM 2 CORNERS</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">BEARING 287°</span>
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">FRONT EDGE 16.4 M</span>
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">12 ROWS × 12 M</span>
+        <span style="font:500 10px 'IBM Plex Mono',monospace;background:#EEEFEE;padding:3px 7px;border-radius:5px;color:#58585B">PLOTS 2 × 12 M</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px">
+        <sc-for list="{{ add.mini }}" as="mr" hint-placeholder-count="12">
+          <div style="display:flex;gap:2px">
+            <sc-for list="{{ mr.cells }}" as="mc" hint-placeholder-count="8">
+              <div style="{{ mc }}"></div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size:11.5px;color:#58585B;line-height:1.5">Every plot now has a GPS footprint — standing in one brings it up. OUT positions stay off; reserves keep theirs.</div>
+    </div>
+    <div onClick="{{ setup.onPin }}" style="text-align:center;padding:14px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:7px">Looks right — pin the grid</div>
+    <div onClick="{{ setup.onRedo }}" style="text-align:center;padding:11px 0;border-radius:12px;border:1.5px solid #D6D7D6;font-size:12.5px;font-weight:700;color:#3E403E;background:#fff;cursor:pointer">Re-mark the corners</div>
+  </sc-if>
+  <sc-if value="{{ setup.s3 }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:14px;padding:22px 18px;text-align:center;margin-bottom:10px">
+      <div style="width:44px;height:44px;border-radius:50%;background:#007749;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">✓</div>
+      <div style="font-size:16px;font-weight:800;margin-bottom:3px">Site mapped</div>
+      <div style="font-size:12px;color:#58585B;line-height:1.5">Average fix error ±1.9 m after averaging · plots surface by GPS from now on · corners saved to the portal</div>
+    </div>
+    <div onClick="{{ goHome }}" style="text-align:center;padding:14px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Done</div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ sSite }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:4px 16px 12px">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Site — Matong</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:12px">Cooperator + paddock context — flows straight into the report</div>
+  <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 0 6px">COOPERATOR</div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:4px 14px;margin-bottom:12px">
+    <sc-for list="{{ site.coop }}" as="kv" hint-placeholder-count="4">
+      <div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #F0F1F0"><span style="font-size:11.5px;color:#8A8C8A">{{ kv.k }}</span><span style="font-size:12.5px;font-weight:700;text-align:right">{{ kv.v }}</span></div>
+    </sc-for>
+  </div>
+  <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 0 6px">PADDOCK &amp; SOWING</div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:4px 14px;margin-bottom:12px">
+    <sc-for list="{{ site.pad }}" as="kv" hint-placeholder-count="4">
+      <div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #F0F1F0"><span style="font-size:11.5px;color:#8A8C8A">{{ kv.k }}</span><span style="font-size:12.5px;font-weight:700;text-align:right">{{ kv.v }}</span></div>
+    </sc-for>
+  </div>
+  <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 0 6px">FERTILISER &amp; PADDOCK INPUTS</div>
+  <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
+    <sc-for list="{{ site.fert }}" as="fe" hint-placeholder-count="2">
+      <div style="background:#fff;border:1px solid #E4E4E6;border-radius:11px;padding:10px 13px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:13px;font-weight:700">{{ fe.t }}</div><div style="font-size:11px;color:#58585B">{{ fe.s }}</div></div><span style="font:500 10px 'IBM Plex Mono',monospace;color:#8A8C8A">{{ fe.d }}</span></div>
+    </sc-for>
+  </div>
+  <div onClick="{{ site.onAddFert }}" style="border:1.5px dashed #B9BBB9;border-radius:11px;padding:10px;text-align:center;font-size:12.5px;font-weight:700;color:#007749;cursor:pointer;margin-bottom:12px">＋ Add application</div>
+  <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 0 6px">SITE NOTES</div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:11px 14px;font-size:12.5px;color:#3E403E;line-height:1.55">Waterlogged patch rows 10–11, pos 3–5 — the OUT plots. Watch 702 / 802 (marginal, reserves held at 703 / 803). Blocking runs across the rows this year.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sPhotos }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:4px 16px 12px">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Plot photos — Matong</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:10px">Geo-tagged to the plot from GPS + walk order</div>
+  <div style="display:flex;gap:5px;margin-bottom:10px">
+    <sc-for list="{{ photos.filters }}" as="pf" hint-placeholder-count="3">
+      <div onClick="{{ pf.on }}" style="{{ pf.st }}">{{ pf.t }}</div>
+    </sc-for>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+    <sc-for list="{{ photos.tiles }}" as="pt" hint-placeholder-count="9">
+      <div style="{{ pt.st }}">
+        <div style="{{ pt.flagSt }}"></div>
+        <div style="margin-top:auto;background:rgba(20,20,20,.72);padding:4px 7px"><div style="font:600 10px 'IBM Plex Mono',monospace;color:#fff">{{ pt.pid }} · {{ pt.trt }}</div><div style="font:400 9px 'IBM Plex Mono',monospace;color:rgba(255,255,255,.75)">{{ pt.d }}</div></div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:12px;padding:11px 14px;font-size:11.5px;color:#58585B;line-height:1.6"><b style="color:#141414">Storage:</b> compressed to ~300 KB on the phone so a season fits easily; full-res originals upload on Wi-Fi and file themselves in the portal by trial › plot › date. Same plot across visits becomes a timeline for the report.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sStorage }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:4px 16px 12px">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Storage &amp; sync</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:12px">Phone first, portal second — signal never blocks scoring</div>
+  <sc-if value="{{ stor.pending }}" hint-placeholder-val="{{ true }}">
+    <div style="background:#fff;border:1.5px solid #cf4520;border-radius:14px;padding:14px 16px;margin-bottom:10px">
+      <div style="font:600 10px 'IBM Plex Mono',monospace;color:#cf4520;letter-spacing:.08em;margin-bottom:4px">WAITING FOR SIGNAL</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:2px">3 assessments · 21 photos (6.2 MB)</div>
+      <div style="font-size:11.5px;color:#58585B;margin-bottom:10px">Saved safely on this phone — nothing is lost. Uploads itself when signal returns.</div>
+      <div onClick="{{ stor.onSync }}" style="text-align:center;padding:12px 0;border-radius:11px;background:#007749;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Sync now</div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ stor.synced }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1.5px solid #007749;border-radius:14px;padding:14px 16px;margin-bottom:10px">
+      <div style="font:600 10px 'IBM Plex Mono',monospace;color:#007749;letter-spacing:.08em;margin-bottom:4px">ALL SYNCED</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:2px">✓ Queue clear — 11 Aug, 14:05</div>
+      <div style="font-size:11.5px;color:#58585B">Portal, team and client views are up to date.</div>
+    </div>
+  </sc-if>
+  <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 0 6px">ON THIS PHONE</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:9px 12px"><div style="font-size:10px;color:#8A8C8A;font-weight:700;text-transform:uppercase">Trials offline</div><div style="font:500 14px 'IBM Plex Mono',monospace;margin-top:2px">3 · full copy</div></div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:9px 12px"><div style="font-size:10px;color:#8A8C8A;font-weight:700;text-transform:uppercase">Scores DB</div><div style="font:500 14px 'IBM Plex Mono',monospace;margin-top:2px">1.8 MB</div></div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:9px 12px"><div style="font-size:10px;color:#8A8C8A;font-weight:700;text-transform:uppercase">Photos</div><div style="font:500 14px 'IBM Plex Mono',monospace;margin-top:2px">214 · 92 MB</div></div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:9px 12px"><div style="font-size:10px;color:#8A8C8A;font-weight:700;text-transform:uppercase">Last full sync</div><div style="font:500 14px 'IBM Plex Mono',monospace;margin-top:2px">{{ stor.lastSync }}</div></div>
+  </div>
+  <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 0 6px">RULES</div>
+  <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
+    <sc-for list="{{ stor.rules }}" as="rl" hint-placeholder-count="3">
+      <div onClick="{{ rl.on }}" style="background:#fff;border:1px solid #E4E4E6;border-radius:11px;padding:10px 13px;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+        <div><div style="font-size:13px;font-weight:700">{{ rl.t }}</div><div style="font-size:11px;color:#58585B">{{ rl.s }}</div></div>
+        <div style="{{ rl.swSt }}"><div style="{{ rl.knSt }}"></div></div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:12px;padding:11px 14px;font-size:11.5px;color:#58585B;line-height:1.6"><b style="color:#141414">The portal keeps the master copy.</b> Phones are disposable — lose one in a canola crop, sign in on another, everything's back. Nightly backups are kept for 12 months.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sTeam }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:4px 16px 12px">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Team &amp; access</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:12px">Everyone signs in — their role decides what they see</div>
+  <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+    <sc-for list="{{ team.people }}" as="pe" hint-placeholder-count="4">
+      <div style="background:#fff;border:1px solid #E4E4E6;border-radius:12px;padding:10px 13px;display:flex;align-items:center;gap:10px">
+        <div style="{{ pe.avSt }}">{{ pe.ini }}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">{{ pe.n }}</div><div style="font-size:11px;color:#58585B">{{ pe.s }}</div></div>
+        <span style="{{ pe.chipSt }}">{{ pe.chip }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="background:#FAE8E1;border-radius:12px;padding:11px 14px;font-size:11.5px;color:#A93414;line-height:1.6;margin-bottom:14px"><b>What a rep login sees:</b> only trials you invite them to · treatments as codes (T1–T24) until you release names · no rates or mixes for other companies' products · charts and photos yes, raw plot data no · everything watermarked until you mark the trial final.</div>
+  <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin:0 0 6px">NEW LOGIN</div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:13px 14px">
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px">
+      <sc-for list="{{ team.roles }}" as="ro" hint-placeholder-count="4">
+        <div onClick="{{ ro.on }}" style="{{ ro.st }}">{{ ro.t }}</div>
+      </sc-for>
+    </div>
+    <div style="font-size:11.5px;color:#58585B;line-height:1.55;margin-bottom:10px">{{ team.roleDesc }}</div>
+    <div style="font:500 13px 'IBM Plex Mono',monospace;padding:10px 12px;background:#F4F5F4;border-radius:9px;margin-bottom:10px;color:#8A8C8A">name@company.com</div>
+    <div onClick="{{ team.onInvite }}" style="text-align:center;padding:12px 0;border-radius:11px;background:#007749;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Send invite link</div>
+    <sc-if value="{{ team.invFlash }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:8px;background:#E3F1EA;border-radius:8px;padding:7px 10px;font-size:11.5px;font-weight:700;color:#00623C">{{ team.invFlash }}</div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sReports }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:4px 16px 12px">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Reports &amp; export — Matong</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:12px">Built from live data the moment you sync</div>
+  <div onClick="{{ rep.onBlind }}" style="background:#fff;border:1px solid #E4E4E6;border-radius:12px;padding:10px 13px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-bottom:12px">
+    <div><div style="font-size:13px;font-weight:700">Blind codes on rep copies</div><div style="font-size:11px;color:#58585B">T-numbers instead of product names</div></div>
+    <div style="{{ rep.swSt }}"><div style="{{ rep.knSt }}"></div></div>
+  </div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:13px 15px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <span style="font:600 10px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em">RANKED CONTROL — PREVIEW</span>
+      <span style="font:600 9px 'IBM Plex Mono',monospace;background:#EEEFEE;color:#58585B;padding:3px 6px;border-radius:5px">SAMPLE DATA</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <sc-for list="{{ rep.bars }}" as="br" hint-placeholder-count="5">
+        <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span style="font-weight:700">{{ br.n }}</span><span style="font:600 11px 'IBM Plex Mono',monospace">{{ br.v }}</span></div><div style="height:8px;background:#EEEFEE;border-radius:4px;overflow:hidden"><div style="{{ br.st }}"></div></div></div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:13px 15px">
+      <div style="font-size:14px;font-weight:800">Client PDF report</div>
+      <div style="font-size:11.5px;color:#58585B;margin:2px 0 9px">Cover · site + conditions · means table · ranked chart · photo pages</div>
+      <div onClick="{{ rep.onGen }}" style="text-align:center;padding:11px 0;border-radius:10px;background:#007749;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Generate PDF</div>
+      <sc-if value="{{ rep.flash }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:7px;background:#E3F1EA;border-radius:8px;padding:7px 10px;font-size:11.5px;font-weight:700;color:#00623C">{{ rep.flash }}</div>
+      </sc-if>
+    </div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:14px;font-weight:800">Excel / ARM export</div><div style="font-size:11.5px;color:#58585B">Plot-level data · one tab per assessment — matches your workbooks</div></div><span style="font-size:16px;color:#8A8C8A">›</span></div>
+    <div style="background:#fff;border:1px solid #E4E4E6;border-radius:13px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:14px;font-weight:800">Field-day handout</div><div style="font-size:11.5px;color:#58585B">One page · Rep 1 walk order · big type</div></div><span style="font-size:16px;color:#8A8C8A">›</span></div>
+  </div>
+  <div style="font-size:11px;color:#8A8C8A">Rep copies respect access rules — coded treatments, no competitor rates.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sWalk }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;overflow:auto;padding:10px 16px 12px;display:flex;flex-direction:column">
+  <div style="font-size:19px;font-weight:800;margin-bottom:1px">Field day — Rep 1 walk</div>
+  <div style="font-size:11.5px;color:#58585B;margin-bottom:10px">Rep 1 runs the treatment list in order across the front</div>
+  <div style="display:flex;align-items:center;gap:8px;background:#E3F1EA;border-radius:10px;padding:8px 12px;margin-bottom:10px">
+    <div style="width:8px;height:8px;border-radius:50%;background:#007749;animation:gpsPulse 1.6s infinite"></div>
+    <div style="font-size:12px;font-weight:600;color:#00623C">{{ walk.gpsTxt }}</div>
+  </div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:16px;padding:18px 18px 16px;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+      <span style="font:600 10px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em">{{ walk.stopLbl }}</span>
+      <span style="font:700 15px 'IBM Plex Mono',monospace;color:#007749">{{ walk.pid }}</span>
+    </div>
+    <div style="font-size:26px;font-weight:800;line-height:1.15;letter-spacing:-0.3px">{{ walk.name }}</div>
+    <div style="font-size:12.5px;color:#58585B;margin:4px 0 14px">{{ walk.prod }}</div>
+    <div style="font:600 10px 'IBM Plex Mono',monospace;color:#8A8C8A;letter-spacing:.08em;margin-bottom:7px">SEVERITY — ASSESSMENT 1 · SAMPLE DATA</div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px"><span style="font-weight:700">This treatment</span><span style="font:600 12px 'IBM Plex Mono',monospace">{{ walk.sev }}%</span></div><div style="height:10px;background:#EEEFEE;border-radius:5px;overflow:hidden"><div style="{{ walk.barSt }}"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;color:#58585B"><span>Untreated check</span><span style="font:600 12px 'IBM Plex Mono',monospace">38%</span></div><div style="height:10px;background:#EEEFEE;border-radius:5px;overflow:hidden"><div style="width:100%;height:100%;background:#B9BBB9"></div></div></div>
+    </div>
+    <div style="margin-top:12px;background:#E3F1EA;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:700;color:#00623C">{{ walk.ctlTxt }}</div>
+  </div>
+  <div style="font-size:11px;color:#8A8C8A;margin:0 2px 10px">Reps 2–3 are randomised — quote treatment means, not this plot.</div>
+  <div style="display:flex;gap:8px;margin-top:auto">
+    <div onClick="{{ walk.onPrev }}" style="flex:1;text-align:center;padding:15px 0;border-radius:12px;border:1.5px solid #D6D7D6;font-size:14px;font-weight:700;color:#3E403E;cursor:pointer;background:#fff">← Prev</div>
+    <div onClick="{{ walk.onNext }}" style="flex:1.4;text-align:center;padding:15px 0;border-radius:12px;background:#007749;color:#fff;font-size:14px;font-weight:700;cursor:pointer">{{ walk.nextLbl }}</div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;border-top:1px solid #E4E4E6;background:#FBFCFB;padding:6px 8px 22px;gap:2px">
+  <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="5">
+    <div onClick="{{ tb.on }}" style="{{ tb.st }}">
+      <div style="position:relative;width:18px;height:18px"><div style="{{ tb.aSt }}"></div><div style="{{ tb.bSt }}"></div></div>
+      <div style="{{ tb.lblSt }}">{{ tb.lbl }}</div>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+</div>
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 430, &quot;height&quot;: 920}, &quot;start&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;home&quot;, &quot;options&quot;: [&quot;login&quot;, &quot;home&quot;, &quot;assess&quot;, &quot;map&quot;, &quot;spray&quot;, &quot;spray:issues&quot;, &quot;add&quot;, &quot;setup&quot;, &quot;site&quot;, &quot;photos&quot;, &quot;storage&quot;, &quot;team&quot;, &quot;reports&quot;, &quot;walk&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Screen&quot;}, &quot;blindDefault&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Assessing&quot;}, &quot;gpsAccuracy&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 4, &quot;min&quot;: 2, &quot;max&quot;: 12, &quot;step&quot;: 1, &quot;unit&quot;: &quot;m&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;GPS&quot;}}">
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    const C = {101:1,102:13,103:5,104:'sp',105:6,106:'out',107:'out',108:6,
+      201:2,202:14,203:19,204:20,205:2,206:14,207:'sp',208:12,
+      301:3,302:15,303:23,304:16,305:7,306:'sk',307:21,308:'sp',
+      401:4,402:16,403:17,404:'sp',405:8,406:'sp',407:4,408:17,
+      501:5,502:17,503:21,504:3,505:14,506:20,507:19,508:'sp',
+      601:6,602:18,603:'sk',604:'sp',605:9,606:13,607:22,608:8,
+      701:7,702:19,703:'res',704:12,705:'sk',706:'sk',707:11,708:16,
+      801:8,802:20,803:'res',804:15,805:1,806:3,807:15,808:'sp',
+      901:9,902:21,903:18,904:22,905:11,906:2,907:'sp',908:5,
+      1001:10,1002:22,1003:10,1004:4,1005:'sk',1006:'sk',1007:1,1008:10,
+      1101:11,1102:23,1103:'out',1104:'out',1105:'out',1106:7,1107:24,1108:'sp',
+      1201:12,1202:24,1203:24,1204:13,1205:'sp',1206:23,1207:9,1208:18};
+    this.C = C;
+    this.MAYBE = [702,802];
+    this.T = {1:['Untreated','Water only',0],2:['Aviator Xpro','Aviator Xpro 500 mL/ha',1],3:['Elatus Ace','Elatus Ace 500 mL/ha',1],4:['Opera','Opera 750 mL/ha',1],5:['Radial Opti (made up)','Amistar 320 + partner 125 mL/ha + adj 0.5%',1],6:['Proviso Opti','Proviso Opti 240 mL/ha + wetter 0.25%',1],7:['Revystar','Revystar 750 mL/ha',1],8:['Balaya A+B','Balaya 750 mL/ha · A and B',1],9:['Flute A','Flute 150 + partner 240 mL/ha',1],10:['Experimental 1 A','G295 (Adama) 150 mL/ha + partner',1],11:['Experimental 2 AL','Vimoy Iblon (Bayer) 300 mL/ha',1],12:['Experimental 2 AH','Vimoy Iblon (Bayer) 500 mL/ha',1],13:['Experimental 3 A','Per mixing plan rev. D',1],14:['Experimental 4 A','Per mixing plan rev. D',1],15:['Balaya B','Balaya 750 mL/ha at B timing',1],16:['Flute B','Flute 150 mL/ha at B timing',1],17:['Experimental 2 BL','Vimoy Iblon 300 mL/ha at B',1],18:['Experimental 2 BH','Vimoy Iblon 500 mL/ha at B',1],19:['Experimental 3 B','Per mixing plan rev. D · B timing',1],20:['Experimental 4 B','Per mixing plan rev. D · B timing',1],21:['Marvis A+B','Per mixing plan rev. D',1],22:['Marvis A','A application only',0],23:['Balaya A','Balaya 750 mL/ha · A only',0],24:['Soprano A','Soprano 500 125 mL/ha · A only',0]};
+    this.MIXR = {1:'Water only — spray first, clean boom',2:'Aviator Xpro 7.5 mL',3:'Elatus Ace 7.5 mL',4:'Opera 11.25 mL',5:'Amistar 4.8 + partner 1.9 + adj 7.5 mL',6:'Proviso Opti 3.6 + wetter 3.75 mL',7:'Revystar 11.25 mL',8:'Balaya 11.25 mL',9:'Flute 2.25 + partner 3.6 + wetter 3.75 mL',10:'G295 2.25 + partner 3.6 + wetter 3.75 mL',11:'Vimoy 4.5 + partner 3.6 + wetter 3.75 mL',12:'Vimoy 7.5 + partner 3.6 + wetter 3.75 mL'};
+    this.SEV = [38,14,16,15,12,13,9,8,18,17,15,11,16,15,10,14,13,10,17,16,9,12,14,19];
+    this.MLIB = [
+      ['DISEASE — SEVERITY', [['rust','Stripe rust','%'],['lrust','Leaf rust','%'],['sept','Septoria tritici','%'],['yls','Yellow leaf spot','%'],['mild','Powdery mildew','%'],['netb','Net blotch','%'],['scald','Scald','%']]],
+      ['WEEDS — QUADRAT COUNT', [['arg','Annual ryegrass','/m²'],['wo','Wild oats','/m²'],['brome','Brome grass','/m²'],['bgrass','Barley grass','/m²'],['wrad','Wild radish','/m²'],['cape','Capeweed','/m²'],['sow','Sowthistle','/m²'],['flea','Fleabane','/m²']]],
+      ['CROP', [['phy','Phytotox','%'],['gs','Growth stage','GS'],['plants','Plants','/m'],['bio','Biomass','%'],['lodg','Lodging','%']]]
+    ];
+    this.MFLAT = {};
+    this.MLIB.forEach(g => g[1].forEach(m => { this.MFLAT[m[0]] = m; }));
+    const order = [];
+    for (let pos = 1; pos <= 8; pos++) {
+      let rows = [1,2,3,4,5,6,7,8,9,10,11,12];
+      if (pos % 2 === 0) rows = rows.slice().reverse();
+      for (const r of rows) { const pid = r*100+pos; if (typeof C[pid] === 'number') order.push(pid); }
+    }
+    this.ORDER = order;
+    const plotsByTrt = {};
+    Object.keys(C).forEach(k => { const t = C[k]; if (typeof t === 'number') (plotsByTrt[t] = plotsByTrt[t] || []).push(+k); });
+    Object.values(plotsByTrt).forEach(a => a.sort((x,y) => (x%100)-(y%100)));
+    this.PBT = plotsByTrt;
+    const stops = [];
+    for (let r = 1; r <= 12; r++) stops.push(r*100+1);
+    for (let r = 12; r >= 1; r--) stops.push(r*100+2);
+    this.STOPS = stops;
+    const scores = {};
+    const seed = [[5,0,1],[10,5,0],[0,0,0],[5,0,1],[15,5,0],[5,0,0],[10,0,1],[5,5,0],[0,0,0],[10,0,0],[5,0,0],[15,10,1]];
+    for (let i = 0; i < 12; i++) scores[order[i]] = {rust:seed[i][0], phy:seed[i][1], ph:!!seed[i][2]};
+    const mixDone = {}; for (let t = 1; t <= 8; t++) mixDone[t] = true;
+    const sprDone = {}; for (let t = 1; t <= 5; t++) sprDone[t] = true;
+    const start = String(p.start ?? 'home').split(':');
+    this.state = {
+      s:start[0], tab:start[1] || 'mix',
+      idx:12, field:'rust', measures:['rust','phy'], msOpen:false,
+      scores, blind:null, listening:false, flash:'', mapSel:start[0] === 'map' ? 505 : null,
+      mixDone, sprDone, walkI:4, upStep:0, upSrc:'', setupStep:0,
+      relabel:{}, fertExtra:false, photoFilter:'all', syncDone:false,
+      rules:{wifi:true, offline:true, backup:true}, invRole:'rep', invFlash:'', repBlind:true, repFlash:'',
+      issues:[
+        {id:1, pid:505, type:'Wrong bottle', txt:'Bottle T20 sprayed onto 505 — should have been T14 (Experimental 4 A). Caught two plots later.', when:'6 Aug · 08:12 · A. Rolfe', status:'open'},
+        {id:2, pid:702, type:'Marginal plot', txt:'702 too patchy to carry T19 — moved across to reserve 703 as per the map note.', when:'6 Aug · 07:55 · A. Rolfe', status:'fixed', fix:'Substituted reserve 703 · logged', corr:'702 → 703 · T19 moved to reserve · spray day'}
+      ]
+    };
+  }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._t2); }
+  go(s) { return () => this.setState({s}); }
+  resolveIssue(id, fix, corr, relabelPid, relabelTrt) {
+    this.setState(st => {
+      const issues = st.issues.map(i => i.id === id ? {...i, status:'fixed', fix, corr} : i);
+      const relabel = relabelPid ? {...st.relabel, [relabelPid]:relabelTrt} : st.relabel;
+      return {issues, relabel};
+    });
+  }
+  effTrt(pid) { return this.state.relabel[pid] ?? this.C[pid]; }
+  renderVals() {
+    const S = this.state, C = this.C, T = this.T;
+    const gpsAcc = Math.round(Number(this.props.gpsAccuracy ?? 4));
+    const gpsWarn = gpsAcc > 6;
+    const blind = S.blind === null ? !!this.props.blindDefault : S.blind;
+    const pid = this.ORDER[S.idx], row = Math.floor(pid/100), pos = pid%100;
+    const rep0 = pos <= 2 ? 1 : pos <= 5 ? 2 : 3;
+    const trt = this.effTrt(pid), tinfo = T[trt];
+    const sc = S.scores[pid] || {};
+    const nextPid = this.ORDER[S.idx+1], prevPid = this.ORDER[S.idx-1];
+    const scored = Object.keys(S.scores).length;
+    const field = S.measures.includes(S.field) ? S.field : S.measures[0];
+    const setSc = (fn) => this.setState(st => { const cur = {...(st.scores[pid] || {})}; fn(cur, st); return {scores:{...st.scores, [pid]:cur}}; });
+    const padOn = (d) => () => setSc(c => { const v = String(c[field] ?? ''); const cap = this.MFLAT[field][2] === '/m²' ? 999 : 100; c[field] = Math.min(cap, +(v + d)); });
+    const backOn = () => setSc(c => { const v = String(c[field] ?? ''); c[field] = v.length > 1 ? +v.slice(0,-1) : undefined; if (c[field] === undefined) delete c[field]; });
+    const padSt = 'height:52px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #E4E4E6;border-radius:11px;font:600 21px \'IBM Plex Mono\',monospace;cursor:pointer;user-select:none';
+    const pads = ['1','2','3','4','5','6','7','8','9'].map(d => ({t:d, on:padOn(d), st:padSt}));
+    pads.push({t:'⌫', on:backOn, st:padSt + ';color:#8A8C8A;font-size:17px'});
+    pads.push({t:'0', on:padOn('0'), st:padSt});
+    const fi = S.measures.indexOf(field), nextM = S.measures[(fi+1) % S.measures.length];
+    pads.push({t:this.MFLAT[nextM][1] + ' →', on:() => this.setState({field:nextM}), st:padSt + ';font-family:\'Mulish\',sans-serif;font-size:11.5px;font-weight:700;color:#007749;background:#E3F1EA;border-color:#9CC7B2;padding:0 4px;text-align:center'});
+    const fldSt = (act) => 'flex:1;min-width:31%;padding:10px 13px;border-radius:12px;cursor:pointer;background:' + (act ? '#E3F1EA;border:1.5px solid #007749' : '#fff;border:1.5px solid #E4E4E6');
+    const fields = S.measures.map(k => { const m = this.MFLAT[k];
+      return {lbl:m[1], unit:m[2], val:sc[k] ?? '–', st:fldSt(field === k), lblInk:field === k ? '#00623C' : '#58585B', on:() => this.setState({field:k})}; });
+    const msGroups = this.MLIB.map(g => ({t:g[0], items:g[1].map(m => { const on = S.measures.includes(m[0]);
+      return {t:m[1], u:m[2], st:'padding:8px 11px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;' + (on ? 'background:#007749;color:#fff' : 'background:#fff;border:1px solid #D6D7D6;color:#3E403E'),
+        on:() => this.setState(st => { const has = st.measures.includes(m[0]); if (has && st.measures.length === 1) return {}; return {measures:has ? st.measures.filter(x => x !== m[0]) : [...st.measures, m[0]]}; })};
+    })}));
+    const m1 = this.MFLAT[S.measures[0]][1], m2 = S.measures[1] ? this.MFLAT[S.measures[1]][1] : null;
+    const assess = {
+      pid, repLbl:'REP ' + rep0, rowLbl:'ROW ' + row, posLbl:'POS ' + pos,
+      blind, notBlind:!blind, blindLbl:blind ? 'Blind · ON' : 'Blind · off',
+      blindBg:blind ? '#141414' : '#EEEFEE', blindInk:blind ? '#fff' : '#58585B',
+      onBlind:() => this.setState({blind:!blind}),
+      trtLbl:'T' + trt + ' · ' + tinfo[0], prodLbl:tinfo[1],
+      gpsBg:gpsWarn ? '#FAE8E1' : '#E3F1EA', gpsDot:gpsWarn ? '#cf4520' : '#007749', gpsInk:gpsWarn ? '#A93414' : '#00623C',
+      gpsTxt:gpsWarn ? 'GPS coarse — row check only · Row ' + row : 'GPS · Row ' + row + ' Pos ' + pos + ' — on walk order',
+      progSt:'width:' + Math.round(scored/72*100) + '%;height:100%;background:#007749',
+      progTxt:scored + '/72 · Assess 1',
+      msLbl:'SCORING: ' + S.measures.map(k => this.MFLAT[k][1].toUpperCase()).join(' · '),
+      editLbl:S.msOpen ? 'Close' : 'Edit list', onEditMs:() => this.setState(st => ({msOpen:!st.msOpen})),
+      msOpen:S.msOpen, showPad:!S.msOpen, msGroups,
+      fields, pads, flash:S.flash,
+      phLbl:sc.ph ? 'Photo · 1' : 'Photo', phBg:sc.ph ? '#E3F1EA' : '#fff',
+      onPhoto:() => setSc(c => { c.ph = !c.ph; }),
+      vcLbl:S.listening ? 'Listening…' : 'Voice', vcBg:S.listening ? '#E3F1EA' : '#fff', vcInk:S.listening ? '#00623C' : '#3E403E',
+      vcAnim:S.listening ? 'animation:gpsPulse 1.1s infinite' : '',
+      onVoice:() => { if (S.listening) return; this.setState({listening:true, flash:''});
+        this._t = setTimeout(() => this.setState(st => { const cur = {...(st.scores[pid] || {})}; cur[st.measures[0]] = 5; if (st.measures[1]) cur[st.measures[1]] = 0;
+          return {listening:false, flash:'Heard: “' + m1.toLowerCase() + ' five' + (m2 ? ', ' + m2.toLowerCase() + ' zero' : '') + '” — filled', scores:{...st.scores, [pid]:cur}}; }), 1300); },
+      ntLbl:sc.note ? 'Note ✓' : 'Note', ntBg:sc.note ? '#E3F1EA' : '#fff',
+      onNote:() => setSc(c => { c.note = c.note ? undefined : 'Rust on flag leaf'; if (!c.note) delete c.note; }),
+      onSame:() => { const pv = S.scores[prevPid]; if (pv) setSc(c => { S.measures.forEach(k => { if (pv[k] !== undefined) c[k] = pv[k]; }); }); },
+      saveLbl:nextPid ? 'Save · ' + nextPid + ' →' : 'Save · Finish',
+      onSave:() => this.setState(st => ({idx:Math.min(st.idx+1, this.ORDER.length-1), field:st.measures[0], flash:'', scores:st.scores[pid] ? st.scores : {...st.scores, [pid]:{}}})),
+      prevLbl:prevPid ? '↩  back to ' + prevPid : '', onPrev:() => this.setState(st => ({idx:Math.max(0, st.idx-1), field:st.measures[0], flash:''}))
+    };
+    const issuePids = {}; S.issues.forEach(i => { issuePids[i.pid] = true; });
+    const cellBase = 'flex:1;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font:600 10.5px \'IBM Plex Mono\',monospace;cursor:pointer;';
+    const mkCell = (p) => {
+      const v = C[p]; let st = cellBase, t = '';
+      if (v === 'out') { st += 'background:#F6DCD2;color:#A93414'; t = '✕'; }
+      else if (v === 'sk') { st += 'background:repeating-linear-gradient(45deg,#ECECEA 0 3px,#E0E0DE 3px 6px);color:#9A9C9A'; }
+      else if (v === 'sp') { st += 'background:#ECEDEC;color:#B9BBB9'; t = '–'; }
+      else if (v === 'res') { st += 'background:#fff;border:1.5px dashed #B9BBB9;color:#8A8C8A;height:23px'; t = 'R'; }
+      else { const et = this.effTrt(p); t = String(et);
+        if (S.scores[p]) st += 'background:#DCEDE4;color:#00623C';
+        else st += 'background:#fff;border:1px solid #E4E4E6;color:#141414;height:24px';
+        if (!T[et][2]) st += ';box-shadow:inset 0 -2px 0 #007749';
+        if (this.MAYBE.includes(p)) st += ';border:1.5px dashed #cf4520;height:23px';
+      }
+      if (issuePids[p]) st += ';border:1.5px solid #cf4520;height:23px';
+      if (S.mapSel === p) st += ';outline:2px solid #141414;outline-offset:1px';
+      return {t, st, on:() => this.setState({mapSel:p})};
+    };
+    const mapRows = [];
+    for (let r = 1; r <= 12; r++) mapRows.push({r:'R' + r, cells:[1,2,3,4,5,6,7,8].map(ps => mkCell(r*100+ps))});
+    const sw = (s) => 'width:10px;height:10px;border-radius:3px;' + s;
+    const legend = [
+      {t:'treated', sw:sw('background:#fff;border:1px solid #D6D7D6')},
+      {t:'assessed', sw:sw('background:#DCEDE4')},
+      {t:'A only', sw:sw('background:#fff;border:1px solid #D6D7D6;box-shadow:inset 0 -2px 0 #007749')},
+      {t:'issue', sw:sw('border:1.5px solid #cf4520')},
+      {t:'marginal', sw:sw('border:1.5px dashed #cf4520')},
+      {t:'reserve', sw:sw('border:1.5px dashed #B9BBB9')},
+      {t:'OUT', sw:sw('background:#F6DCD2')},
+      {t:'skip/spare', sw:sw('background:#ECEDEC')}
+    ];
+    let sheet = null;
+    if (S.mapSel) {
+      const p = S.mapSel, v = C[p], pr = p%100, prep = pr <= 2 ? 1 : pr <= 5 ? 2 : 3;
+      const lines = [];
+      let shTrt = '', shProd = '', canFlag = false;
+      if (typeof v === 'number') {
+        const et = this.effTrt(p);
+        shTrt = 'T' + et + ' · ' + T[et][0]; shProd = T[et][1]; canFlag = true;
+        if (S.relabel[p]) lines.push({t:'↺  Relabelled from T' + v + ' on spray day — in the correction log'});
+        lines.push({t:'✓  App A sprayed — 6 Aug'});
+        lines.push({t:T[et][2] ? '○  App B due at GS39' : '—  A only · skip this plot at B'});
+        const iu = S.issues.find(x => x.pid === p);
+        if (iu) lines.push({t:(iu.status === 'open' ? '⚑  OPEN ISSUE: ' : '⚑  Issue (fixed): ') + iu.type + ' — see Spray › Issues'});
+        const s2 = S.scores[p];
+        if (s2) { const parts = S.measures.filter(k => s2[k] !== undefined).map(k => s2[k] + ' ' + this.MFLAT[k][1].toLowerCase());
+          if (parts.length) lines.push({t:'✓  Assessed: ' + parts.join(' · ')}); }
+        if (this.MAYBE.includes(p)) lines.push({t:'⚠  Marginal plot — reserve held one across (' + (p+1) + ')'});
+      } else if (v === 'res') lines.push({t:'Reserve — held as rep-1 substitute for ' + (p-1) + '. Sits in rep 2\u2019s band; note if used.'});
+      else if (v === 'out') lines.push({t:'Ruled right out — do not spray, do not assess.'});
+      else if (v === 'sk') lines.push({t:'Marginal ground left empty — no treatment. Design is balanced without it.'});
+      else lines.push({t:'Spare — no treatment assigned. Do not spray.'});
+      sheet = {pid:p, meta:'ROW ' + Math.floor(p/100) + ' · POS ' + pr + ' · REP ' + prep, shTrt, shProd, lines, canFlag:canFlag && !S.issues.find(x => x.pid === p)};
+    }
+    const map = {rows:mapRows, legend, sheet:!!sheet, shPid:sheet ? sheet.pid : '', shMeta:sheet ? sheet.meta : '', shTrt:sheet ? sheet.shTrt : '', shProd:sheet ? sheet.shProd : '', shLines:sheet ? sheet.lines : [], shCanFlag:sheet ? sheet.canFlag : false,
+      onClose:() => this.setState({mapSel:null}),
+      onFlag:() => this.setState(st => ({issues:[...st.issues, {id:Date.now(), pid:st.mapSel, type:'Flagged in field', txt:'Logged from the map — add detail back at the ute.', when:'11 Aug · now · you', status:'open'}]}))};
+    const mixCount = Object.keys(S.mixDone).length;
+    const rowSt = (done) => 'display:flex;align-items:center;gap:10px;background:' + (done ? '#F7F8F7' : '#fff') + ';border:1px solid #E4E4E6;border-radius:11px;padding:9px 12px;cursor:pointer' + (done ? ';opacity:.62' : '');
+    const ckSt = (done) => 'width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;' + (done ? 'background:#007749;color:#fff' : 'border:1.5px solid #B9BBB9;color:transparent');
+    const mixItems = Object.keys(T).map(k => { const t = +k, done = !!S.mixDone[t];
+      return {name:T[t][0], sub:this.MIXR[t] || 'Base cover at A — see rev. D', tn:'T' + t, ck:'✓', ckSt:ckSt(done), st:rowSt(done), on:() => this.setState(st => { const m = {...st.mixDone}; if (m[t]) delete m[t]; else m[t] = true; return {mixDone:m}; })};
+    });
+    const orderItems = Object.keys(T).map(k => { const t = +k, done = !!S.sprDone[t];
+      return {name:'T' + t + ' · ' + T[t][0], plots:(this.PBT[t] || []).join(' · '), aOnly:!T[t][2], ck:'✓', ckSt:ckSt(done), st:rowSt(done), on:() => this.setState(st => { const m = {...st.sprDone}; if (m[t]) delete m[t]; else m[t] = true; return {sprDone:m}; })};
+    });
+    const fxSt = (primary) => 'text-align:center;padding:10px 0;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;' + (primary ? 'background:#007749;color:#fff' : 'border:1.5px solid #D6D7D6;color:#3E403E;background:#fff');
+    const issues = S.issues.map(i => {
+      const open = i.status === 'open';
+      let fixes = [];
+      if (open && i.id === 1) fixes = [
+        {t:'Relabel 505 as T20 — as applied', st:fxSt(true), on:() => this.resolveIssue(1, 'Relabelled T14 → T20 as applied · T14 runs n=2', '505 · was T14 → now T20 as applied · issue #1', 505, 20)},
+        {t:'Exclude 505 from analysis', st:fxSt(false), on:() => this.resolveIssue(1, 'Plot excluded from analysis · T14 runs n=2', '505 · excluded from analysis · issue #1')}
+      ];
+      else if (open) fixes = [{t:'Mark resolved', st:fxSt(false), on:() => this.resolveIssue(i.id, 'Resolved in field', String(i.pid) + ' · resolved · field note')}];
+      return {pid:i.pid, type:i.type, txt:i.txt, when:i.when, open, fixes, fix:i.status === 'fixed' ? i.fix : '',
+        chip:open ? 'OPEN' : 'FIXED', chipSt:'font:700 9px \'IBM Plex Mono\',monospace;padding:3px 7px;border-radius:5px;' + (open ? 'background:#cf4520;color:#fff' : 'background:#E3F1EA;color:#00623C')};
+    });
+    const corrLines = S.issues.filter(i => i.corr).map(i => ({t:i.corr}));
+    const openCount = S.issues.filter(i => i.status === 'open').length;
+    const tabSegSt = (act) => 'flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;' + (act ? 'background:#fff;color:#141414;box-shadow:0 1px 3px rgba(20,20,20,.12)' : 'color:#58585B');
+    const spray = {
+      tabs:[['mix','Mix'],['order','Order'],['rec','Record'],['issues',openCount ? 'Issues · ' + openCount : 'Issues']].map(x => ({t:x[1], st:tabSegSt(S.tab === x[0]), on:() => this.setState({tab:x[0]})})),
+      isMix:S.tab === 'mix', isOrder:S.tab === 'order', isRec:S.tab === 'rec', isIssues:S.tab === 'issues',
+      mixProg:mixCount + ' / 24 MIXED', mixItems, orderItems, issues, corr:corrLines.length > 0, corrLines,
+      rec:[['Date','6 Aug 2026'],['Start','07:40'],['Finish','—'],['Operator','A. Rolfe'],['Temp','9 °C'],['RH','72 %'],['Wind','6 km/h SW'],['Nozzle','Orange 01 AI'],['Pressure','40 PSI'],['Speed','4.5 km/h']].map(x => ({k:x[0], v:x[1]}))
+    };
+    const miniSt = (p) => { const v = C[p]; let bg = '#BFDCCD';
+      if (v === 'out') bg = '#E8B7A6'; else if (typeof v !== 'number') bg = '#E4E5E4';
+      return 'flex:1;height:9px;border-radius:2px;background:' + bg; };
+    const mini = [];
+    for (let r = 1; r <= 12; r++) mini.push({cells:[1,2,3,4,5,6,7,8].map(ps => miniSt(r*100+ps))});
+    const add = {
+      s0:S.upStep === 0, s1:S.upStep === 1, s2:S.upStep === 2, s3:S.upStep === 3, notS0:S.upStep > 0,
+      src:S.upSrc, mini,
+      sources:[['Spray map PDF','grid, reps, OUT + reserve plots — like Matong'],['Protocol document','.docx — like Junee Reefs Knockdown 2026'],['Mixing plan','.xlsx — treatments, rates, batch volumes'],['ARM export','.csv / .xml study definition'],['Start blank','type treatments in the ute, map later']].map(x => ({t:x[0], s:x[1],
+        on:() => { this.setState({upStep:1, upSrc:x[0].toUpperCase()}); this._t2 = setTimeout(() => this.setState({upStep:2}), 1200); }})),
+      onConfirm:() => this.setState({upStep:3}),
+      onReset:() => this.setState({upStep:0})
+    };
+    const setup = {
+      s0:S.setupStep === 0, s1:S.setupStep === 1, s2:S.setupStep === 2, s3:S.setupStep === 3,
+      onMarkA:() => this.setState({setupStep:1}), onMarkB:() => this.setState({setupStep:2}),
+      onPin:() => this.setState({setupStep:3}), onRedo:() => this.setState({setupStep:0})
+    };
+    const fert = [
+      {t:'MAP 80 kg/ha', s:'At sowing, banded', d:'12 MAY'},
+      {t:'Urea 100 kg/ha', s:'Topdressed at GS30', d:'18 JUL'}
+    ];
+    if (S.fertExtra) fert.push({t:'Urea 60 kg/ha', s:'Draft — confirm rate with grower', d:'11 AUG'});
+    const site = {
+      coop:[['Grower','G. Hamilton'],['Property','Yarranlea Rd, Matong NSW'],['Phone','0427 ··· ···'],['Agronomist','A. Rolfe — IK Caldwell']].map(x => ({k:x[0], v:x[1]})),
+      pad:[['Crop / variety','Wheat · Scepter'],['Sown','12 May · 60 kg/ha'],['Previous crop','Canola'],['Soil','Red loam · pH 5.8 (CaCl₂)']].map(x => ({k:x[0], v:x[1]})),
+      fert, onAddFert:() => this.setState(st => ({fertExtra:!st.fertExtra}))
+    };
+    const PH = [[101,1,'6 Aug',0],[401,4,'6 Aug',0],[701,7,'6 Aug',0],[505,14,'6 Aug',1],[702,19,'6 Aug',1],[102,13,'11 Aug',0],[1202,24,'11 Aug',0],[902,21,'11 Aug',0],[301,3,'11 Aug',0]];
+    const stripes = 'repeating-linear-gradient(45deg,#DCE4DE 0 8px,#D0DAD3 8px 16px)';
+    const phTiles = PH.filter(x => S.photoFilter === 'all' || x[3]).map(x => ({
+      pid:x[0], trt:'T' + x[1], d:x[2],
+      st:'aspect-ratio:1;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;background:' + stripes,
+      flagSt:x[3] ? 'width:8px;height:8px;border-radius:50%;background:#cf4520;margin:6px 6px 0 auto' : 'width:0;height:0'
+    }));
+    const pfSt = (act) => 'padding:6px 12px;border-radius:99px;font-size:11.5px;font-weight:700;cursor:pointer;' + (act ? 'background:#141414;color:#fff' : 'background:#fff;border:1px solid #D6D7D6;color:#3E403E');
+    const photos = {
+      filters:[{t:'All · 9', on:() => this.setState({photoFilter:'all'}), st:pfSt(S.photoFilter === 'all')},
+               {t:'Flagged · 2', on:() => this.setState({photoFilter:'flag'}), st:pfSt(S.photoFilter === 'flag')}],
+      tiles:phTiles
+    };
+    const swSt = (on) => 'width:40px;height:24px;border-radius:12px;flex:none;padding:2px;box-sizing:border-box;transition:background .15s;background:' + (on ? '#007749' : '#D6D7D6');
+    const knSt = (on) => 'width:20px;height:20px;border-radius:50%;background:#fff;transition:margin .15s;margin-left:' + (on ? '16px' : '0');
+    const ruleDefs = [['wifi','Photos upload on Wi-Fi only','Scores + notes still sync on 4G'],['offline','Keep every trial offline','Full copy on this phone, always'],['backup','Nightly backup to portal','Kept 12 months']];
+    const stor = {
+      pending:!S.syncDone, synced:S.syncDone, lastSync:S.syncDone ? '14:05 · today' : '07:42 · 4G',
+      onSync:() => this.setState({syncDone:true}),
+      rules:ruleDefs.map(r => { const on = S.rules[r[0]];
+        return {t:r[1], s:r[2], swSt:swSt(on), knSt:knSt(on), on:() => this.setState(st => ({rules:{...st.rules, [r[0]]:!st.rules[r[0]]}}))}; })
+    };
+    const ROLES = {
+      admin:['Admin','Everything — trials, treatments, team, exports. For trial coordinators.'],
+      team:['Assessor','Score and photograph assigned trials. Can\u2019t edit treatments or invite people.'],
+      grower:['Grower','Their own site only — results, photos, spray records. No other trials, no rates for experimental products.'],
+      rep:['Chem rep · limited','Invited trials only, treatments coded until released, no competitor rates, watermarked reports.']
+    };
+    const avSt = (bg, ink) => 'width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:' + bg + ';color:' + ink;
+    const chip = (bg, ink) => 'font:700 9px \'IBM Plex Mono\',monospace;padding:3px 7px;border-radius:5px;background:' + bg + ';color:' + ink;
+    const team = {
+      people:[
+        {ini:'AR', n:'Andrew Rolfe', s:'All trials · IK Caldwell', chip:'ADMIN', avSt:avSt('#007749','#fff'), chipSt:chip('#E3F1EA','#00623C')},
+        {ini:'EJ', n:'Elijah', s:'Assessor · Junee + Matong', chip:'TEAM', avSt:avSt('#DCEDE4','#00623C'), chipSt:chip('#EEEFEE','#58585B')},
+        {ini:'TL', n:'Trent Lindbeck', s:'Grower · Junee Reefs only', chip:'GROWER', avSt:avSt('#EEEFEE','#58585B'), chipSt:chip('#EEEFEE','#58585B')},
+        {ini:'SB', n:'S. Byrne — Bayer', s:'Rep · Matong fungicide only', chip:'LIMITED', avSt:avSt('#FAE8E1','#A93414'), chipSt:chip('#FAE8E1','#A93414')}
+      ],
+      roles:Object.keys(ROLES).map(k => ({t:ROLES[k][0], on:() => this.setState({invRole:k, invFlash:''}),
+        st:'padding:7px 12px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;' + (S.invRole === k ? 'background:#007749;color:#fff' : 'background:#fff;border:1px solid #D6D7D6;color:#3E403E')})),
+      roleDesc:ROLES[S.invRole][1],
+      invFlash:S.invFlash,
+      onInvite:() => this.setState({invFlash:'✓ Link created — expires in 7 days · you approve the first sign-in'})
+    };
+    const top5 = Object.keys(T).filter(t => +t !== 1)
+      .map(t => ({t:+t, ctl:Math.round((38-this.SEV[t-1])/38*100)}))
+      .sort((a,b) => b.ctl - a.ctl).slice(0,5)
+      .map(x => ({n:S.repBlind ? 'T' + x.t : 'T' + x.t + ' ' + T[x.t][0], v:x.ctl + '%', st:'width:' + x.ctl + '%;height:100%;background:#007749'}));
+    const rep = {
+      repBlind:S.repBlind, onBlind:() => this.setState(st => ({repBlind:!st.repBlind})),
+      swSt:swSt(S.repBlind), knSt:knSt(S.repBlind),
+      bars:top5, flash:S.repFlash,
+      onGen:() => this.setState({repFlash:'✓ Queued — lands in the portal + your email in a minute'})
+    };
+    const wi = S.walkI, wpid = this.STOPS[wi], wtrt = C[wpid], wsev = this.SEV[wtrt-1];
+    const ctl = Math.round((38-wsev)/38*100);
+    const walk = {
+      gpsTxt:'You\u2019re at Row ' + Math.floor(wpid/100) + ' · Pos ' + (wpid%100) + '  ✓',
+      stopLbl:'STOP ' + (wi+1) + ' OF 24', pid:wpid, name:T[wtrt][0], prod:T[wtrt][1],
+      sev:wsev, barSt:'width:' + Math.round(wsev/38*100) + '%;height:100%;background:#007749',
+      ctlTxt:wtrt === 1 ? 'This is the check — everything compares back here' : ctl + '% control vs untreated (mean of 3 reps)',
+      onPrev:() => this.setState(st => ({walkI:Math.max(0, st.walkI-1)})),
+      onNext:() => this.setState(st => ({walkI:Math.min(this.STOPS.length-1, st.walkI+1)})),
+      nextLbl:wi < 23 ? 'Next plot →' : 'End of walk'
+    };
+    const icons = (k, c) => {
+      const A = 'position:absolute;', n = 'width:0;height:0';
+      if (k === 'home') return [A + 'left:3px;top:3px;width:10px;height:10px;border:2px solid ' + c + ';border-radius:4px', n];
+      if (k === 'assess') return [A + 'left:2px;top:2px;width:10px;height:10px;border:2px solid ' + c + ';border-radius:50%', A + 'left:6px;top:6px;width:6px;height:6px;background:' + c + ';border-radius:50%'];
+      if (k === 'map') return [A + 'left:4px;top:4px;width:9px;height:9px;border:2px solid ' + c + ';transform:rotate(45deg)', n];
+      if (k === 'spray') return [A + 'left:4px;top:6px;width:6px;height:8px;border:2px solid ' + c + ';border-radius:2px 2px 4px 4px', A + 'left:7px;top:2px;width:4px;height:3px;background:' + c];
+      return [A + 'left:5px;top:2px;width:2px;height:14px;background:' + c, A + 'left:7px;top:3px;width:8px;height:6px;background:' + c];
+    };
+    const tabs = [['home','Today'],['assess','Assess'],['map','Map'],['spray','Spray'],['walk','Walk']].map(t => {
+      const act = S.s === t[0]; const ic = icons(t[0], act ? '#007749' : '#8A8C8A');
+      return {lbl:t[1], on:this.go(t[0]), aSt:ic[0], bSt:ic[1],
+        st:'flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;border-radius:10px;cursor:pointer;' + (act ? 'background:#E3F1EA' : ''),
+        lblSt:'font-size:9.5px;font-weight:700;color:' + (act ? '#007749' : '#8A8C8A')};
+    });
+    const SECONDARY = ['site','photos','storage','team','reports','setup','add'];
+    return {
+      sLogin:S.s === 'login', sHome:S.s === 'home', sAssess:S.s === 'assess', sMap:S.s === 'map', sSpray:S.s === 'spray',
+      sAdd:S.s === 'add', sSetup:S.s === 'setup', sSite:S.s === 'site', sPhotos:S.s === 'photos', sStorage:S.s === 'storage',
+      sTeam:S.s === 'team', sReports:S.s === 'reports', sWalk:S.s === 'walk',
+      showBack:SECONDARY.includes(S.s), showNav:S.s !== 'login',
+      goHome:this.go('home'), goAssess:this.go('assess'), goAdd:this.go('add'), goSetup:this.go('setup'),
+      goSite:this.go('site'), goPhotos:this.go('photos'), goStorage:this.go('storage'), goTeam:this.go('team'), goReports:this.go('reports'),
+      signIn:this.go('home'),
+      assess, map, spray, add, setup, site, photos, stor, team, rep, walk, tabs,
+      gpsPill:'GPS ±' + gpsAcc + ' m', gpsAccTxt:'±' + gpsAcc + ' m', gpsAccN:gpsAcc,
+      issueCount:openCount ? openCount + ' open issue' : 'issues clear',
+      syncLine:S.syncDone ? 'All synced — queue clear (14:05)' : '3 assessments + 21 photos waiting for signal',
+      resumeLbl:'Resume Assessment 1 — ' + scored + ' of 72 done'
+    };
+  }
+}
+</script>
+</body>
+</html>

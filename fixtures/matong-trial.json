@@ -1,0 +1,69 @@
+{
+  "trial": {
+    "name": "Matong — Wheat Fungicide",
+    "org": "AGnVET Services — IK Caldwell",
+    "season": 2026,
+    "design": "RCB",
+    "reps": 3,
+    "grid": {"rows": 12, "positions": 8},
+    "repBands": {"1": [1, 2], "2": [3, 4, 5], "3": [6, 7, 8]},
+    "plot": {"widthM": 2, "lengthM": 12, "areaM2": 24},
+    "waterRateLPerHa": 100, "sprayVolumePerPlotMl": 240, "batchVolumeL": 1.5,
+    "timings": {"A": {"sprayed": "2026-08-06"}, "B": {"due": "GS39"}},
+    "sourceDocument": "Matong_Wheat_Spray_Map.pdf (6 Aug 2026)"
+  },
+  "treatments": [
+    {"n": 1, "name": "Untreated", "recipe": "Water only", "bSpray": false, "plots": [101, 805, 1007]},
+    {"n": 2, "name": "Aviator Xpro", "recipe": "Aviator Xpro 500 mL/ha", "perBatchMl": [7.5], "bSpray": true, "plots": [201, 205, 906]},
+    {"n": 3, "name": "Elatus Ace", "recipe": "Elatus Ace 500 mL/ha", "perBatchMl": [7.5], "bSpray": true, "plots": [301, 504, 806]},
+    {"n": 4, "name": "Opera", "recipe": "Opera 750 mL/ha", "perBatchMl": [11.25], "bSpray": true, "plots": [401, 1004, 407]},
+    {"n": 5, "name": "Radial Opti (made up)", "recipe": "Amistar 320 mL/ha + partner 125 mL/ha + adjuvant 0.5% v/v", "perBatchMl": [4.8, 1.875, 7.5], "bSpray": true, "plots": [501, 103, 908]},
+    {"n": 6, "name": "Proviso Opti", "recipe": "Proviso Opti 240 mL/ha + wetter 0.25% v/v", "perBatchMl": [3.6, 3.75], "bSpray": true, "plots": [601, 105, 108]},
+    {"n": 7, "name": "Revystar", "recipe": "Revystar 750 mL/ha", "perBatchMl": [11.25], "bSpray": true, "plots": [701, 305, 1106]},
+    {"n": 8, "name": "Balaya A+B", "recipe": "Balaya 750 mL/ha at A and B", "perBatchMl": [11.25], "bSpray": true, "plots": [801, 405, 608]},
+    {"n": 9, "name": "Flute A", "recipe": "Flute 150 mL/ha + partner 240 mL/ha + wetter 0.25%", "perBatchMl": [2.25, 3.6, 3.75], "bSpray": true, "plots": [901, 605, 1207]},
+    {"n": 10, "name": "Experimental 1 A", "recipe": "G295 (Adama) 150 mL/ha + partner", "perBatchMl": [2.25, 3.6, 3.75], "bSpray": true, "plots": [1001, 1003, 1008]},
+    {"n": 11, "name": "Experimental 2 AL", "recipe": "Vimoy Iblon (Bayer) 300 mL/ha + partner", "perBatchMl": [4.5, 3.6, 3.75], "bSpray": true, "plots": [1101, 905, 707]},
+    {"n": 12, "name": "Experimental 2 AH", "recipe": "Vimoy Iblon (Bayer) 500 mL/ha + partner", "perBatchMl": [7.5, 3.6, 3.75], "bSpray": true, "plots": [1201, 704, 208]},
+    {"n": 13, "name": "Experimental 3 A", "recipe": "Per mixing plan rev. D", "bSpray": true, "plots": [102, 1204, 606]},
+    {"n": 14, "name": "Experimental 4 A", "recipe": "Per mixing plan rev. D", "bSpray": true, "plots": [202, 505, 206]},
+    {"n": 15, "name": "Balaya B", "recipe": "Balaya 750 mL/ha at B timing", "bSpray": true, "plots": [302, 804, 807]},
+    {"n": 16, "name": "Flute B", "recipe": "Flute 150 mL/ha at B timing", "bSpray": true, "plots": [402, 304, 708]},
+    {"n": 17, "name": "Experimental 2 BL", "recipe": "Vimoy Iblon 300 mL/ha at B", "bSpray": true, "plots": [502, 403, 408]},
+    {"n": 18, "name": "Experimental 2 BH", "recipe": "Vimoy Iblon 500 mL/ha at B", "bSpray": true, "plots": [602, 903, 1208]},
+    {"n": 19, "name": "Experimental 3 B", "recipe": "Per mixing plan rev. D · B timing", "bSpray": true, "plots": [702, 203, 507]},
+    {"n": 20, "name": "Experimental 4 B", "recipe": "Per mixing plan rev. D · B timing", "bSpray": true, "plots": [802, 204, 506]},
+    {"n": 21, "name": "Marvis A+B", "recipe": "Per mixing plan rev. D", "bSpray": true, "plots": [902, 503, 307]},
+    {"n": 22, "name": "Marvis A", "recipe": "A application only", "bSpray": false, "plots": [1002, 904, 607]},
+    {"n": 23, "name": "Balaya A", "recipe": "Balaya 750 mL/ha · A only", "bSpray": false, "plots": [1102, 303, 1206]},
+    {"n": 24, "name": "Soprano A", "recipe": "Soprano 500 125 mL/ha · A only", "bSpray": false, "plots": [1202, 1203, 1107]}
+  ],
+  "cells": {
+    "101": 1, "102": 13, "103": 5, "104": "spare", "105": 6, "106": "out", "107": "out", "108": 6,
+    "201": 2, "202": 14, "203": 19, "204": 20, "205": 2, "206": 14, "207": "spare", "208": 12,
+    "301": 3, "302": 15, "303": 23, "304": 16, "305": 7, "306": "skip", "307": 21, "308": "spare",
+    "401": 4, "402": 16, "403": 17, "404": "spare", "405": 8, "406": "spare", "407": 4, "408": 17,
+    "501": 5, "502": 17, "503": 21, "504": 3, "505": 14, "506": 20, "507": 19, "508": "spare",
+    "601": 6, "602": 18, "603": "skip", "604": "spare", "605": 9, "606": 13, "607": 22, "608": 8,
+    "701": 7, "702": 19, "703": "reserve", "704": 12, "705": "skip", "706": "skip", "707": 11, "708": 16,
+    "801": 8, "802": 20, "803": "reserve", "804": 15, "805": 1, "806": 3, "807": 15, "808": "spare",
+    "901": 9, "902": 21, "903": 18, "904": 22, "905": 11, "906": 2, "907": "spare", "908": 5,
+    "1001": 10, "1002": 22, "1003": 10, "1004": 4, "1005": "skip", "1006": "skip", "1007": 1, "1008": 10,
+    "1101": 11, "1102": 23, "1103": "out", "1104": "out", "1105": "out", "1106": 7, "1107": 24, "1108": "spare",
+    "1201": 12, "1202": 24, "1203": 24, "1204": 13, "1205": "spare", "1206": 23, "1207": 9, "1208": 18
+  },
+  "marginalPlots": [702, 802],
+  "reserveRule": "703/803 held as rep-1 substitutes for 702/802; substitution must be logged (they sit in rep 2's band).",
+  "plotIdRule": "plotId = row*100 + position (e.g. 1202 = row 12, pos 2). Rep from position band.",
+  "walkOrders": {
+    "assessment": "Serpentine by position: pos 1 rows 1→12, pos 2 rows 12→1, pos 3 rows 1→12, … skipping out/skip/spare/reserve cells (72 stops).",
+    "fieldDay": "Rep 1 display walk: pos 1 rows 1→12 (treatments 1–12), then pos 2 rows 12→1 (treatments 24…13)."
+  },
+  "measures": {
+    "disease": [["rust", "Stripe rust", "%"], ["lrust", "Leaf rust", "%"], ["sept", "Septoria tritici", "%"], ["yls", "Yellow leaf spot", "%"], ["mild", "Powdery mildew", "%"], ["netb", "Net blotch", "%"], ["scald", "Scald", "%"]],
+    "weeds": [["arg", "Annual ryegrass", "/m2"], ["wo", "Wild oats", "/m2"], ["brome", "Brome grass", "/m2"], ["bgrass", "Barley grass", "/m2"], ["wrad", "Wild radish", "/m2"], ["cape", "Capeweed", "/m2"], ["sow", "Sowthistle", "/m2"], ["flea", "Fleabane", "/m2"]],
+    "crop": [["phy", "Phytotox", "%"], ["gs", "Growth stage", "GS"], ["plants", "Plants", "/m"], ["bio", "Biomass", "%"], ["lodg", "Lodging", "%"]],
+    "defaultActive": ["rust", "phy"]
+  },
+  "conditionsRecordA": {"date": "2026-08-06", "start": "07:40", "operator": "A. Rolfe", "tempC": 9, "rhPct": 72, "wind": "6 km/h SW", "nozzle": "Orange 01 AI", "pressure": "40 PSI", "speed": "4.5 km/h"}
+}
