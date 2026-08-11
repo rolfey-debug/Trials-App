@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages-${{ github.ref }}
@@ -27,23 +25,33 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
 
   deploy:
-    # deploy from pushes to the app branches (not PR runs).
-    # GitHub Pages requires a public repo on free personal plans — skip
-    # while private; deploys start automatically once the repo is public.
-    if: github.event_name != 'pull_request' && !github.event.repository.private
+    # Publish dist/ to the gh-pages branch (the site's Pages source).
+    # The Actions-artifact route (actions/deploy-pages) can't create the
+    # Pages site with GITHUB_TOKEN, so we use the branch method instead.
+    if: github.event_name != 'pull_request'
     needs: test
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: write
     steps:
-      - uses: actions/configure-pages@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          enablement: true
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Push dist to gh-pages
+        run: |
+          cd dist
+          touch .nojekyll
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
