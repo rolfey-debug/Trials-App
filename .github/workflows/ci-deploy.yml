@@ -32,8 +32,10 @@ jobs:
           path: dist
 
   deploy:
-    # deploy from pushes to the app branches (not PR runs)
-    if: github.event_name != 'pull_request'
+    # deploy from pushes to the app branches (not PR runs).
+    # GitHub Pages requires a public repo on free personal plans — skip
+    # while private; deploys start automatically once the repo is public.
+    if: github.event_name != 'pull_request' && !github.event.repository.private
     needs: test
     runs-on: ubuntu-latest
     environment:
