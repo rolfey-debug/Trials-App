@@ -6,6 +6,14 @@ The core promise: *stand in a plot and the app knows which one* — GPS surfaces
 
 Built from the design handoff in [`docs/handoff/`](docs/handoff/HANDOFF.md) — all 14 screens of `design/Phone.dc.html` recreated pixel-faithfully, seeded with the real Matong wheat fungicide trial (`fixtures/matong-trial.json`).
 
+**Also in this repo — the office portal** ([`portal/`](portal), design handoff in [`docs/handoff-office/`](docs/handoff-office/README.md)): the desktop companion where trials are planned — dashboard, 6-step trial wizard, product picker over the full APVMA register (7,841 registered products with actives, `shared/products/`), seeded randomisation with layout preview (`shared/randomisation.ts`), documents/protocol workspace, review-and-approve flow, and a trial map with imagery layers. Deployed at **`/office/`** next to the field app.
+
+```bash
+npm run portal:dev            # portal dev server
+npm run portal:build          # → portal/dist
+node test/portal-walkthrough.mjs   # Playwright walkthrough of all 8 portal screens
+```
+
 ## Run it
 
 ```bash

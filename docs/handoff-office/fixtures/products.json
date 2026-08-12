@@ -1,0 +1,22 @@
+{
+  "products": [
+    {"name": "Prosaro 420 SC", "company": "Bayer", "category": "Fungicide", "actives": [{"name": "prothioconazole", "concentration": "210 g/L"}, {"name": "tebuconazole", "concentration": "210 g/L"}]},
+    {"name": "Aviator Xpro", "company": "Bayer", "category": "Fungicide", "actives": [{"name": "bixafen", "concentration": "75 g/L"}, {"name": "prothioconazole", "concentration": "150 g/L"}]},
+    {"name": "Maxentis", "company": "Adama", "category": "Fungicide", "actives": [{"name": "azoxystrobin", "concentration": "200 g/L"}, {"name": "prothioconazole", "concentration": "150 g/L"}]},
+    {"name": "Elatus Ace", "company": "Syngenta", "category": "Fungicide", "actives": [{"name": "benzovindiflupyr", "concentration": "75 g/L"}, {"name": "propiconazole", "concentration": "250 g/L"}]},
+    {"name": "Amistar Xtra", "company": "Syngenta", "category": "Fungicide", "actives": [{"name": "azoxystrobin", "concentration": "200 g/L"}, {"name": "cyproconazole", "concentration": "80 g/L"}]},
+    {"name": "Veritas Opti", "company": "Adama", "category": "Fungicide", "actives": [{"name": "tebuconazole", "concentration": "200 g/L"}, {"name": "azoxystrobin", "concentration": "120 g/L"}]},
+    {"name": "Tilt 250 EC", "company": "Syngenta", "category": "Fungicide", "actives": [{"name": "propiconazole", "concentration": "250 g/L"}]},
+    {"name": "Sakura 850 WG", "company": "Bayer", "category": "Herbicide", "actives": [{"name": "pyroxasulfone", "concentration": "850 g/kg"}]},
+    {"name": "Boxer Gold", "company": "Syngenta", "category": "Herbicide", "actives": [{"name": "prosulfocarb", "concentration": "800 g/L"}, {"name": "S-metolachlor", "concentration": "120 g/L"}]},
+    {"name": "Transform WG", "company": "Corteva", "category": "Insecticide", "actives": [{"name": "sulfoxaflor", "concentration": "500 g/kg"}]}
+  ],
+  "experimentalExample": {
+    "codeName": "AGV-X24",
+    "category": "Fungicide",
+    "actives": [{"name": "pydiflumetofen", "concentration": "200 g/L"}],
+    "notes": "Sample from company rep — evaluation only, not for sale",
+    "display": "Always shown with an EXP flag in tables, plot maps and reports; excluded from grower-facing reports by default."
+  },
+  "searchBehaviour": "Match query against product name, company AND active ingredient names (case-insensitive substring). Highlight the matched substring in the actives line."
+}

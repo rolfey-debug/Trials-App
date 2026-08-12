@@ -2,14 +2,17 @@
   "name": "agnvet-trial-work",
   "private": true,
   "version": "1.0.0",
-  "description": "AGnVET Trial Work — offline-first PWA for small-plot field trials: spray, assess, present",
+  "description": "AGnVET Trial Work \u2014 offline-first PWA for small-plot field trials: spray, assess, present",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "tsx test/parsers.test.ts && tsx test/groundwork.test.ts",
-    "products:build": "node shared/products/build-products.mjs"
+    "products:build": "node shared/products/build-products.mjs",
+    "portal:dev": "vite portal",
+    "portal:build": "vite build portal",
+    "build:all": "tsc -b && vite build && vite build portal"
   },
   "dependencies": {
     "fflate": "^0.8.2",

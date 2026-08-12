@@ -1,0 +1,111 @@
+{
+  "trials": [
+    {
+      "id": "trial-matong-2026",
+      "name": "Matong Wheat Fungicide Demo 2026",
+      "type": "demonstration",
+      "status": "active",
+      "season": "W2026",
+      "crop": "Wheat",
+      "variety": "Scepter",
+      "category": "Fungicide",
+      "aim": "Compare label-rate foliar fungicide programs for stripe rust and septoria in Scepter wheat, and show the timing response (GS31 vs GS39) at the Matong field day.",
+      "client": "Doyle Bros",
+      "branch": "Ganmain",
+      "site": {
+        "grower": "Doyle Bros",
+        "property": "Glenview",
+        "town": "Matong NSW",
+        "lat": -34.768,
+        "lng": 146.929,
+        "paddock": "Church block",
+        "soil": "Red-brown earth",
+        "sownDate": "2026-05-12",
+        "seedRate": "65 kg/ha",
+        "prevCrop": "Canola 2025 (stubble retained)",
+        "bearingDeg": -4
+      },
+      "timings": [
+        {"code": "A", "stage": "GS31", "label": "first node", "targetDate": "2026-07-14"},
+        {"code": "B", "stage": "GS39", "label": "flag leaf", "targetDate": "2026-08-18"}
+      ],
+      "treatments": [
+        {"number": 1, "name": "Untreated control", "products": []},
+        {"number": 2, "name": "Prosaro — single spray", "products": [{"product": "Prosaro 420 SC", "rate": "300 mL/ha", "timing": "A"}]},
+        {"number": 3, "name": "Aviator Xpro — timing A", "products": [{"product": "Aviator Xpro", "rate": "500 mL/ha", "timing": "A"}]},
+        {"number": 4, "name": "Aviator Xpro — timing B", "products": [{"product": "Aviator Xpro", "rate": "500 mL/ha", "timing": "B"}]},
+        {"number": 5, "name": "Two-spray program", "products": [{"product": "Elatus Ace", "rate": "400 mL/ha", "timing": "A"}, {"product": "Prosaro 420 SC", "rate": "300 mL/ha", "timing": "B"}]},
+        {"number": 6, "name": "Maxentis — single spray", "products": [{"product": "Maxentis", "rate": "750 mL/ha", "timing": "A"}]},
+        {"number": 7, "name": "AGV-X24 — candidate SDHI", "experimental": true, "note": "Evaluation sample — not for sale", "products": [{"product": "AGV-X24", "rate": "400 mL/ha", "timing": "A"}]},
+        {"number": 8, "name": "District practice", "products": [{"product": "Tilt 250 EC", "rate": "500 mL/ha", "timing": "A"}]}
+      ],
+      "randomisation": {"design": "RCBD", "reps": 4, "plotW_m": 2, "plotL_m": 10, "seed": "A7F3", "spares_per_rep": 1, "plotNumbering": "rep*100 + column"},
+      "assessments": [
+        {"number": "A1", "stage": "GS30-31", "what": "Disease baseline — stripe rust & septoria incidence", "method": "% plants infected · 10 plants/plot", "targetDate": "2026-06-26", "status": "done"},
+        {"number": "A2", "stage": "GS39", "what": "Severity on top 3 leaves + NDVI", "method": "0-100% leaf area · Greenseeker pass", "targetDate": "2026-08-10", "status": "in_progress", "pctScored": 68},
+        {"number": "A3", "stage": "GS65", "what": "Green leaf retention · phytotoxicity check", "method": "0-9 scale · photos per plot", "targetDate": "2026-09-15", "status": "planned"},
+        {"number": "A4", "stage": "Harvest", "what": "Yield, protein, screenings", "method": "Plot harvester + grain samples", "targetDate": "2026-12-08", "status": "planned"}
+      ],
+      "documents": [
+        {"filename": "Matong Demo Protocol v3.pdf", "kind": "pdf", "size": "1.2 MB", "parseStatus": "parsed", "parseResult": "8 treatments found → used in wizard"},
+        {"filename": "Spray map W2026.xlsx", "kind": "xlsx", "size": "86 KB", "parseStatus": "parsed", "parseResult": "36-plot layout matched to randomisation"},
+        {"filename": "Mixing plan — Timing A.xlsx", "kind": "xlsx", "size": "64 KB", "parseStatus": "parsing"},
+        {"filename": "Field day run sheet.docx", "kind": "docx", "size": "310 KB", "parseStatus": "error", "parseResult": "Couldn't read tables — open & mark up"}
+      ],
+      "droneFlights": [
+        {"date": "2026-08-12", "kind": "rgb", "label": "RGB ortho", "resolution": "4 cm/px", "platform": "DJI M3M"},
+        {"date": "2026-08-12", "kind": "ndvi", "label": "NDVI", "resolution": "4 cm/px", "platform": "DJI M3M"}
+      ],
+      "liveField": {"devices": 2, "lastFixMinutesAgo": 24, "currentPlot": 214, "operator": "Sam Kelleher"}
+    },
+    {
+      "id": "trial-ganmain-2026",
+      "name": "Ganmain Barley Net Blotch 2026",
+      "type": "plot",
+      "status": "in_review",
+      "season": "W2026",
+      "crop": "Barley",
+      "variety": "Spartacus CL",
+      "category": "Fungicide",
+      "aim": "Compare registered foliar fungicides and one experimental SDHI for net form net blotch in Spartacus CL barley — one- and two-spray programs, ranked by yield response for the Ganmain grower group.",
+      "client": "L & K Hardy",
+      "branch": "Ganmain",
+      "site": {
+        "grower": "L & K Hardy",
+        "property": "Hillview",
+        "town": "Ganmain NSW",
+        "lat": -34.792,
+        "lng": 147.041,
+        "paddock": "Racecourse block",
+        "soil": "pH 5.4 (CaCl2)",
+        "sownDate": "2026-05-08",
+        "seedRate": "70 kg/ha",
+        "prevCrop": "Wheat 2025 — stubble retained, NFNB carryover risk"
+      },
+      "timings": [
+        {"code": "A", "stage": "GS39", "targetDate": "2026-08-20"},
+        {"code": "B", "stage": "GS55", "targetDate": "2026-09-04"}
+      ],
+      "treatmentsSameAs": "trial-matong-2026",
+      "randomisation": {"design": "RCBD", "reps": 4, "plotW_m": 2, "plotL_m": 10, "seed": "A7F3"},
+      "assessments": [
+        {"number": "A1", "stage": "GS37-39", "what": "Net blotch baseline — % leaf area, top 3 leaves", "targetDate": "2026-08-18", "status": "booked"},
+        {"number": "A2", "stage": "GS55 +10d", "what": "Severity + green leaf retention", "targetDate": "2026-09-14", "status": "planned"},
+        {"number": "A3", "stage": "GS71", "what": "Final severity · phytotoxicity check", "targetDate": "2026-09-28", "status": "planned"},
+        {"number": "A4", "stage": "Harvest", "what": "Yield, test weight, retention & screenings", "targetDate": "2026-11-24", "status": "planned"}
+      ],
+      "approval": {"reviewer": "Ian McPherson", "role": "Senior agronomist", "submittedBy": "Sam Kelleher", "submittedAt": "2026-08-10T09:41:00+10:00", "ackLabelsRequired": true},
+      "changeLog": [
+        {"at": "2026-08-10T09:41:00+10:00", "event": "Submitted for approval → Ian McPherson", "actor": "Sam Kelleher"},
+        {"at": "2026-08-10T09:38:00+10:00", "event": "Randomisation generated — RCBD · 4 reps · seed #A7F3", "actor": "Sam Kelleher"},
+        {"at": "2026-08-09T16:12:00+10:00", "event": "8 treatments imported from 'Net blotch demo protocol.pdf' · 2 rates edited", "actor": "Sam Kelleher"},
+        {"at": "2026-08-09T15:47:00+10:00", "event": "Site added — 'Hillview', Ganmain · GPS pinned", "actor": "Sam Kelleher"},
+        {"at": "2026-08-09T15:30:00+10:00", "event": "Trial created from template 'Cereal fungicide demo'", "actor": "Sam Kelleher"}
+      ]
+    }
+  ],
+  "users": [
+    {"name": "Sam Kelleher", "initials": "SK", "role": "agronomist", "title": "Trials agronomist", "branch": "Ganmain"},
+    {"name": "Ian McPherson", "initials": "IM", "role": "senior_agronomist", "title": "Senior agronomist", "branch": "Ganmain"}
+  ]
+}
