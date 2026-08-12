@@ -2,21 +2,47 @@ import React, { useState } from 'react'
 import { C, MONO } from '../theme'
 import { PrimaryBtn } from '../components/bits'
 import { useApp } from '../store/store'
+import { login } from '../lib/backend'
 
 export function Login() {
   const { mut } = useApp()
   const [email, setEmail] = useState('andrew.rolfe@agnvet.com.au')
   const [pw, setPw] = useState('')
   const [linkFlash, setLinkFlash] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState<{ msg: string; err?: boolean } | null>(null)
 
-  const signIn = () => {
-    if (!email.includes('@')) return
-    // Offline-capable auth stub — a Supabase session slot in the architecture.
-    // The session persists locally so the phone works with no signal.
+  const enter = () =>
     mut(null, (d) => {
       d.session = { ...d.session, email }
       d.screen = 'home'
     })
+
+  const signIn = async () => {
+    if (!email.includes('@') || busy) return
+    if (pw.length < 6) {
+      // Demo path — no backend call, no accidental signups.
+      setStatus({ msg: 'Offline demo — use a password of 6+ characters to create a synced account.' })
+      enter()
+      return
+    }
+    setBusy(true)
+    setStatus(null)
+    // Real Supabase auth when reachable; the offline-first promise holds —
+    // no signal (or no backend yet) still gets you into the app.
+    const res = await login(email, pw)
+    setBusy(false)
+    if (res.mode === 'online') {
+      enter()
+    } else if (res.mode === 'confirm-email') {
+      setStatus({ msg: 'Account created — confirm via the email we sent. Working locally meanwhile.' })
+      enter()
+    } else if (res.mode === 'bad-credentials') {
+      setStatus({ msg: 'Wrong password for this account.', err: true })
+    } else {
+      setStatus({ msg: 'Backend unreachable — working offline; data syncs when you sign in online.' })
+      enter()
+    }
   }
 
   const inputStyle: React.CSSProperties = {
@@ -56,9 +82,14 @@ export function Login() {
             autoComplete="current-password"
           />
         </div>
-        <PrimaryBtn onClick={signIn} style={{ borderRadius: 11, marginBottom: 8 }}>
-          Sign in
+        <PrimaryBtn onClick={signIn} style={{ borderRadius: 11, marginBottom: 8, opacity: busy ? 0.7 : 1 }}>
+          {busy ? 'Signing in…' : 'Sign in'}
         </PrimaryBtn>
+        {status && (
+          <div style={{ background: status.err ? C.burntTint : C.greenTint, borderRadius: 8, padding: '7px 10px', fontSize: 11.5, fontWeight: 700, color: status.err ? C.burntDark : C.greenDark, marginBottom: 8 }}>
+            {status.msg}
+          </div>
+        )}
         <div
           onClick={() => setLinkFlash(true)}
           style={{ textAlign: 'center', padding: 10, fontSize: 12.5, fontWeight: 700, color: C.green, cursor: 'pointer' }}

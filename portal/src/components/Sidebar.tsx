@@ -1,4 +1,31 @@
+import { useEffect, useState } from 'react'
+import { backendState, type BackendState } from '../../../shared/supa'
 import { useApp } from '../state'
+
+const BACKEND_LABEL: Record<BackendState, { dot: string; text: string; label: string }> = {
+  connected: { dot: '#007749', text: '#00623C', label: 'Backend connected' },
+  'migration-pending': { dot: '#cf4520', text: '#A93414', label: 'DB migration pending' },
+  unreachable: { dot: '#B9BBB9', text: '#8A8C8A', label: 'Backend offline' },
+}
+
+function BackendChip() {
+  const [state, setState] = useState<BackendState | null>(null)
+  useEffect(() => {
+    let live = true
+    backendState().then((s) => live && setState(s))
+    return () => {
+      live = false
+    }
+  }, [])
+  if (!state) return null
+  const c = BACKEND_LABEL[state]
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.dot, flex: 'none' }} />
+      <span style={{ fontSize: 9.5, fontWeight: 700, color: c.text }}>{c.label}</span>
+    </div>
+  )
+}
 
 const icons = {
   trials: (
@@ -85,6 +112,7 @@ export default function Sidebar() {
       <div style={{ padding: '20px 18px 13px' }}>
         <img src="./assets/agnvet-logo.png" alt="AGnVET" style={{ width: 126, display: 'block' }} />
         <div style={{ marginTop: 9, fontSize: 10.5, fontWeight: 800, letterSpacing: '.15em', color: '#007749' }}>TRIAL WORK · OFFICE</div>
+        <BackendChip />
       </div>
       <div style={{ height: 1, background: '#EDEEED', margin: '0 18px 10px' }} />
       <NavItem active={s.screen === 'trials' || s.screen === 'review'} onClick={() => nav('trials')} icon={icons.trials}>

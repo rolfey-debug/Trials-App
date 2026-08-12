@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { AppState, Screen, SyncItem, TrialDoc, TrialState } from './types'
 import { idb } from './idb'
 import { seedState } from './seed'
+import { logout as backendLogout, pushToBackend } from '../lib/backend'
 
 interface StoreCtx {
   st: AppState
@@ -31,6 +32,8 @@ let syncId = 1000
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [st, setSt] = useState<AppState | null>(null)
   const persistTimer = useRef<number | undefined>(undefined)
+  const stRef = useRef<AppState | null>(null)
+  stRef.current = st
 
   // boot: hydrate from IndexedDB, else seed
   useEffect(() => {
@@ -80,10 +83,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const go = useCallback((s: Screen) => mut(null, (d) => void (d.screen = s)), [mut])
 
   const syncNow = useCallback(() => {
-    // No portal backend wired yet: when online, the queue drains and the local
-    // copy is authoritative. The queue shape matches what a Supabase push needs.
+    // Local queue drains when online (local copy stays authoritative); when a
+    // Supabase session exists the same data is pushed upstream — idempotent
+    // upserts, so repeat pushes after offline stretches are safe.
+    const cur = stRef.current
+    if (!cur || !navigator.onLine) return
+    void pushToBackend(cur).catch(() => false)
     mut(null, (d) => {
-      if (!navigator.onLine) return
       d.syncQueue = d.syncQueue.map((q) => ({ ...q, synced: true }))
       d.lastSyncTs = Date.now()
     })
@@ -105,7 +111,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setSt(fresh)
   }, [])
 
-  const signOut = useCallback(() => mut(null, (d) => void ((d.session = { ...d.session, email: null }), (d.screen = 'login'))), [mut])
+  const signOut = useCallback(() => {
+    backendLogout()
+    mut(null, (d) => void ((d.session = { ...d.session, email: null }), (d.screen = 'login')))
+  }, [mut])
 
   const value = useMemo<StoreCtx | null>(() => {
     if (!st) return null
