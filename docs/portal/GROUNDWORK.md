@@ -76,6 +76,32 @@ protocol docx) move server-side unchanged (they're pure TS) — parse output
 is stored in `documents.parsed` and offered as wizard prefill, exactly like
 the phone app's "Add a trial" flow but reviewable on a big screen.
 
+## Roadmap groundwork (schema v2 + phenology)
+
+Added after the portal build, from the agreed roadmap:
+
+- **Sites are first-class** (`sites` table): pegged once, host many trials
+  across seasons, accumulate paddock history, anchor weather. Trials
+  reference `site_id`.
+- **Protocol templates + trial groups** (`protocols`, `trial_groups`):
+  define a treatment set once, stamp it onto trials at many sites; grouped
+  trials share treatment identity for cross-site (multi-environment)
+  reporting.
+- **Operations beyond spraying** (`operations`, `fert_products`): sow /
+  fertilise / spray as first-class plot operations — variety, seed-rate and
+  fert trials reuse the same treatments/randomisation machinery. Fert
+  products are org-curated with N-P-K-S analysis (not APVMA-registered).
+- **Phenology** (`shared/phenology/`): thermal-time (GDD) stage prediction
+  from sowing date + variety + daily temperature. Weather is **SILO
+  DataDrill** (free BoM-gridded daily climate for any AU coordinate) —
+  season actuals then 10-year day-of-year normals for projection.
+  `npm run weather:build` refreshes site fixtures; `site_weather` +
+  `phenology_calibrations` are the backend home. Default crop/variety
+  coefficients are clearly-marked placeholders for AGnVET's own stage
+  observations (`registerCalibration()`). Live in the portal: predicted-stage
+  chips + model-vs-target drift flag on the wizard's Assessments step, and
+  model dates beside the timing legend on Treatments.
+
 ## Next steps (after the design handoff)
 
 1. Portal scaffold (`portal/`) + Supabase project provisioning (needs org

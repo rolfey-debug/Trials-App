@@ -1,6 +1,25 @@
+import { useEffect, useState } from 'react'
 import { ASSESS_ROWS_WIZ, DESIGN_NOTES, TRIAL_TYPES } from '../data'
 import { cellColors, decorateBands, layout, randomSeed, type Design } from '../lib/layout'
+import { fmtShort, trialPhenology, type TrialPhenology } from '../lib/phenology'
 import { MONO, useApp, type Step } from '../state'
+
+/** Live stage predictions for the seeded Matong trial (site pegged → SILO). */
+function usePhenology(): TrialPhenology | null {
+  const [p, setP] = useState<TrialPhenology | null>(null)
+  useEffect(() => {
+    let live = true
+    trialPhenology('matong', '2026-05-12', 'wheat', 'Scepter')
+      .then((x) => live && setP(x))
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [])
+  return p
+}
+
+const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000)
 
 const STEP_META: Record<string, { title: string; hint: string; count: string; next: string; back: Step | null; to: Step | null }> = {
   aim: { title: 'Aim & basics', hint: 'what kind of trial, and why', count: 'Step 1 of 6', next: 'Save & continue →', back: null, to: 'treatments' },
@@ -117,6 +136,8 @@ function StepTreatments() {
   const { s, set, nav, allT } = useApp()
   const unconf = 8 - Object.keys(s.confirmed).length
   const rows = allT()
+  const phen = usePhenology()
+  const modelFor = (code: string) => phen?.stages.find((st) => st.code === code)
   return (
     <div style={{ maxWidth: 940 }}>
       {unconf > 0 ? (
@@ -147,16 +168,24 @@ function StepTreatments() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         {(
           [
-            ['A', 'GS31 · first node', 'target 14 Jul'],
-            ['B', 'GS39 · flag leaf', 'target 18 Aug'],
+            ['A', 'GS31', 'GS31 · first node', 'target 14 Jul'],
+            ['B', 'GS39', 'GS39 · flag leaf', 'target 18 Aug'],
           ] as const
-        ).map(([letter, stage, target]) => (
-          <div key={letter} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '8px 12px', background: '#fff', border: '1px solid #E4E4E6', borderRadius: 8 }}>
-            <span style={{ display: 'inline-flex', width: 18, height: 18, borderRadius: 5, background: '#141414', color: '#fff', fontSize: 10.5, fontWeight: 800, alignItems: 'center', justifyContent: 'center', transform: 'translateY(3px)' }}>{letter}</span>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#141414' }}>{stage}</span>
-            <span style={{ fontFamily: MONO, fontSize: 11, color: '#8A8C8A' }}>{target}</span>
-          </div>
-        ))}
+        ).map(([letter, code, stage, target]) => {
+          const m = modelFor(code)
+          return (
+            <div key={letter} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '8px 12px', background: '#fff', border: '1px solid #E4E4E6', borderRadius: 8 }}>
+              <span style={{ display: 'inline-flex', width: 18, height: 18, borderRadius: 5, background: '#141414', color: '#fff', fontSize: 10.5, fontWeight: 800, alignItems: 'center', justifyContent: 'center', transform: 'translateY(3px)' }}>{letter}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#141414' }}>{stage}</span>
+              <span style={{ fontFamily: MONO, fontSize: 11, color: '#8A8C8A' }}>{target}</span>
+              {m && (
+                <span style={{ fontFamily: MONO, fontSize: 11, color: m.status === 'observed' ? '#00623C' : '#6B6D6B' }}>
+                  · model {m.status === 'observed' ? '✓ ' : '~'}{fmtShort(m.date)}
+                </span>
+              )}
+            </div>
+          )
+        })}
         <div style={{ fontSize: 11.5, color: '#8A8C8A' }}>Application timings — each treatment picks A, B or both</div>
       </div>
       <div style={{ background: '#fff', border: '1px solid #E4E4E6', borderRadius: 10, overflow: 'hidden' }}>
@@ -339,12 +368,52 @@ function StepRandomisation() {
 }
 
 function StepAssess() {
+  const phen = usePhenology()
+  const gs39 = phen?.stages.find((s) => s.code === 'GS39')
+  const lateBy = gs39 ? daysBetween('2026-08-18', gs39.date) : 0
   return (
     <div style={{ maxWidth: 820 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', border: '1px solid #BCDCCB', borderRadius: 10, marginBottom: 16, background: '#fff' }}>
         <span style={{ color: '#007749', fontWeight: 800, fontSize: 13 }}>✓</span>
         <div style={{ fontSize: 12.5, color: '#00512F', fontWeight: 600 }}>Schedule prefilled from the protocol — confirm methods with the field team.</div>
       </div>
+      {phen && (
+        <div style={{ background: '#fff', border: '1px solid #E4E4E6', borderRadius: 10, padding: '14px 18px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.11em', color: '#8A8C8A' }}>PREDICTED STAGES</div>
+            <div style={{ fontFamily: MONO, fontSize: 10.5, color: '#6B6D6B' }}>
+              sown 12 May · Scepter · SILO temps to {phen.updated ? fmtShort(phen.updated) : '—'} · thermal-time model
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {phen.stages
+              .filter((st) => ['GS30', 'GS31', 'GS32', 'GS39', 'GS49', 'GS55', 'GS65', 'GS87'].includes(st.code))
+              .map((st) => {
+                const obs = st.status === 'observed'
+                const spread = Math.max(1, Math.round(daysBetween(st.window[0], st.window[1]) / 2))
+                return (
+                  <div key={st.code} style={{ padding: '7px 11px', borderRadius: 8, border: `1px solid ${obs ? '#BCDCCB' : '#E4E4E6'}`, background: obs ? '#F7FAF8' : '#fff' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                      <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 600, color: '#141414' }}>{st.code}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 11.5, color: obs ? '#00623C' : '#3E403E' }}>
+                        {obs ? '✓ ' : '~'}{fmtShort(st.date)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#8A8C8A', marginTop: 2 }}>{obs ? st.label : `${st.label} · ± ${spread} d`}</div>
+                  </div>
+                )
+              })}
+          </div>
+          {gs39 && Math.abs(lateBy) >= 5 && (
+            <div style={{ marginTop: 11, fontSize: 11.5, fontWeight: 700, color: '#cf4520' }}>
+              ⚑ Timing B (GS39) is tracking ~{Math.abs(lateBy)} days {lateBy > 0 ? 'later' : 'earlier'} than the protocol target 18 Aug — the field app will follow the model window.
+            </div>
+          )}
+          <div style={{ marginTop: 9, fontSize: 10.5, color: '#8A8C8A' }}>
+            Default calibration — loads AGnVET stage observations per variety when supplied. Weather: SILO gridded daily temps for the pegged site coordinates.
+          </div>
+        </div>
+      )}
       <div style={{ background: '#fff', border: '1px solid #E4E4E6', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '44px 92px minmax(0,1.6fr) minmax(0,1.3fr) 76px', gap: 12, padding: '10px 18px', fontSize: 10.5, fontWeight: 800, letterSpacing: '.11em', color: '#8A8C8A', borderBottom: '1px solid #EDEEED' }}>
           <div>NO.</div>

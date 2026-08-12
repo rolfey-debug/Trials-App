@@ -31,6 +31,25 @@ create table clients (
   created_at  timestamptz not null default now()
 );
 
+-- A site (paddock) is first-class: pegged once, hosts many trials across
+-- seasons, accumulates history, and anchors weather/phenology.
+create table sites (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid not null references orgs,
+  client_id   uuid references clients,
+  property    text not null,                   -- ‘Glenview’
+  town        text,
+  lat         double precision,
+  lng         double precision,
+  paddock     text,
+  soil        text,
+  ph          numeric,
+  bearing     numeric,                         -- front-edge bearing from corner pegs
+  corners     jsonb,                           -- pegged GPS corners
+  history     jsonb not null default '[]',     -- [{season, crop, notes}]
+  created_at  timestamptz not null default now()
+);
+
 -- ---------------------------------------------------------------------------
 -- Products (seeded from APVMA PubCRIS; experimental products are org-owned)
 
@@ -62,20 +81,49 @@ create table experimental_products (
 -- ---------------------------------------------------------------------------
 -- Trials
 
+-- Protocol templates: a treatment set defined once and stamped onto many
+-- trials ("2026 cereal fungicide program"). Trials created from the same
+-- protocol share treatment identity, enabling cross-site analysis.
+create table protocols (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid not null references orgs,
+  name        text not null,
+  crop        text,
+  treatments  jsonb not null default '[]',     -- same shape as treatments rows
+  assessments jsonb not null default '[]',
+  created_by  uuid references people,
+  created_at  timestamptz not null default now()
+);
+
+-- Linked trials for combined reporting (multi-environment analysis).
+create table trial_groups (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid not null references orgs,
+  name        text not null,                   -- "Cereal fungicide program 2026"
+  protocol_id uuid references protocols,
+  created_at  timestamptz not null default now()
+);
+
 create table trials (
   id          uuid primary key default gen_random_uuid(),
   org_id      uuid not null references orgs,
   client_id   uuid references clients,
+  site_id     uuid references sites,           -- many trials per site
+  group_id    uuid references trial_groups,    -- linked-trial reporting
+  protocol_id uuid references protocols,       -- template it was stamped from
   name        text not null,
   season      integer not null,
   status      text not null default 'draft'
               check (status in ('draft','review','approved','active','complete','archived')),
+  trial_type  text not null default 'plot'
+              check (trial_type in ('demonstration','plot','paddock_scale')),
   aim         text,
   crop        text,
+  variety     text,
+  sown_date   date,                            -- drives phenology predictions
   design      jsonb not null default '{}',     -- {kind:'rcbd', treatments, reps, seed, grid, repBands}
   layout      jsonb,                           -- generated: {cells, plots, walkOrder} (TrialDoc shape)
   spraying    jsonb,                           -- {waterRateLPerHa, sprayVolumePerPlotMl, batchVolumeL, timings}
-  site        jsonb,                           -- {address, latlng, corners, bearing, plot dims}
   created_by  uuid references people,
   approved_by uuid references people,
   created_at  timestamptz not null default now(),
@@ -116,6 +164,58 @@ create table documents (
   parsed      jsonb,                           -- parser output used to prefill the wizard
   uploaded_by uuid references people,
   created_at  timestamptz not null default now()
+);
+
+-- Plot operations generalise beyond spraying: sowing (variety, seed rate,
+-- depth) and fertiliser (product, rate, placement) trials use the same
+-- treatments/plots machinery with a different operation kind.
+create table operations (
+  id          uuid primary key default gen_random_uuid(),
+  trial_id    uuid not null references trials on delete cascade,
+  kind        text not null check (kind in ('sow','fertilise','spray')),
+  timing      text,                            -- 'A' / 'B' / date / growth stage
+  detail      jsonb not null default '{}',     -- sow: {variety, seedRateKgHa, depthMm}
+                                               -- fertilise: {product, analysis, rateKgHa, placement}
+                                               -- spray: {waterRateLPerHa, nozzles}
+  performed_at timestamptz,
+  performed_by uuid references people,
+  conditions  jsonb                            -- wind/temp/ΔT record from the field app
+);
+
+-- Fertiliser products are not APVMA-registered — org-curated list with
+-- nutrient analysis, searchable in the same picker as chem products.
+create table fert_products (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid not null references orgs,
+  name        text not null,
+  analysis    jsonb not null default '{}',     -- {N, P, K, S, Zn...} % w/w
+  form        text,                            -- granular / liquid
+  notes       text
+);
+
+-- ---------------------------------------------------------------------------
+-- Phenology: SILO weather cache per site + org calibrations. Predictions are
+-- computed by shared/phenology/engine.ts from these two tables.
+
+create table site_weather (
+  site_id     uuid not null references sites on delete cascade,
+  date        date not null,
+  min_temp    numeric not null,
+  max_temp    numeric not null,
+  rain        numeric,
+  source      text not null default 'silo',
+  primary key (site_id, date)
+);
+
+create table phenology_calibrations (
+  id          uuid primary key default gen_random_uuid(),
+  org_id      uuid not null references orgs,
+  crop        text not null,
+  variety     text not null,
+  factor      numeric,                         -- relative development speed vs crop default
+  stage_tt    jsonb,                           -- optional per-stage thermal-time overrides
+  source      text,                            -- which season/observations calibrated it
+  unique (org_id, crop, variety)
 );
 
 -- ---------------------------------------------------------------------------
@@ -174,6 +274,13 @@ create table sync_log (
 alter table orgs                  enable row level security;
 alter table people                enable row level security;
 alter table clients               enable row level security;
+alter table sites                 enable row level security;
+alter table protocols             enable row level security;
+alter table trial_groups          enable row level security;
+alter table operations            enable row level security;
+alter table fert_products         enable row level security;
+alter table site_weather          enable row level security;
+alter table phenology_calibrations enable row level security;
 alter table experimental_products enable row level security;
 alter table trials                enable row level security;
 alter table treatments            enable row level security;

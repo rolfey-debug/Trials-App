@@ -135,6 +135,15 @@ await page.click('text=Add experimental product')
 check('experimental product added with EXP flag', await page.locator('text=AGV-X31').count() >= 1)
 await shot('7-treatments-extras')
 
+// 7b. Phenology in the assessments step
+await page.click('div:text-is("Assessments")')
+await page.waitForSelector('text=PREDICTED STAGES', { timeout: 15000 })
+check('phenology card renders from SILO fixtures', await page.locator('text=thermal-time model').count() === 1)
+check('observed stages ticked (GS31 reached)', await page.locator('text=✓ 22 Jul').count() >= 1)
+check('GS39 predicted with window', await page.locator('text=~29 Aug').count() >= 1)
+check('late-season flag raised vs protocol target', await page.locator('text=tracking ~11 days later').count() === 1)
+await shot('7b-phenology')
+
 // 8. Documents workspace
 await page.click('text=Documents')
 await page.waitForSelector('text=Documents & protocol')
