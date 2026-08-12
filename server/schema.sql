@@ -291,8 +291,11 @@ alter table photos                enable row level security;
 alter table corrections           enable row level security;
 alter table sync_log              enable row level security;
 
-create function current_org() returns uuid language sql stable as
-  $$ select org_id from people where id = auth.uid() $$;
+-- security definer: the people policy references this function; without
+-- definer rights the lookup recurses through RLS.
+create function current_org() returns uuid
+language sql stable security definer set search_path = public as
+  $$ select org_id from public.people where id = auth.uid() $$;
 
 create policy org_read  on trials for select using (org_id = current_org());
 create policy org_write on trials for insert with check (org_id = current_org());

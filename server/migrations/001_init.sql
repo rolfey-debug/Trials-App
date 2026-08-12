@@ -264,8 +264,11 @@ create trigger on_auth_user_created
 -- ---------------------------------------------------------------------------
 -- Row-level security
 
-create function current_org() returns uuid language sql stable as
-  $$ select org_id from people where id = auth.uid() $$;
+-- security definer: the people policy references this function; without
+-- definer rights the lookup recurses through RLS.
+create function current_org() returns uuid
+language sql stable security definer set search_path = public as
+  $$ select org_id from public.people where id = auth.uid() $$;
 
 alter table orgs enable row level security;
 create policy orgs_read on orgs for select using (id = current_org());
