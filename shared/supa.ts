@@ -140,5 +140,6 @@ export function stableId(...parts: Array<string | number>): string {
   const b = hex(h2)
   const c = hex(Math.imul(h1, 31) >>> 0)
   const d = hex(Math.imul(h2, 31) >>> 0)
-  return `${a}-${b.slice(0, 4)}-4${b.slice(5, 8)}-8${c.slice(1, 4)}-${c.slice(4)}${d.slice(0, 4)}`
+  // 8-4-4-4-12, RFC-4122 shaped (version 4 / variant 8 nibbles fixed)
+  return `${a}-${b.slice(0, 4)}-4${b.slice(4, 7)}-8${c.slice(0, 3)}-${c.slice(3)}${d.slice(0, 7)}`
 }

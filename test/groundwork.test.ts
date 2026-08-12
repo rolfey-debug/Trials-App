@@ -119,4 +119,14 @@ check(
   check('activesLabel: renders name + rate', /mefentrifluconazole \d/.test(label))
 }
 
+
+// --- sync ids ---------------------------------------------------------------
+{
+  const { stableId } = await import('../shared/supa')
+  const re = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/
+  const ids = [stableId('t', 1, 101, 'gs'), stableId('t', 1, 101, 'ndvi'), stableId('t', 1, 102, 'gs')]
+  check('stableId: valid RFC-4122-shaped uuids', ids.every((i) => re.test(i)))
+  check('stableId: deterministic and distinct', stableId('t', 1, 101, 'gs') === ids[0] && new Set(ids).size === 3)
+}
+
 console.log(`\n${passed} groundwork checks passed`)
