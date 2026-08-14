@@ -32,9 +32,14 @@ export function Home() {
     : `All synced — queue clear${st.lastSyncTs ? ` (${new Date(st.lastSyncTs).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })})` : ''}`
 
   const otherDocs = Object.values(st.trials).filter((t) => t.id !== st.activeTrialId)
-  const aSprayed = doc.trial.timings.A.sprayed
   const fmtDay = (iso: string) =>
     new Date(iso + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  // Spray progress: the fixture date, or the ticks made on the phone
+  const sprCount = Object.keys(ts.sprDone).length
+  const sprTotal = doc.treatments.length
+  const aSprayed = doc.trial.timings.A.sprayed
+  const aDone = !!aSprayed || sprCount >= sprTotal
+  const aDoneLabel = aSprayed ? `App A sprayed — ${fmtDay(aSprayed)}` : `App A sprayed — all ${sprTotal} treatments`
 
   const statusRow = (icon: React.ReactNode, body: React.ReactNode) => (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -65,21 +70,26 @@ export function Home() {
           {doc.trial.waterRateLPerHa} L/ha
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5, marginBottom: 12 }}>
-          {aSprayed
+          {aDone
             ? statusRow(
                 <span style={{ width: 16, height: 16, borderRadius: '50%', background: C.green, color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>✓</span>,
                 <>
-                  App A sprayed — {fmtDay(aSprayed)} ·{' '}
+                  {aDoneLabel} ·{' '}
                   <span style={{ color: openCount ? C.burnt : C.greenDark, fontWeight: 700 }}>
                     {openCount ? `${openCount} open issue${openCount === 1 ? '' : 's'}` : 'issues clear'}
                   </span>
                 </>
               )
-            : statusRow(
-                <span style={{ width: 16, height: 16, borderRadius: '50%', background: C.burnt, color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flex: 'none' }}>!</span>,
-                <>App A — {doc.trial.timings.A.due ?? 'due'} · mix plan ready</>
-              )}
-          {aSprayed &&
+            : sprCount > 0
+              ? statusRow(
+                  <span style={{ width: 16, height: 16, borderRadius: '50%', background: C.burnt, color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flex: 'none' }}>!</span>,
+                  <>App A underway — {sprCount} of {sprTotal} treatments sprayed</>
+                )
+              : statusRow(
+                  <span style={{ width: 16, height: 16, borderRadius: '50%', background: C.burnt, color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flex: 'none' }}>!</span>,
+                  <>App A — {doc.trial.timings.A.due ?? 'due'} · mix plan ready</>
+                )}
+          {aDone &&
             statusRow(
               <span style={{ width: 16, height: 16, borderRadius: '50%', background: C.burnt, color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flex: 'none' }}>!</span>,
               'Assessment 1 — open now (14–21 DAA)'

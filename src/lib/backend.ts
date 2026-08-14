@@ -67,7 +67,7 @@ export async function pushToBackend(st: AppState): Promise<boolean> {
   const token = await activeToken()
   if (!token) return false
   const results: boolean[] = []
-  const summary: Record<string, { scores: number; corrections: number; photos: number }> = {}
+  const summary: Record<string, { scores: number; corrections: number; photos: number; spray: number }> = {}
   for (const localId of Object.keys(st.trials)) {
     const trial_id = trialUuid(localId)
     const ts = st.trialState[localId]
@@ -78,7 +78,7 @@ export async function pushToBackend(st: AppState): Promise<boolean> {
       continue
     }
     results.push(true)
-    if (counts.scores + counts.corrections + counts.photos > 0) summary[localId] = counts
+    if (counts.scores + counts.corrections + counts.photos + counts.spray > 0) summary[localId] = counts
   }
   if (!results.length) return false
   await insert(
@@ -100,7 +100,7 @@ async function pushTrial(
   trial_id: string,
   ts: TrialState,
   token: string,
-): Promise<{ scores: number; corrections: number; photos: number } | null> {
+): Promise<{ scores: number; corrections: number; photos: number; spray: number } | null> {
   const assessment = ts.assessIdx + 1
   const scoreRows: unknown[] = []
   for (const [pid, sc] of Object.entries(ts.scores)) {
@@ -145,11 +145,33 @@ async function pushTrial(
     meta: { flagged: p.flagged, trt: p.trt, sizeKB: p.sizeKB ?? null, label: p.date },
   }))
 
+  // Spray-day record: one operations row per timing, upserted on every push —
+  // mix/spray ticks and the conditions record all live in it, so the office
+  // sees spray progress the moment the phone syncs.
+  const operationRows: unknown[] = []
+  if (Object.keys(ts.mixDone).length || Object.keys(ts.sprDone).length || Object.keys(ts.conditions).length) {
+    operationRows.push({
+      id: stableId(trial_id, 'op', 'spray', 'A'),
+      trial_id,
+      kind: 'spray',
+      timing: 'A',
+      detail: {
+        mixed: Object.keys(ts.mixDone).map(Number).sort((a, b) => a - b),
+        sprayed: Object.keys(ts.sprDone).map(Number).sort((a, b) => a - b),
+        mixLog: ts.mixDone,
+        sprayLog: ts.sprDone,
+      },
+      performed_at: new Date().toISOString(),
+      conditions: ts.conditions,
+    })
+  }
+
   const ok = await Promise.all([
     insert('scores', scoreRows, token, { upsert: true }),
     insert('corrections', correctionRows, token, { upsert: true }),
     insert('photos', photoRows, token, { upsert: true }),
+    insert('operations', operationRows, token, { upsert: true }),
   ])
   if (!ok.every(Boolean)) return null
-  return { scores: scoreRows.length, corrections: correctionRows.length, photos: photoRows.length }
+  return { scores: scoreRows.length, corrections: correctionRows.length, photos: photoRows.length, spray: operationRows.length }
 }
