@@ -44,6 +44,8 @@ export interface TrialDoc {
     season: number
     design: string
     reps: number
+    /** How reps block onto the grid: by position bands (default) or row bands. */
+    blocking?: 'position' | 'row'
     grid: { rows: number; positions: number }
     repBands: Record<string, number[]>
     plot: { widthM: number; lengthM: number; areaM2: number }
@@ -61,6 +63,8 @@ export interface TrialDoc {
   walkOrders: { assessment: string; fieldDay: string }
   measures: MeasureLib
   conditionsRecordA?: Record<string, string | number>
+  /** Operational notes carried from the source workbook (mixing caveats etc.). */
+  notes?: string[]
 }
 
 export interface Score {

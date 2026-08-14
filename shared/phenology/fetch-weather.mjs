@@ -20,6 +20,7 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const SITES = [
   { site: 'matong', lat: -34.768, lon: 146.929 },
   { site: 'ganmain', lat: -34.792, lon: 147.041 },
+  { site: 'ringwood', lat: -35.99, lon: 146.39 },
 ]
 const SEASON = { start: '20260401', finish: '20261231' }
 const HIST = { start: '20160101', finish: '20251231' }

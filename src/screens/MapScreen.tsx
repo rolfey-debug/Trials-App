@@ -73,8 +73,17 @@ export function MapScreen() {
     ['skip/spare', { background: '#ECEDEC' }],
   ]
 
-  // rep band header widths from the trial's bands
+  // rep band header widths from the trial's bands; row-blocked trials label
+  // reps down the side instead (bands are rows, not positions)
+  const rowBlocked = doc.trial.blocking === 'row'
   const bands = Object.entries(doc.trial.repBands).sort((a, b) => Number(a[0]) - Number(b[0]))
+  const hasReserves = Object.values(doc.cells).includes('reserve')
+  /** Row label suffix: the rep band(s) this row sits in ('2/3' where bands share a row). */
+  const rowBandLabel = (r: number): string =>
+    bands
+      .filter(([, band]) => band.includes(r))
+      .map(([rep]) => rep)
+      .join('/')
 
   // ---- bottom sheet ------------------------------------------------------
   let sheet: React.ReactNode = null
@@ -96,8 +105,9 @@ export function MapScreen() {
         </>
       )
       if (ts.relabel[sel] !== undefined) lines.push(`↺  Relabelled from T${v} on spray day — in the correction log`)
-      lines.push('✓  App A sprayed — 6 Aug')
-      lines.push(trt?.bSpray ? '○  App B due at GS39' : '—  A only · skip this plot at B')
+      const tim = doc.trial.timings
+      lines.push(tim.A.sprayed ? `✓  App A sprayed — ${tim.A.sprayed.slice(5)}` : `○  App A — ${tim.A.due ?? 'to schedule'}`)
+      lines.push(trt?.bSpray ? `○  App B — ${tim.B.due ?? tim.B.sprayed ?? 'to schedule'}` : '—  A only · skip this plot at B')
       const iu = ts.issues.find((x) => x.pid === sel)
       if (iu) lines.push(`${iu.status === 'open' ? '⚑  OPEN ISSUE: ' : '⚑  Issue (fixed): '}${iu.type} — see Spray › Issues`)
       if (ts.excluded.includes(sel)) lines.push('✕  Excluded from analysis — see correction log')
@@ -106,7 +116,10 @@ export function MapScreen() {
         const parts = ts.activeMeasures.filter((k) => s2.v[k] !== undefined).map((k) => `${s2.v[k]} ${flat[k][1].toLowerCase()}`)
         if (parts.length) lines.push(`✓  Assessed: ${parts.join(' · ')}`)
       }
-      if (doc.marginalPlots.includes(sel)) lines.push(`⚠  Marginal plot — reserve held one across (${sel + 1})`)
+      if (doc.marginalPlots.includes(sel))
+        lines.push(
+          hasReserves ? `⚠  Marginal plot — reserve held one across (${sel + 1})` : '⚠  Marginal plot carrying a treatment — flag at assessment',
+        )
     } else if (v === 'reserve') lines.push(`Reserve — held as rep-1 substitute for ${sel - 1}. Sits in rep 2’s band; note if used.`)
     else if (v === 'out') lines.push('Ruled right out — do not spray, do not assess.')
     else if (v === 'skip') lines.push('Marginal ground left empty — no treatment. Design is balanced without it.')
@@ -164,7 +177,7 @@ export function MapScreen() {
     <div style={{ flex: 1, overflow: 'auto', padding: '10px 14px 12px' }}>
       <ScreenTitle
         title={`Spray map — ${doc.trial.name.split('—')[0].trim()}`}
-        sub={`${rows} rows × ${positions} positions · reps run as vertical bands`}
+        sub={`${rows} rows × ${positions} positions · ${rowBlocked ? 'reps run as row bands' : 'reps run as vertical bands'}`}
       />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
         {legend.map(([t, sw]) => (
@@ -180,24 +193,29 @@ export function MapScreen() {
           </span>
         ))}
       </div>
-      <div style={{ display: 'flex', marginBottom: 3, paddingLeft: 24 }}>
-        {bands.map(([rep, band], i) => (
-          <div
-            key={rep}
-            style={{
-              flex: band.length, textAlign: 'center', font: `500 9.5px ${MONO}`,
-              color: i === 0 ? C.greenDark : C.grey, background: i === 0 ? C.greenTint : C.chipBg,
-              borderRadius: 4, padding: '2px 0', marginRight: i < bands.length - 1 ? 2 : 0,
-            }}
-          >
-            REP {rep}
-          </div>
-        ))}
-      </div>
+      {!rowBlocked && (
+        <div style={{ display: 'flex', marginBottom: 3, paddingLeft: 24 }}>
+          {bands.map(([rep, band], i) => (
+            <div
+              key={rep}
+              style={{
+                flex: band.length, textAlign: 'center', font: `500 9.5px ${MONO}`,
+                color: i === 0 ? C.greenDark : C.grey, background: i === 0 ? C.greenTint : C.chipBg,
+                borderRadius: 4, padding: '2px 0', marginRight: i < bands.length - 1 ? 2 : 0,
+              }}
+            >
+              REP {rep}
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {Array.from({ length: rows }, (_, ri) => ri + 1).map((r) => (
           <div key={r} style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <div style={{ width: 22, font: `500 9.5px ${MONO}`, color: C.muted, flex: 'none' }}>R{r}</div>
+            <div style={{ width: rowBlocked ? 38 : 22, font: `500 9.5px ${MONO}`, color: rowBlocked && rowBandLabel(r) === '1' ? C.greenDark : C.muted, flex: 'none' }}>
+              R{r}
+              {rowBlocked && rowBandLabel(r) && <span style={{ color: C.disabled }}>·{rowBandLabel(r)}</span>}
+            </div>
             {Array.from({ length: positions }, (_, pi) => pi + 1).map((p) => {
               const pid = r * 100 + p
               const [s, t] = cellStyle(pid)

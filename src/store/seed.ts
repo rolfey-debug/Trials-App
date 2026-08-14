@@ -1,18 +1,50 @@
 import { MATONG_BASE } from '../data/matong'
+import { RINGWOOD_BASE } from '../data/ringwood'
 import type { AppState, Issue, PhotoMeta, Score, SyncItem, TrialDoc, TrialState } from './types'
 import { assessmentOrder } from '../lib/trial'
 
 export const MATONG_ID = 'matong-wheat-fungicide-2026'
+export const RINGWOOD_ID = 'ringwood-wheat-fungicide-2026'
 
 export function matongDoc(): TrialDoc {
   return structuredClone({ id: MATONG_ID, ...MATONG_BASE })
 }
 
+export function ringwoodDoc(): TrialDoc {
+  return structuredClone({ id: RINGWOOD_ID, ...RINGWOOD_BASE })
+}
+
 /** Demo seed matching the design prototype: first 12 walk plots scored, T1–8 mixed,
  * T1–5 sprayed, one open + one fixed spray issue, photo tiles. `Reset demo data`
  * in Storage clears scores/photos back to a clean season. */
+/** Ringwood ships clean — nothing sprayed or scored yet; site facts from the
+ * workbook's application record. */
+export function ringwoodTrialState(): TrialState {
+  const ts = freshTrialState(ringwoodDoc())
+  ts.site = {
+    cooperator: [
+      ['Grower', '—'],
+      ['Property', '‘Ringwood’, Corowa NSW'],
+      ['Phone', '—'],
+      ['Agronomist', 'A. Rolfe — IK Caldwell'],
+    ],
+    paddock: [
+      ['Crop / variety', 'Wheat'],
+      ['Sown', '—'],
+      ['Previous crop', '—'],
+      ['Soil', '—'],
+    ],
+    fert: [],
+    notes:
+      'Flutriafol breakdown block beside row 1 — do not spray into it. Marginal plots carrying treatments: 105, 108, 704, 708 — flag at assessment. Row 5 written off entirely.',
+    pinned: false,
+  }
+  return ts
+}
+
 export function seedState(): AppState {
   const doc = matongDoc()
+  const ringwood = ringwoodDoc()
   const order = assessmentOrder(doc)
   const seedVals: [number, number, number][] = [
     [5, 0, 1], [10, 5, 0], [0, 0, 0], [5, 0, 1], [15, 5, 0], [5, 0, 0],
@@ -112,12 +144,11 @@ export function seedState(): AppState {
     sprayTab: 'mix',
     session: { email: null, name: 'A. Rolfe', role: 'admin' },
     activeTrialId: MATONG_ID,
-    trials: { [MATONG_ID]: doc },
-    trialState: { [MATONG_ID]: trialState },
+    trials: { [MATONG_ID]: doc, [RINGWOOD_ID]: ringwood },
+    trialState: { [MATONG_ID]: trialState, [RINGWOOD_ID]: ringwoodTrialState() },
     otherTrials: [
       { name: 'Junee Reefs — Knockdown', sub: '28 trts · Assessment 2 done', chip: 'REPORT', chipKind: 'green' },
       { name: 'Junee — Pre-em Wheat + Canola', sub: '192 plots · Count 2 in progress', chip: '42–56 DAB', chipKind: 'grey' },
-      { name: 'Corowa (Ringwood) — Wheat Fungicide', sub: 'Sequential A + B design', chip: 'APP A', chipKind: 'grey' },
     ],
     people: [
       { ini: 'AR', n: 'Andrew Rolfe', s: 'All trials · IK Caldwell', chip: 'ADMIN' },

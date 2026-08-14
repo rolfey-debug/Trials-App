@@ -4,7 +4,7 @@
  * nothing here ever blocks field work.
  */
 import { insert, refresh, signInOrUp, stableId, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
-import type { AppState } from '../store/types'
+import type { AppState, TrialState } from '../store/types'
 
 const KEY = 'tw.supaSession'
 
@@ -54,22 +54,53 @@ function trialUuid(localId: string): string | null {
   const k = localId.toLowerCase()
   if (k.includes('matong')) return TRIAL_IDS.matong
   if (k.includes('ganmain')) return TRIAL_IDS.ganmain
+  if (k.includes('ringwood')) return TRIAL_IDS.ringwood
   return null
 }
 
 /**
- * Push the active trial's field data to Supabase. Idempotent: row ids are
- * deterministic, upserts are last-write-wins — safe to call after every
+ * Push field data for every syncable trial to Supabase. Idempotent: row ids
+ * are deterministic, upserts are last-write-wins — safe to call after every
  * change or after days offline. Best-effort by design.
  */
 export async function pushToBackend(st: AppState): Promise<boolean> {
   const token = await activeToken()
   if (!token) return false
-  const trial_id = trialUuid(st.activeTrialId)
-  if (!trial_id) return false
-  const ts = st.trialState[st.activeTrialId]
-  if (!ts) return false
+  const results: boolean[] = []
+  const summary: Record<string, { scores: number; corrections: number; photos: number }> = {}
+  for (const localId of Object.keys(st.trials)) {
+    const trial_id = trialUuid(localId)
+    const ts = st.trialState[localId]
+    if (!trial_id || !ts) continue
+    const counts = await pushTrial(trial_id, ts, token)
+    if (!counts) {
+      results.push(false)
+      continue
+    }
+    results.push(true)
+    if (counts.scores + counts.corrections + counts.photos > 0) summary[localId] = counts
+  }
+  if (!results.length) return false
+  await insert(
+    'sync_log',
+    [
+      {
+        org_id: ORG_ID,
+        device: navigator.userAgent.slice(0, 120),
+        items: st.syncQueue.filter((q) => !q.synced).length,
+        payload: summary,
+      },
+    ],
+    token,
+  )
+  return results.every(Boolean)
+}
 
+async function pushTrial(
+  trial_id: string,
+  ts: TrialState,
+  token: string,
+): Promise<{ scores: number; corrections: number; photos: number } | null> {
   const assessment = ts.assessIdx + 1
   const scoreRows: unknown[] = []
   for (const [pid, sc] of Object.entries(ts.scores)) {
@@ -119,17 +150,6 @@ export async function pushToBackend(st: AppState): Promise<boolean> {
     insert('corrections', correctionRows, token, { upsert: true }),
     insert('photos', photoRows, token, { upsert: true }),
   ])
-  await insert(
-    'sync_log',
-    [
-      {
-        org_id: ORG_ID,
-        device: navigator.userAgent.slice(0, 120),
-        items: st.syncQueue.filter((q) => !q.synced).length,
-        payload: { trial: st.activeTrialId, scores: scoreRows.length, corrections: correctionRows.length, photos: photoRows.length },
-      },
-    ],
-    token,
-  )
-  return ok.every(Boolean)
+  if (!ok.every(Boolean)) return null
+  return { scores: scoreRows.length, corrections: correctionRows.length, photos: photoRows.length }
 }

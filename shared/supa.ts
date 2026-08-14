@@ -9,8 +9,16 @@ export const SUPA_KEY = 'sb_publishable_bE8diDIr1jSVGxUZlRZuog_Tx-Ddct5'
 
 /** Fixed ids seeded by server/migrations/001_init.sql */
 export const ORG_ID = '00000000-0000-0000-0000-000000000001'
-export const SITE_IDS = { matong: '00000000-0000-0000-0000-000000000011', ganmain: '00000000-0000-0000-0000-000000000012' }
-export const TRIAL_IDS = { matong: '00000000-0000-0000-0000-000000000101', ganmain: '00000000-0000-0000-0000-000000000102' }
+export const SITE_IDS = {
+  matong: '00000000-0000-0000-0000-000000000011',
+  ganmain: '00000000-0000-0000-0000-000000000012',
+  ringwood: '00000000-0000-0000-0000-000000000013',
+}
+export const TRIAL_IDS = {
+  matong: '00000000-0000-0000-0000-000000000101',
+  ganmain: '00000000-0000-0000-0000-000000000102',
+  ringwood: '00000000-0000-0000-0000-000000000103',
+}
 
 export interface Session {
   access_token: string

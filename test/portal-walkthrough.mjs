@@ -49,8 +49,9 @@ await page.goto('http://localhost:4180/')
 await page.waitForSelector('text=Trials')
 
 // 1. Dashboard
-check('dashboard renders season-filtered sub-line', await page.locator('text=5 of 8 trials').count() > 0)
+check('dashboard renders season-filtered sub-line', await page.locator('text=6 of 9 trials').count() > 0)
 check('dashboard shows live Active row', await page.locator('text=Assessment 2 of 4 · 68% scored').count() > 0)
+check('dashboard shows Ringwood trial', await page.locator('text=Ringwood Wheat Fungicide').count() === 1)
 await page.fill('input[placeholder="Search trials, growers, crops…"]', 'ganmain')
 check('search filters to Ganmain trial', await page.locator('text=Ganmain Barley Net Blotch').count() === 1)
 await page.fill('input[placeholder="Search trials, growers, crops…"]', 'zzz')
@@ -58,7 +59,7 @@ check('empty state appears', await page.locator('text=Nothing matches').count() 
 await page.fill('input[placeholder="Search trials, growers, crops…"]', '')
 await page.click('text=Draft · 1')
 check('status filter chips work', await page.locator('text=Wagga Aphid Threshold Screen').count() === 1)
-await page.click('text=All · 5')
+await page.click('text=All · 6')
 await shot('1-dashboard')
 
 // 2. Review via dashboard row

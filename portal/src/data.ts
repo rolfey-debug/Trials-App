@@ -20,6 +20,7 @@ export interface DashTrial {
 
 export const DASH_TRIALS: DashTrial[] = [
   { name: 'Matong Wheat Fungicide Demo', client: 'Doyle Bros · ‘Glenview’, Matong', crop: 'Wheat · Scepter', type: 'FUNGICIDE', status: 'Active', season: 'W2026', updated: '24 min ago', pct: 68, main: 'Assessment 2 of 4 · 68% scored', sub: '2 phones in field · Timing B spray due Fri', live: true },
+  { name: 'Ringwood Wheat Fungicide', client: '‘Ringwood’, Corowa', crop: 'Wheat', type: 'FUNGICIDE', status: 'Active', season: 'W2026', updated: 'Today', main: 'App A pending · 24 trts × 3 reps · mix plan loaded', sub: 'Sequential A + B · experimentals G295 / Vimoy / CUF37', live: true },
   { name: 'Coolamon Canola Sclerotinia Timing', client: 'A & J Pertzel · Coolamon', crop: 'Canola · 45Y28', type: 'FUNGICIDE', status: 'Active', season: 'W2026', updated: '2 h ago', pct: 33, main: 'Assessment 1 of 3 · bloom scoring', sub: 'Synced 2 h ago · 1 phone' },
   { name: 'Ganmain Barley Net Blotch', client: 'L & K Hardy · ‘Hillview’, Ganmain', crop: 'Barley · Spartacus CL', type: 'FUNGICIDE', status: 'In review', season: 'W2026', updated: 'Yesterday', main: 'Submitted Mon · awaiting I. McPherson', review: true },
   { name: 'Ardlethan Faba Chocolate Spot', client: '‘Mirrool Creek’ · Ardlethan', crop: 'Faba bean · Amberley', type: 'FUNGICIDE', status: 'Approved', season: 'W2026', updated: '3 d ago', main: 'Locked · first spray booked 15 Aug' },

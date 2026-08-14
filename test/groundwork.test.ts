@@ -120,6 +120,39 @@ check(
 }
 
 
+// --- ringwood fixture -------------------------------------------------------
+{
+  const rw = JSON.parse(readFileSync(new URL('../fixtures/ringwood-trial.json', import.meta.url), 'utf8'))
+  const cells: Record<string, number | string> = rw.cells
+  const vals = Object.values(cells)
+  check('ringwood: 96 cells on the 12×8 grid', Object.keys(cells).length === 96)
+  check(
+    'ringwood: 72 treated + 5 write-offs + 19 marginal-unused',
+    vals.filter((v) => typeof v === 'number').length === 72 &&
+      vals.filter((v) => v === 'out').length === 5 &&
+      vals.filter((v) => v === 'skip').length === 19,
+  )
+  check('ringwood: 24 treatments, each with one plot per rep', rw.treatments.length === 24 && rw.treatments.every((t: any) => t.plots.length === 3))
+  const rowOk = rw.treatments.every((t: any) => {
+    const [r1, r2, r3] = t.plots.map((p: number) => Math.floor(p / 100))
+    return r1 >= 1 && r1 <= 4 && r2 >= 6 && r2 <= 9 && r3 >= 9 && r3 <= 12
+  })
+  check('ringwood: rep row bands hold (1–4 / 6–9 / 9–12)', rowOk)
+  check(
+    'ringwood: allocation and cells agree',
+    rw.treatments.every((t: any) => t.plots.every((p: number) => cells[String(p)] === t.n)),
+  )
+  const aOnly = rw.treatments.filter((t: any) => !t.bSpray).map((t: any) => t.n)
+  check('ringwood: A-only treatments are 1, 22, 23, 24', JSON.stringify(aOnly) === '[1,22,23,24]')
+  const t5 = rw.treatments[4]
+  check(
+    'ringwood: per-batch mL match the workbook (trt 5 Radial Opti)',
+    JSON.stringify(t5.perBatchMl) === '[4.032,1.575,6.3]' && rw.trial.batchVolumeL === 1.26,
+  )
+  check('ringwood: marginals carrying treatments flagged', JSON.stringify(rw.marginalPlots) === '[105,108,704,708]')
+  check('ringwood: row-blocked design flagged for repOf', rw.trial.blocking === 'row')
+}
+
 // --- sync ids ---------------------------------------------------------------
 {
   const { stableId } = await import('../shared/supa')

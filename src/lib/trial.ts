@@ -4,6 +4,20 @@ export const rowOf = (pid: number) => Math.floor(pid / 100)
 export const posOf = (pid: number) => pid % 100
 
 export function repOf(doc: TrialDoc, pid: number): number {
+  if (doc.trial.blocking === 'row') {
+    // Row-blocked trials (Ringwood): the allocation list is authoritative —
+    // bands can share a row (rep 2 rows 6–9 and rep 3 rows 9–12 both use row 9).
+    const t = doc.cells[pid]
+    if (typeof t === 'number') {
+      const i = treatmentByN(doc, t)?.plots.indexOf(pid) ?? -1
+      if (i >= 0) return i + 1
+    }
+    const row = rowOf(pid)
+    for (const [rep, band] of Object.entries(doc.trial.repBands)) {
+      if (band.includes(row)) return Number(rep)
+    }
+    return 0
+  }
   const pos = posOf(pid)
   for (const [rep, band] of Object.entries(doc.trial.repBands)) {
     if (band.includes(pos)) return Number(rep)

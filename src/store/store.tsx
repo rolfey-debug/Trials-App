@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppState, Screen, SyncItem, TrialDoc, TrialState } from './types'
 import { idb } from './idb'
-import { seedState } from './seed'
+import { RINGWOOD_ID, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
 import { logout as backendLogout, pushToBackend } from '../lib/backend'
 
 interface StoreCtx {
@@ -29,6 +29,18 @@ export function useApp(): StoreCtx {
 
 let syncId = 1000
 
+/** Additive in-place upgrades for state persisted before a trial shipped —
+ * installs that predate Ringwood get the trial injected (and its old
+ * placeholder stub dropped) without touching any scored data. */
+function upgrade(saved: AppState): AppState {
+  if (saved.trials[RINGWOOD_ID]) return saved
+  const next = structuredClone(saved)
+  next.trials[RINGWOOD_ID] = ringwoodDoc()
+  next.trialState[RINGWOOD_ID] = ringwoodTrialState()
+  next.otherTrials = next.otherTrials.filter((t) => !/ringwood/i.test(t.name))
+  return next
+}
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [st, setSt] = useState<AppState | null>(null)
   const persistTimer = useRef<number | undefined>(undefined)
@@ -42,7 +54,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       .getState<AppState>()
       .then((saved) => {
         if (!alive) return
-        if (saved && saved.schema === 1) setSt(saved)
+        if (saved && saved.schema === 1) setSt(upgrade(saved))
         else setSt(seedState())
       })
       .catch(() => setSt(seedState()))

@@ -1,0 +1,629 @@
+{
+ "trial": {
+  "name": "Ringwood (Corowa) — Wheat Fungicide",
+  "org": "AGnVET Services — IK Caldwell",
+  "season": 2026,
+  "design": "RCB",
+  "reps": 3,
+  "blocking": "row",
+  "grid": {
+   "rows": 12,
+   "positions": 8
+  },
+  "repBands": {
+   "1": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "2": [
+    6,
+    7,
+    8,
+    9
+   ],
+   "3": [
+    9,
+    10,
+    11,
+    12
+   ]
+  },
+  "plot": {
+   "widthM": 2,
+   "lengthM": 12,
+   "areaM2": 24
+  },
+  "waterRateLPerHa": 100,
+  "sprayVolumePerPlotMl": 240,
+  "batchVolumeL": 1.26,
+  "timings": {
+   "A": {
+    "due": "Timing per site sheet"
+   },
+   "B": {
+    "due": "Trts 2–21 only"
+   }
+  },
+  "sourceDocument": "Ringwood_Fungicide_trial_2026.xlsx"
+ },
+ "treatments": [
+  {
+   "n": 1,
+   "name": "Untreated",
+   "recipe": "Water only",
+   "bSpray": false,
+   "plots": [
+    101,
+    604,
+    906
+   ]
+  },
+  {
+   "n": 2,
+   "name": "Aviator Xpro",
+   "recipe": "Aviator Xpro 500 mL/ha",
+   "perBatchMl": [
+    6.3
+   ],
+   "bSpray": true,
+   "plots": [
+    102,
+    902,
+    1002
+   ]
+  },
+  {
+   "n": 3,
+   "name": "Elatus Ace",
+   "recipe": "Elatus Ace 500 mL/ha",
+   "perBatchMl": [
+    6.3
+   ],
+   "bSpray": true,
+   "plots": [
+    103,
+    808,
+    1108
+   ]
+  },
+  {
+   "n": 4,
+   "name": "Opera",
+   "recipe": "Opera 750 mL/ha",
+   "perBatchMl": [
+    9.45
+   ],
+   "bSpray": true,
+   "plots": [
+    104,
+    601,
+    1103
+   ]
+  },
+  {
+   "n": 5,
+   "name": "Radial Opti (made up)",
+   "recipe": "Amistar 250 SC 320 mL/ha + Soprano 500 125 mL/ha + Hasten 0.5% v/v",
+   "perBatchMl": [
+    4.032,
+    1.575,
+    6.3
+   ],
+   "bSpray": true,
+   "plots": [
+    105,
+    606,
+    1207
+   ]
+  },
+  {
+   "n": 6,
+   "name": "Proviso Opti",
+   "recipe": "Proline 240 mL/ha + BS1000 0.25% v/v",
+   "perBatchMl": [
+    3.024,
+    3.15
+   ],
+   "bSpray": true,
+   "plots": [
+    106,
+    701,
+    1204
+   ]
+  },
+  {
+   "n": 7,
+   "name": "Revystar",
+   "recipe": "Revystar 750 mL/ha",
+   "perBatchMl": [
+    9.45
+   ],
+   "bSpray": true,
+   "plots": [
+    107,
+    605,
+    1006
+   ]
+  },
+  {
+   "n": 8,
+   "name": "Balaya A+B",
+   "recipe": "Balaya 750 mL/ha",
+   "perBatchMl": [
+    9.45
+   ],
+   "bSpray": true,
+   "plots": [
+    108,
+    802,
+    1007
+   ]
+  },
+  {
+   "n": 9,
+   "name": "Flute A",
+   "recipe": "Flute 150 mL/ha + Proviso Opti 240 mL/ha + BS1000 0.25% v/v",
+   "perBatchMl": [
+    1.89,
+    3.024,
+    3.15
+   ],
+   "bSpray": true,
+   "plots": [
+    202,
+    603,
+    1003
+   ]
+  },
+  {
+   "n": 10,
+   "name": "Experimental 1 A",
+   "recipe": "G295 (Adama) 150 mL/ha + Proviso Opti 240 mL/ha + BS1000 0.25% v/v",
+   "perBatchMl": [
+    1.89,
+    3.024,
+    3.15
+   ],
+   "bSpray": true,
+   "plots": [
+    203,
+    807,
+    1105
+   ]
+  },
+  {
+   "n": 11,
+   "name": "Experimental 2 AL",
+   "recipe": "Vimoy Iblon (Bayer) 300 mL/ha + Proviso Opti 240 mL/ha + BS1000 0.25% v/v",
+   "perBatchMl": [
+    3.78,
+    3.024,
+    3.15
+   ],
+   "bSpray": true,
+   "plots": [
+    206,
+    704,
+    903
+   ]
+  },
+  {
+   "n": 12,
+   "name": "Experimental 2 AH",
+   "recipe": "Vimoy Iblon (Bayer) 500 mL/ha + Proviso Opti 240 mL/ha + BS1000 0.25% v/v",
+   "perBatchMl": [
+    6.3,
+    3.024,
+    3.15
+   ],
+   "bSpray": true,
+   "plots": [
+    207,
+    705,
+    1008
+   ]
+  },
+  {
+   "n": 13,
+   "name": "Experimental 3 A",
+   "recipe": "Elatus Flexi 500 mL/ha + Proviso Opti 240 mL/ha + BS1000 0.25% v/v",
+   "perBatchMl": [
+    6.3,
+    3.024,
+    3.15
+   ],
+   "bSpray": true,
+   "plots": [
+    301,
+    602,
+    1004
+   ]
+  },
+  {
+   "n": 14,
+   "name": "Experimental 4 A",
+   "recipe": "CUF37 (Syngenta) 750 mL/ha",
+   "perBatchMl": [
+    9.45
+   ],
+   "bSpray": true,
+   "plots": [
+    302,
+    804,
+    904
+   ]
+  },
+  {
+   "n": 15,
+   "name": "Balaya B",
+   "recipe": "Soprano 500 125 mL/ha",
+   "perBatchMl": [
+    1.575
+   ],
+   "bSpray": true,
+   "plots": [
+    303,
+    703,
+    1206
+   ]
+  },
+  {
+   "n": 16,
+   "name": "Flute B",
+   "recipe": "Soprano 500 125 mL/ha",
+   "perBatchMl": [
+    1.575
+   ],
+   "bSpray": true,
+   "plots": [
+    304,
+    607,
+    1107
+   ]
+  },
+  {
+   "n": 17,
+   "name": "Experimental 2 BL",
+   "recipe": "Soprano 500 125 mL/ha",
+   "perBatchMl": [
+    1.575
+   ],
+   "bSpray": true,
+   "plots": [
+    305,
+    707,
+    1005
+   ]
+  },
+  {
+   "n": 18,
+   "name": "Experimental 2 BH",
+   "recipe": "Soprano 500 125 mL/ha",
+   "perBatchMl": [
+    1.575
+   ],
+   "bSpray": true,
+   "plots": [
+    306,
+    702,
+    1205
+   ]
+  },
+  {
+   "n": 19,
+   "name": "Experimental 3 B",
+   "recipe": "Soprano 500 125 mL/ha",
+   "perBatchMl": [
+    1.575
+   ],
+   "bSpray": true,
+   "plots": [
+    307,
+    608,
+    907
+   ]
+  },
+  {
+   "n": 20,
+   "name": "Experimental 4 B",
+   "recipe": "Soprano 500 125 mL/ha",
+   "perBatchMl": [
+    1.575
+   ],
+   "bSpray": true,
+   "plots": [
+    308,
+    805,
+    1102
+   ]
+  },
+  {
+   "n": 21,
+   "name": "Marvis A+B",
+   "recipe": "Marvis Star 500 mL/ha",
+   "perBatchMl": [
+    6.3
+   ],
+   "bSpray": true,
+   "plots": [
+    403,
+    806,
+    1202
+   ]
+  },
+  {
+   "n": 22,
+   "name": "Marvis A",
+   "recipe": "Marvis Star 500 mL/ha",
+   "perBatchMl": [
+    6.3
+   ],
+   "bSpray": false,
+   "plots": [
+    406,
+    803,
+    1203
+   ]
+  },
+  {
+   "n": 23,
+   "name": "Balaya A",
+   "recipe": "Balaya 750 mL/ha",
+   "perBatchMl": [
+    9.45
+   ],
+   "bSpray": false,
+   "plots": [
+    407,
+    706,
+    1208
+   ]
+  },
+  {
+   "n": 24,
+   "name": "Opus A",
+   "recipe": "Soprano 500 125 mL/ha",
+   "perBatchMl": [
+    1.575
+   ],
+   "bSpray": false,
+   "plots": [
+    408,
+    708,
+    905
+   ]
+  }
+ ],
+ "cells": {
+  "101": 1,
+  "102": 2,
+  "103": 3,
+  "104": 4,
+  "105": 5,
+  "106": 6,
+  "107": 7,
+  "108": 8,
+  "201": "skip",
+  "202": 9,
+  "203": 10,
+  "204": "skip",
+  "205": "out",
+  "206": 11,
+  "207": 12,
+  "208": "skip",
+  "301": 13,
+  "302": 14,
+  "303": 15,
+  "304": 16,
+  "305": 17,
+  "306": 18,
+  "307": 19,
+  "308": 20,
+  "401": "skip",
+  "402": "skip",
+  "403": 21,
+  "404": "skip",
+  "405": "skip",
+  "406": 22,
+  "407": 23,
+  "408": 24,
+  "501": "skip",
+  "502": "skip",
+  "503": "skip",
+  "504": "skip",
+  "505": "skip",
+  "506": "skip",
+  "507": "skip",
+  "508": "skip",
+  "601": 4,
+  "602": 13,
+  "603": 9,
+  "604": 1,
+  "605": 7,
+  "606": 5,
+  "607": 16,
+  "608": 19,
+  "701": 6,
+  "702": 18,
+  "703": 15,
+  "704": 11,
+  "705": 12,
+  "706": 23,
+  "707": 17,
+  "708": 24,
+  "801": "skip",
+  "802": 8,
+  "803": 22,
+  "804": 14,
+  "805": 20,
+  "806": 21,
+  "807": 10,
+  "808": 3,
+  "901": "out",
+  "902": 2,
+  "903": 11,
+  "904": 14,
+  "905": 24,
+  "906": 1,
+  "907": 19,
+  "908": "skip",
+  "1001": "out",
+  "1002": 2,
+  "1003": 9,
+  "1004": 13,
+  "1005": 17,
+  "1006": 7,
+  "1007": 8,
+  "1008": 12,
+  "1101": "out",
+  "1102": 20,
+  "1103": 4,
+  "1104": "skip",
+  "1105": 10,
+  "1106": "skip",
+  "1107": 16,
+  "1108": 3,
+  "1201": "out",
+  "1202": 21,
+  "1203": 22,
+  "1204": 6,
+  "1205": 18,
+  "1206": 15,
+  "1207": 5,
+  "1208": 23
+ },
+ "marginalPlots": [
+  105,
+  108,
+  704,
+  708
+ ],
+ "reserveRule": "No reserves held — 68 clean plots + 4 marginals carry the 72. Flutriafol breakdown block beside row 1: do not spray into it.",
+ "plotIdRule": "plotId = row*100 + position (e.g. 1207 = row 12, pos 7). Rep from row band: rep 1 rows 1–4, rep 2 rows 6–9, rep 3 rows 9–12 (row 9 is split — rep from the allocation list).",
+ "walkOrders": {
+  "assessment": "Serpentine by position: pos 1 rows 1→12, pos 2 rows 12→1, pos 3 rows 1→12 … treatment plots only (72 stops).",
+  "fieldDay": "Rep 1 display walk: rows 1–4 hold one full replicate — serpentine pos 1–8 across rows 1→4."
+ },
+ "measures": {
+  "disease": [
+   [
+    "rust",
+    "Stripe rust",
+    "%"
+   ],
+   [
+    "lrust",
+    "Leaf rust",
+    "%"
+   ],
+   [
+    "sept",
+    "Septoria tritici",
+    "%"
+   ],
+   [
+    "yls",
+    "Yellow leaf spot",
+    "%"
+   ],
+   [
+    "mild",
+    "Powdery mildew",
+    "%"
+   ],
+   [
+    "netb",
+    "Net blotch",
+    "%"
+   ],
+   [
+    "scald",
+    "Scald",
+    "%"
+   ]
+  ],
+  "weeds": [
+   [
+    "arg",
+    "Annual ryegrass",
+    "/m2"
+   ],
+   [
+    "wo",
+    "Wild oats",
+    "/m2"
+   ],
+   [
+    "brome",
+    "Brome grass",
+    "/m2"
+   ],
+   [
+    "bgrass",
+    "Barley grass",
+    "/m2"
+   ],
+   [
+    "wrad",
+    "Wild radish",
+    "/m2"
+   ],
+   [
+    "cape",
+    "Capeweed",
+    "/m2"
+   ],
+   [
+    "sow",
+    "Sowthistle",
+    "/m2"
+   ],
+   [
+    "flea",
+    "Fleabane",
+    "/m2"
+   ]
+  ],
+  "crop": [
+   [
+    "phy",
+    "Phytotox",
+    "%"
+   ],
+   [
+    "gs",
+    "Growth stage",
+    "GS"
+   ],
+   [
+    "plants",
+    "Plants",
+    "/m"
+   ],
+   [
+    "bio",
+    "Biomass",
+    "%"
+   ],
+   [
+    "lodg",
+    "Lodging",
+    "%"
+   ]
+  ],
+  "defaultActive": [
+   "rust",
+   "phy"
+  ]
+ },
+ "notes": [
+  "Trt 6 is named Proviso Opti but the product row reads Proline (carried from the Matong sheet) — confirm before mixing.",
+  "Trt 24 is 'Opus A' on the mixing tab and 'Soprano A' on the spray map — same treatment (Soprano 500 at 125 mL/ha, 62.5 g/ha epoxiconazole).",
+  "Standard partner Opus 500 mL/ha at A and B supplied as Soprano 500 at 125 mL/ha.",
+  "Bulk batches: trts 15–20 + 24 share the A mix (Soprano 500); trts 2–14 share the B mix (Soprano 500).",
+  "B application: trts 2–21 only. Trts 1, 22, 23, 24 are A-only.",
+  "Anything under 3 mL — make a 10× stock dilution and draw 10× the volume."
+ ]
+}
