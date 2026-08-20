@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#F4F5F4;color:#3E403E;font-family:Mulish,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#007749}a:hover{color:#00623C}
+input,select,textarea,button{font-family:inherit}
+::placeholder{color:#A9ABA9}
+@keyframes ompulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes omspin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="display:flex;height:100vh;min-height:620px;overflow:hidden;background:#F4F5F4">
+<div data-screen-label="Sidebar" style="width:228px;flex:none;background:#FFFFFF;border-right:1px solid #E4E4E6;display:flex;flex-direction:column">
+  <div style="padding:20px 18px 13px">
+    <img src="assets/agnvet-logo.png" alt="AGnVET" style="width:126px;display:block">
+    <div style="margin-top:9px;font-size:10.5px;font-weight:800;letter-spacing:.15em;color:#007749">TRIAL WORK · OFFICE</div>
+  </div>
+  <div style="height:1px;background:#EDEEED;margin:0 18px 10px"></div>
+  <div onClick="{{ goTrials }}" style="display:flex;align-items:center;gap:10px;margin:2px 10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:700;color: {{ navTrialsFg }};background: {{ navTrialsBg }}" style-hover="{{ navTrialsHv }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg>Trials</div>
+  <div onClick="{{ goNew }}" style="display:flex;align-items:center;gap:10px;margin:2px 10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:700;color: {{ navNewFg }};background: {{ navNewBg }}" style-hover="{{ navNewHv }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>New trial</div>
+  <div onClick="{{ goMap }}" style="display:flex;align-items:center;gap:10px;margin:2px 10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:700;color: {{ navMapFg }};background: {{ navMapBg }}" style-hover="{{ navMapHv }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>Map</div>
+  <div onClick="{{ goProducts }}" style="display:flex;align-items:center;gap:10px;margin:2px 10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:700;color: {{ navProductsFg }};background: {{ navProductsBg }}" style-hover="{{ navProductsHv }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>Products</div>
+  <div onClick="{{ goDocs }}" style="display:flex;align-items:center;gap:10px;margin:2px 10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:700;color: {{ navDocsFg }};background: {{ navDocsBg }}" style-hover="{{ navDocsHv }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>Documents</div>
+  <div title="Not in this mockup" style="display:flex;align-items:center;gap:10px;margin:2px 10px;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:700;color:#B8BAB8"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Reports</div>
+  <div title="Not in this mockup" style="display:flex;align-items:center;gap:10px;margin:2px 10px;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:700;color:#B8BAB8"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Team</div>
+  <div style="margin-top:auto">
+    <div style="padding:12px 18px 0;border-top:1px solid #EDEEED"><img src="assets/aglink-logo.jpg" alt="Member of AgLink Australia" style="height:14px;display:block;opacity:.85"></div>
+    <div style="display:flex;gap:10px;align-items:center;padding:12px 18px 16px">
+      <div style="width:32px;height:32px;flex:none;border-radius:50%;background:#E3F1EA;color:#00623C;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center">SK</div>
+      <div style="min-width:0"><div style="font-size:12.5px;font-weight:700;color:#141414">Sam Kelleher</div><div style="font-size:11px;color:#8A8C8A">Trials agronomist · Ganmain</div></div>
+    </div>
+  </div>
+</div>
+<div style="flex:1;min-width:0;display:flex;overflow:hidden">
+<sc-if value="{{ isTrials }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Trials dashboard" style="flex:1;min-width:0;overflow:auto;padding:26px 34px 44px">
+  <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:18px">
+    <div style="flex:1;min-width:0"><h1 style="margin:0;font-size:22px;font-weight:800;color:#141414;letter-spacing:-.01em">Trials</h1><div style="margin-top:3px;font-size:12.5px;color:#8A8C8A">{{ trialsSub }}</div></div>
+    <input value="{{ q }}" onChange="{{ setQ }}" placeholder="Search trials, growers, crops…" style="width:252px;padding:9px 12px;font-size:13px;border:1px solid #E4E4E6;border-radius:8px;background:#fff;color:#141414;outline:none" style-focus="border-color:#007749"></input>
+    <div onClick="{{ goNew }}" style="padding:9px 16px;background:#007749;color:#fff;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;white-space:nowrap" style-hover="background:#00623C">+ New trial</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    <sc-for list="{{ statusChips }}" as="ch" hint-placeholder-count="4">
+      <div onClick="{{ ch.pick }}" style="padding:5px 11px;font-size:12px;font-weight:700;border-radius:999px;border:1px solid {{ ch.bd }};background: {{ ch.bg }};color: {{ ch.fg }};cursor:pointer;white-space:nowrap">{{ ch.label }}</div>
+    </sc-for>
+    <div style="flex:1"></div>
+    <select value="{{ season }}" onChange="{{ setSeason }}" style="padding:8px 10px;font-size:12.5px;font-weight:700;color:#141414;border:1px solid #E4E4E6;border-radius:8px;background:#fff;outline:none">
+      <option value="All">All seasons</option><option value="W2027">Winter 2027</option><option value="W2026">Winter 2026</option><option value="W2025">Winter 2025</option>
+    </select>
+  </div>
+  <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;overflow:hidden">
+    <div style="display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1.05fr) 88px 104px minmax(0,1.5fr) 64px 96px;gap:12px;padding:10px 18px;font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;border-bottom:1px solid #EDEEED">
+      <div>TRIAL</div><div>CROP</div><div>TYPE</div><div>STATUS</div><div>PROGRESS</div><div>SEASON</div><div style="text-align:right">UPDATED</div>
+    </div>
+    <sc-for list="{{ trialRows }}" as="it" hint-placeholder-count="6">
+      <div onClick="{{ it.open }}" style="display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1.05fr) 88px 104px minmax(0,1.5fr) 64px 96px;gap:12px;align-items:center;padding: {{ rowPad }} 18px;border-top:1px solid #F0F1F0;cursor: {{ it.cursor }};background:#fff" style-hover="background:#FAFBFA">
+        <div style="min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-size:13.5px;font-weight:700;color:#141414;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.name }}</span><sc-if value="{{ it.isReview }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:11px;font-weight:800;color:#007749">Open review →</span></sc-if></div>
+          <div style="font-size:11.5px;color:#8A8C8A;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.client }}</div>
+        </div>
+        <div style="font-size:12.5px;color:#3E403E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.crop }}</div>
+        <div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A">{{ it.type }}</div>
+        <div><span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800;background: {{ it.sBg }};color: {{ it.sFg }};border:1px solid {{ it.sBd }};white-space:nowrap">{{ it.status }}</span></div>
+        <div style="min-width:0">
+          <div style="font-size:12px;font-weight:600;color:#141414;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.liveEl }}{{ it.main }}</div>
+          <sc-if value="{{ it.hasBar }}" hint-placeholder-val="{{ false }}"><div style="width:116px;height:4px;background:#E8EAE8;border-radius:99px;margin-top:5px"><div style="height:4px;border-radius:99px;background:#007749;width: {{ it.pctW }}"></div></div></sc-if>
+          <sc-if value="{{ it.hasSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:#8A8C8A;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.sub }}</div></sc-if>
+        </div>
+        <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#6B6D6B">{{ it.season }}</div>
+        <div style="font-size:11.5px;color:#8A8C8A;text-align:right;white-space:nowrap">{{ it.updated }}</div>
+      </div>
+    </sc-for>
+    <sc-if value="{{ noTrials }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:44px;text-align:center;font-size:13px;color:#8A8C8A">Nothing matches — clear the search or switch season.</div>
+    </sc-if>
+  </div>
+  <div style="margin-top:12px;font-size:11.5px;color:#8A8C8A">Active trials sync live from field phones — progress updates as plots are scored, even when devices come back from offline.</div>
+</div>
+</sc-if>
+<sc-if value="{{ isWizard }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Trial wizard" style="flex:1;min-width:0;display:flex;overflow:hidden">
+  <div style="width:248px;flex:none;border-right:1px solid #E4E4E6;background:#FBFCFB;padding:20px 14px;overflow:auto">
+    <div onClick="{{ goTrials }}" style="font-size:12px;font-weight:700;color:#8A8C8A;cursor:pointer;margin:0 8px 16px" style-hover="color:#00623C">← All trials</div>
+    <div style="margin:0 8px 4px;font-size:10px;font-weight:800;letter-spacing:.14em;color:#8A8C8A">NEW TRIAL · DRAFT</div>
+    <div style="margin:0 8px 18px;font-size:14.5px;font-weight:800;color:#141414;line-height:1.3">Matong Wheat Fungicide Demo 2026</div>
+    <sc-for list="{{ steps }}" as="st" hint-placeholder-count="6">
+      <div onClick="{{ st.go }}" style="display:flex;gap:11px;padding:9px 8px;border-radius:8px;cursor: {{ st.cursor }};background: {{ st.bg }};margin-bottom:2px;align-items:flex-start">
+        <div style="width:22px;height:22px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background: {{ st.nBg }};color: {{ st.nFg }};border:1px solid {{ st.nBd }}">{{ st.n }}</div>
+        <div style="min-width:0;padding-top:2px"><div style="font-size:13px;font-weight:700;line-height:1.2;color: {{ st.fg }}">{{ st.label }}</div><sc-if value="{{ st.hasSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:#8A8C8A;margin-top:2px;line-height:1.35">{{ st.sub }}</div></sc-if></div>
+      </div>
+    </sc-for>
+    <div style="margin:16px 8px 0;padding:10px 12px;background:#fff;border:1px solid #EDEEED;border-radius:8px;font-size:11px;color:#8A8C8A;line-height:1.5">Everything saves as you go. Steps unlock the field app once the trial is approved.</div>
+  </div>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:baseline;gap:10px;padding:16px 30px;border-bottom:1px solid #E4E4E6;background:#fff;flex:none">
+      <div style="font-size:16px;font-weight:800;color:#141414">{{ stepTitle }}</div>
+      <div style="font-size:12px;color:#8A8C8A">{{ stepHint }}</div>
+      <div style="flex:1"></div>
+      <div style="font-size:11.5px;color:#8A8C8A">Draft saved just now</div>
+    </div>
+    <div style="flex:1;min-width:0;overflow:auto;padding:22px 30px 30px">
+      <sc-if value="{{ stepAim }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:780px">
+        <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:9px">TRIAL TYPE</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+          <sc-for list="{{ typeOpts }}" as="tp" hint-placeholder-count="3">
+            <div onClick="{{ tp.pick }}" style="border: {{ tp.bd }};background: {{ tp.bg }};border-radius:10px;padding:14px 15px;cursor:pointer">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:15px;height:15px;flex:none;border-radius:50%;border:1.5px solid {{ tp.dotBd }};display:flex;align-items:center;justify-content:center"><sc-if value="{{ tp.on }}" hint-placeholder-val="{{ false }}"><div style="width:7px;height:7px;border-radius:50%;background:#007749"></div></sc-if></div>
+                <div style="font-size:13.5px;font-weight:800;color:#141414">{{ tp.name }}</div>
+              </div>
+              <div style="font-size:11.5px;color:#6B6D6B;line-height:1.5;margin-top:8px">{{ tp.desc }}</div>
+              <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#8A8C8A;margin-top:9px">{{ tp.meta }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-size:11.5px;color:#8A8C8A;margin-top:10px;line-height:1.5">The type sets the defaults ahead — demonstrations keep replication light and build a field-day pack; plot trials get full stats; paddock scale swaps small plots for strips scored by header and imagery.</div>
+        <div style="height:1px;background:#EDEEED;margin:20px 0"></div>
+        <div style="display:flex;gap:12px">
+          <div style="flex:2;min-width:0"><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A;margin-bottom:5px">TRIAL NAME</div>
+            <input value="{{ trialName }}" onChange="{{ setTrialName }}" style="width:100%;padding:9px 12px;font-size:13px;font-weight:600;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414;background:#fff" style-focus="border-color:#007749"></input></div>
+          <div style="flex:1"><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A;margin-bottom:5px">SEASON</div>
+            <select value="{{ tSeason }}" onChange="{{ setTSeason }}" style="width:100%;padding:9px 10px;font-size:13px;font-weight:600;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414;background:#fff"><option>Winter 2026</option><option>Summer 2026–27</option><option>Winter 2027</option></select></div>
+          <div style="flex:1"><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A;margin-bottom:5px">CROP &amp; VARIETY</div>
+            <input value="{{ tCrop }}" onChange="{{ setTCrop }}" style="width:100%;padding:9px 12px;font-size:13px;font-weight:600;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414;background:#fff" style-focus="border-color:#007749"></input></div>
+        </div>
+        <div style="margin-top:14px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A;margin-bottom:5px">WHAT IS THIS TRIAL TESTING?</div>
+          <textarea value="{{ aimText }}" onChange="{{ setAimText }}" rows="3" style="width:100%;padding:10px 12px;font-size:12.5px;line-height:1.55;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414;background:#fff;resize:vertical" style-focus="border-color:#007749"></textarea>
+          <div style="font-size:11px;color:#8A8C8A;margin-top:5px">Plain English is fine — this line opens the report and the field-day handout.</div></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ stepTreat }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:940px">
+        <sc-if value="{{ bannerPending }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:14px;padding:13px 16px;background:#E3F1EA;border:1px solid #BCDCCB;border-radius:10px;margin-bottom:16px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00623C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#00512F">Prefilled from “Matong Demo Protocol v3.pdf”</div><div style="font-size:12px;color:#2F6B4F;margin-top:1px">8 treatments with rates and timings were read from the document — {{ unconfirmedLabel }}. Dashed values need a look before you continue.</div></div>
+            <div onClick="{{ goDocs }}" style="flex:none;padding:7px 12px;background:#fff;border:1px solid #BCDCCB;border-radius:7px;font-size:12px;font-weight:700;color:#00623C;cursor:pointer" style-hover="border-color:#007749">View source</div>
+            <div onClick="{{ confirmAll }}" style="flex:none;padding:7px 12px;background:#007749;border-radius:7px;font-size:12px;font-weight:700;color:#fff;cursor:pointer" style-hover="background:#00623C">Confirm all</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ bannerDone }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border:1px solid #BCDCCB;border-radius:10px;margin-bottom:16px;background:#fff"><span style="color:#007749;font-weight:800;font-size:13px">✓</span><div style="font-size:12.5px;color:#00512F;font-weight:600">All imported treatments checked — ready for randomisation.</div></div>
+        </sc-if>
+        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;align-items:baseline;padding:8px 12px;background:#fff;border:1px solid #E4E4E6;border-radius:8px"><span style="display:inline-flex;width:18px;height:18px;border-radius:5px;background:#141414;color:#fff;font-size:10.5px;font-weight:800;align-items:center;justify-content:center;transform:translateY(3px)">A</span><span style="font-size:12.5px;font-weight:700;color:#141414">GS31 · first node</span><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#8A8C8A">target 14 Jul</span></div>
+          <div style="display:flex;gap:8px;align-items:baseline;padding:8px 12px;background:#fff;border:1px solid #E4E4E6;border-radius:8px"><span style="display:inline-flex;width:18px;height:18px;border-radius:5px;background:#141414;color:#fff;font-size:10.5px;font-weight:800;align-items:center;justify-content:center;transform:translateY(3px)">B</span><span style="font-size:12.5px;font-weight:700;color:#141414">GS39 · flag leaf</span><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#8A8C8A">target 18 Aug</span></div>
+          <div style="font-size:11.5px;color:#8A8C8A">Application timings — each treatment picks A, B or both</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:50px minmax(0,1.1fr) minmax(0,1.55fr) 92px 126px;gap:12px;padding:10px 18px;font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;border-bottom:1px solid #EDEEED">
+            <div>NO.</div><div>TREATMENT</div><div>PRODUCTS &amp; RATES</div><div>TIMING</div><div style="text-align:right">IMPORTED</div>
+          </div>
+          <sc-for list="{{ rowsT }}" as="it" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:50px minmax(0,1.1fr) minmax(0,1.55fr) 92px 126px;gap:12px;align-items:center;padding: {{ rowPad }} 18px;border-top:1px solid #F0F1F0;background: {{ it.rowBg }}">
+              <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;font-weight:600;color:#141414">{{ it.no }}</div>
+              <div style="min-width:0">
+                <div style="display:flex;align-items:center;gap:7px"><span style="font-size:13px;font-weight:700;color:#141414">{{ it.name }}</span><sc-if value="{{ it.exp }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:9px;font-weight:800;letter-spacing:.08em;color:#cf4520;border:1px solid #cf4520;background:#FBEDE8;border-radius:4px;padding:1px 5px">EXP</span></sc-if></div>
+                <sc-if value="{{ it.hasNote }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:#8A8C8A;margin-top:1px">{{ it.note }}</div></sc-if>
+              </div>
+              <div style="min-width:0;display:flex;flex-direction:column;gap:3px">
+                <sc-if value="{{ it.nil }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:#8A8C8A">— nil applied</div></sc-if>
+                <sc-for list="{{ it.lines }}" as="ln">
+                  <div style="display:flex;gap:7px;align-items:baseline;min-width:0"><span style="font-size:12.5px;color:#141414;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ln.name }}</span><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#3E403E;white-space:nowrap;border-bottom: {{ ln.dash }}">{{ ln.rate }}</span><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;color:#8A8C8A">{{ ln.tim }}</span></div>
+                </sc-for>
+              </div>
+              <div><span style="display:inline-block;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:600;padding:3px 8px;border:1px solid #D8DAD8;border-radius:6px;color:#141414;background:#F7F8F7;white-space:nowrap">{{ it.timing }}</span></div>
+              <div style="text-align:right">
+                <sc-if value="{{ it.showConfirm }}" hint-placeholder-val="{{ false }}"><div onClick="{{ it.confirm }}" style="display:inline-block;font-size:11px;font-weight:800;color:#6B6D6B;border:1px dashed #B9BBB9;padding:4px 9px;border-radius:6px;cursor:pointer" style-hover="color:#00623C;border-color:#007749">Auto · confirm</div></sc-if>
+                <sc-if value="{{ it.showChecked }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;font-weight:800;color:#007749">✓ Checked</div></sc-if>
+                <sc-if value="{{ it.showSetRate }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;font-weight:800;color:#cf4520">set rate &amp; timing</div></sc-if>
+              </div>
+            </div>
+          </sc-for>
+          <div onClick="{{ openPicker }}" style="padding:12px 18px;font-size:13px;font-weight:700;color:#007749;cursor:pointer;border-top:1px solid #EDEEED;display:flex;gap:8px;align-items:center" style-hover="background:#F7FAF8"><span style="font-size:15px;line-height:1">+</span>Add treatment from product list</div>
+        </div>
+        <div style="margin-top:12px;font-size:11.5px;color:#8A8C8A">Rates are product per hectare. Water rate and nozzles are set in the spray record — 100 L/ha flat fan by default.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ stepRand }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:960px">
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:18px 20px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;width:64px">DESIGN</div>
+            <div style="display:flex;border:1px solid #D8DAD8;border-radius:8px;overflow:hidden">
+              <sc-for list="{{ designOpts }}" as="d" hint-placeholder-count="3">
+                <div onClick="{{ d.pick }}" style="padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;background: {{ d.bg }};color: {{ d.fg }};border-left: {{ d.bl }}">{{ d.label }}</div>
+              </sc-for>
+            </div>
+            <div onClick="{{ toggleFact }}" style="font-size:12.5px;font-weight:700;color:#007749;cursor:pointer" style-hover="color:#00623C">+ Add factorial structure</div>
+          </div>
+          <sc-if value="{{ factOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:14px;padding:13px 16px;background:#FBFCFB;border:1px dashed #D8DAD8;border-radius:8px;display:flex;gap:26px;align-items:center;flex-wrap:wrap">
+              <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A">FACTOR A</div><div style="font-size:13px;font-weight:700;color:#141414;margin-top:3px">Product <span style="font-weight:400;color:#8A8C8A">· 7 levels from treatments</span></div></div>
+              <div style="font-size:14px;color:#B8BAB8">×</div>
+              <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A">FACTOR B</div><div style="font-size:13px;font-weight:700;color:#141414;margin-top:3px">Timing <span style="font-weight:400;color:#8A8C8A">· A, B</span></div></div>
+              <div style="font-size:12px;color:#6B6D6B;flex:1;min-width:180px">= 14 combinations + control. Applying rebuilds the treatment list and this map.</div>
+              <div style="padding:7px 12px;background:#fff;border:1px solid #D8DAD8;border-radius:7px;font-size:12px;font-weight:700;color:#8A8C8A">Apply structure</div>
+            </div>
+          </sc-if>
+          <div style="height:1px;background:#F0F1F0;margin:16px 0"></div>
+          <div style="display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap">
+            <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:7px">REPS</div>
+              <div style="display:flex;align-items:center;border:1px solid #D8DAD8;border-radius:8px;overflow:hidden">
+                <div onClick="{{ repsDec }}" style="width:30px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#3E403E;cursor:pointer" style-hover="background:#F2F4F2">−</div>
+                <div style="width:36px;text-align:center;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;font-weight:600;color:#141414">{{ repsLabel }}</div>
+                <div onClick="{{ repsInc }}" style="width:30px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#3E403E;cursor:pointer" style-hover="background:#F2F4F2">+</div>
+              </div></div>
+            <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:7px">PLOT SIZE</div>
+              <div style="display:flex;align-items:center;gap:7px">
+                <input value="{{ plotW }}" onChange="{{ setPlotW }}" style="width:44px;height:32px;text-align:center;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414" style-focus="border-color:#007749"></input>
+                <span style="font-size:12px;color:#8A8C8A">m ×</span>
+                <input value="{{ plotL }}" onChange="{{ setPlotL }}" style="width:44px;height:32px;text-align:center;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414" style-focus="border-color:#007749"></input>
+                <span style="font-size:12px;color:#8A8C8A">m</span>
+              </div></div>
+            <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:7px">FIELD GRID</div>
+              <div style="font-size:14px;font-weight:700;color:#141414;padding-top:5px">{{ gridLabel }}</div>
+              <div style="font-size:11.5px;color:#8A8C8A;margin-top:3px">{{ plotTotal }}</div></div>
+            <div style="flex:1;min-width:220px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:7px">HOW IT RANDOMISES</div>
+              <div style="font-size:12px;color:#6B6D6B;line-height:1.55">{{ designNote }}</div></div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:18px 20px">
+          <div style="display:flex;align-items:flex-start;gap:14px">
+            <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#141414">Layout preview</div>
+              <div style="font-size:11.5px;color:#8A8C8A;margin-top:3px">Seeded <span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;color:#141414">#{{ seed }}</span> — reproducible: the same seed always regenerates this exact layout. Re-randomising records a new seed in the change log.</div></div>
+            <div onClick="{{ reRand }}" style="flex:none;display:flex;gap:7px;align-items:center;padding:8px 14px;background:#fff;border:1px solid #D8DAD8;border-radius:8px;font-size:12.5px;font-weight:700;color:#141414;cursor:pointer" style-hover="border-color:#007749;color:#00623C"><span style="font-size:14px;line-height:1">↻</span>Re-randomise</div>
+          </div>
+          <div style="display:flex;gap:16px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#8A8C8A;margin:14px 0 8px">
+            <span>N ↑</span><span>sprayer runs W → E</span><span>plot {{ plotW }} m × {{ plotL }} m</span>
+          </div>
+          <div style="overflow:auto;padding-bottom:4px">
+            <sc-for list="{{ bands }}" as="bd" hint-placeholder-count="4">
+              <div style="display:flex;align-items:stretch;gap:5px;padding:5px;background: {{ bd.rowBg }};border-radius:9px;margin-bottom:4px;width:max-content">
+                <div style="width:50px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;font-weight:600;color:#6B6D6B">{{ bd.label }}</div>
+                <sc-for list="{{ bd.cells }}" as="cl">
+                  <div style="width: {{ cellW }};height:56px;flex:none;border-radius:7px;background: {{ cl.bg }};border: {{ cl.border }};color: {{ cl.fg }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">
+                    <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;opacity:.72">{{ cl.num }}</div>
+                    <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:16px;font-weight:600;letter-spacing:-.02em">{{ cl.t }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 18px;margin-top:12px">
+            <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="9">
+              <div style="display:flex;gap:8px;align-items:center;min-width:0"><div style="width:12px;height:12px;flex:none;border-radius:4px;background: {{ lg.bg }};border: {{ lg.border }}"></div><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:600;color:#141414">{{ lg.t }}</span><span style="font-size:11.5px;color:#6B6D6B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ lg.name }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ stepAssess }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:820px">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border:1px solid #BCDCCB;border-radius:10px;margin-bottom:16px;background:#fff"><span style="color:#007749;font-weight:800;font-size:13px">✓</span><div style="font-size:12.5px;color:#00512F;font-weight:600">Schedule prefilled from the protocol — confirm methods with the field team.</div></div>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:44px 92px minmax(0,1.6fr) minmax(0,1.3fr) 76px;gap:12px;padding:10px 18px;font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;border-bottom:1px solid #EDEEED"><div>NO.</div><div>STAGE</div><div>WHAT GETS SCORED</div><div>METHOD</div><div style="text-align:right">TARGET</div></div>
+          <sc-for list="{{ assessRowsWiz }}" as="it" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:44px 92px minmax(0,1.6fr) minmax(0,1.3fr) 76px;gap:12px;align-items:baseline;padding:13px 18px;border-top:1px solid #F0F1F0">
+              <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;font-weight:600;color:#141414">{{ it.a }}</div>
+              <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#3E403E">{{ it.stage }}</div>
+              <div style="font-size:12.5px;font-weight:600;color:#141414">{{ it.what }}</div>
+              <div style="font-size:11.5px;color:#6B6D6B">{{ it.method }}</div>
+              <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#3E403E;text-align:right">{{ it.date }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:12px;font-size:11.5px;color:#8A8C8A">Scoring screens live in the field app — this schedule drives its assessment order, pick-lists and photo prompts.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ stepReviewStep }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:600px;background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:26px 28px">
+          <div style="font-size:15px;font-weight:800;color:#141414">Almost there — review happens on the trial page</div>
+          <div style="font-size:12.5px;color:#3E403E;line-height:1.6;margin-top:7px">Submitting sends the full protocol — aim, site, treatments, layout and schedule — to a senior agronomist for sign-off. Nothing reaches the field app until they approve.</div>
+          <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+            <div onClick="{{ goReview }}" style="padding:9px 16px;background:#007749;color:#fff;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer" style-hover="background:#00623C">See what the approver sees →</div>
+            <div style="padding:9px 16px;background:#fff;border:1px solid #D8DAD8;color:#8A8C8A;font-size:13px;font-weight:700;border-radius:8px">Submit for approval</div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:13px 30px;border-top:1px solid #E4E4E6;background:#fff;flex:none">
+      <div style="font-size:12px;color:#8A8C8A">{{ stepCount }}</div>
+      <div style="flex:1"></div>
+      <div onClick="{{ stepBack }}" style="padding:9px 16px;background:#fff;border:1px solid #D8DAD8;color:#3E403E;font-size:13px;font-weight:700;border-radius:8px;cursor: {{ backCur }};opacity: {{ backOp }}">Back</div>
+      <div onClick="{{ stepNext }}" style="padding:9px 18px;background:#007749;color:#fff;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer" style-hover="background:#00623C">{{ nextLabel }}</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ pickerOpen }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Product picker" onClick="{{ closePicker }}" style="position:fixed;inset:0;background:rgba(20,20,20,.38);z-index:60;display:flex;align-items:center;justify-content:center;padding:30px">
+  <div onClick="{{ stop }}" style="width:664px;max-width:94vw;max-height:86vh;background:#fff;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(10,26,18,.25)">
+    <div style="padding:18px 22px 0;flex:none">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:#141414">Add product — treatment {{ nextT }}</div><div style="font-size:12px;color:#8A8C8A;margin-top:2px">Registered products · search by product or active ingredient</div></div>
+        <div onClick="{{ closePicker }}" style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:7px;font-size:16px;color:#8A8C8A;cursor:pointer" style-hover="background:#F2F4F2;color:#141414">×</div>
+      </div>
+      <input autoFocus="{{ true }}" value="{{ pq }}" onChange="{{ setPq }}" placeholder="Search products or actives — try “prothio”" style="width:100%;margin-top:13px;padding:11px 14px;font-size:13.5px;border:1px solid #D8DAD8;border-radius:9px;outline:none;color:#141414;background:#FBFCFB" style-focus="border-color:#007749;background:#fff"></input>
+    </div>
+    <div style="flex:1;overflow:auto;padding:8px 12px;min-height:120px">
+      <sc-for list="{{ results }}" as="r" hint-placeholder-count="4">
+        <div onClick="{{ r.add }}" style="display:flex;align-items:center;gap:14px;padding:11px 12px;border-radius:9px;cursor:pointer" style-hover="background:#F5F8F6">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;gap:8px;align-items:baseline;min-width:0"><span style="font-size:13.5px;font-weight:800;color:#141414;white-space:nowrap">{{ r.name }}</span><span style="font-size:11.5px;color:#8A8C8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.co }}</span></div>
+            <div style="margin-top:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#6B6D6B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><sc-for list="{{ r.segs }}" as="sg"><span style="color: {{ sg.fg }};font-weight: {{ sg.fw }}">{{ sg.t }}</span></sc-for></div>
+          </div>
+          <span style="flex:none;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:800;background: {{ r.catBg }};color: {{ r.catFg }};border:1px solid {{ r.catBd }}">{{ r.cat }}</span>
+          <span style="flex:none;font-size:12px;font-weight:800;color:#007749">Add +</span>
+        </div>
+      </sc-for>
+      <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:26px;text-align:center;font-size:12.5px;color:#8A8C8A">No registered product matches “{{ pq }}” — check the spelling, or add it as experimental below.</div>
+      </sc-if>
+    </div>
+    <div style="border-top:1px solid #E4E4E6;background:#FBFCFB;flex:none">
+      <sc-if value="{{ expClosed }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ toggleExp }}" style="display:flex;gap:12px;align-items:center;padding:14px 22px;cursor:pointer" style-hover="background:#F5F6F5">
+          <span style="flex:none;font-size:9.5px;font-weight:800;letter-spacing:.08em;color:#cf4520;border:1px solid #cf4520;background:#FBEDE8;border-radius:4px;padding:2px 6px">EXP</span>
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#141414">Add an experimental product</div><div style="font-size:11.5px;color:#8A8C8A;margin-top:1px">Unregistered or code-named — flagged EXP wherever it appears</div></div>
+          <span style="font-size:12px;font-weight:800;color:#007749">Open ▾</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ expOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:16px 22px 18px">
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:13px">
+            <span style="flex:none;font-size:9.5px;font-weight:800;letter-spacing:.08em;color:#cf4520;border:1px solid #cf4520;background:#FBEDE8;border-radius:4px;padding:2px 6px">EXP</span>
+            <div style="flex:1;font-size:13px;font-weight:800;color:#141414">Experimental product</div>
+            <div onClick="{{ toggleExp }}" style="font-size:12px;font-weight:700;color:#8A8C8A;cursor:pointer" style-hover="color:#141414">Collapse ▴</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <div style="flex:1.2"><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A;margin-bottom:5px">CODE NAME</div>
+              <input value="{{ expName }}" onChange="{{ setExpName }}" style="width:100%;padding:8px 11px;font-size:13px;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414;background:#fff" style-focus="border-color:#007749"></input></div>
+            <div style="flex:1"><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A;margin-bottom:5px">CATEGORY</div>
+              <select value="{{ expCat }}" onChange="{{ setExpCat }}" style="width:100%;padding:8px 10px;font-size:13px;font-weight:600;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414;background:#fff"><option>Fungicide</option><option>Herbicide</option><option>Insecticide</option><option>Other</option></select></div>
+          </div>
+          <div style="margin-top:12px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A;margin-bottom:5px">ACTIVES <span style="font-weight:600;letter-spacing:0;color:#A9ABA9">· optional</span></div>
+            <sc-for list="{{ expRows }}" as="er">
+              <div style="display:flex;gap:8px;margin-bottom:7px;align-items:center">
+                <input value="{{ er.n }}" onChange="{{ er.setName }}" placeholder="active ingredient" style="flex:1.4;padding:7px 11px;font-size:12.5px;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414;background:#fff" style-focus="border-color:#007749"></input>
+                <input value="{{ er.r }}" onChange="{{ er.setRate }}" placeholder="e.g. 200 g/L" style="flex:1;padding:7px 11px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#141414;background:#fff" style-focus="border-color:#007749"></input>
+                <div onClick="{{ er.rm }}" style="width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:6px;color:#A9ABA9;cursor:pointer;font-size:14px" style-hover="background:#F2F4F2;color:#cf4520">×</div>
+              </div>
+            </sc-for>
+            <div onClick="{{ addExpRow }}" style="display:inline-block;font-size:12px;font-weight:700;color:#007749;cursor:pointer" style-hover="color:#00623C">+ add another active</div>
+          </div>
+          <div style="margin-top:12px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#8A8C8A;margin-bottom:5px">NOTES</div>
+            <input value="{{ expNotes }}" onChange="{{ setExpNotes }}" style="width:100%;padding:8px 11px;font-size:12.5px;border:1px solid #D8DAD8;border-radius:8px;outline:none;color:#3E403E;background:#fff" style-focus="border-color:#007749"></input></div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+            <div style="flex:1;font-size:11.5px;color:#8A8C8A;line-height:1.45">Will appear as <span style="font-weight:700;color:#141414">{{ expName }}</span> with an <span style="font-weight:800;color:#cf4520">EXP</span> flag in tables, plot maps and reports.</div>
+            <div onClick="{{ addExp }}" style="flex:none;padding:9px 16px;background:#007749;color:#fff;font-size:12.5px;font-weight:700;border-radius:8px;cursor:pointer" style-hover="background:#00623C">Add experimental product</div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ isDocs }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Protocol workspace" style="flex:1;min-width:0;overflow:auto;padding:26px 34px 44px">
+  <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:20px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#8A8C8A">MATONG WHEAT FUNGICIDE DEMO 2026</div>
+      <h1 style="margin:4px 0 0;font-size:22px;font-weight:800;color:#141414;letter-spacing:-.01em">Documents &amp; protocol</h1>
+      <div style="margin-top:3px;font-size:12.5px;color:#8A8C8A">Drop what the client or chem rep sent you — the wizard builds from whatever parses.</div>
+    </div>
+    <div onClick="{{ goNew }}" style="padding:9px 16px;background:#fff;border:1px solid #D8DAD8;color:#141414;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;white-space:nowrap" style-hover="border-color:#007749;color:#00623C">Open in wizard →</div>
+  </div>
+  <div style="display:flex;gap:16px;align-items:flex-start">
+    <div style="width:264px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="border:1.5px dashed #C7CAC7;border-radius:10px;padding:20px 16px;text-align:center;background:#FBFCFB;cursor:pointer" style-hover="border-color:#007749;background:#F7FAF8">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007749" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <div style="font-size:12.5px;font-weight:800;color:#141414;margin-top:7px">Drop files here or browse</div>
+        <div style="font-size:11px;color:#8A8C8A;margin-top:3px">PDF · XLSX · DOCX — sheets and protocols parse automatically</div>
+      </div>
+      <sc-for list="{{ fileRows }}" as="f" hint-placeholder-count="4">
+        <div onClick="{{ f.sel }}" style="padding:11px 13px;border-radius:9px;border:1px solid {{ f.cardBd }};background: {{ f.cardBg }};cursor:pointer">
+          <div style="display:flex;gap:8px;align-items:center;min-width:0">
+            <span style="flex:none;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:8.5px;font-weight:600;letter-spacing:.06em;padding:2px 5px;border-radius:4px;background: {{ f.extBg }};color: {{ f.extFg }}">{{ f.ext }}</span>
+            <span style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:#141414;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</span>
+            <span style="flex:none;font-size:10px;color:#A9ABA9">{{ f.size }}</span>
+          </div>
+          <sc-if value="{{ f.stParsed }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font-size:11px;font-weight:600;color:#007749;line-height:1.4">✓ {{ f.stText }}</div></sc-if>
+          <sc-if value="{{ f.stParsing }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font-size:11px;font-weight:600;color:#6B6D6B;line-height:1.4">{{ f.spinEl }}{{ f.stText }}</div></sc-if>
+          <sc-if value="{{ f.stError }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font-size:11px;font-weight:700;color:#cf4520;line-height:1.4">⚑ {{ f.stText }}</div></sc-if>
+        </div>
+      </sc-for>
+      <div style="font-size:11px;color:#8A8C8A;line-height:1.5;padding:0 2px">Parsed tables stay linked — fix a rate in the wizard and the source page is one click away.</div>
+    </div>
+    <div style="width:398px;flex:none;background:#fff;border:1px solid #E4E4E6;border-radius:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #EDEEED">
+        <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#3E403E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pvName }}</span>
+        <span style="flex:none;font-size:11px;font-weight:700;color:#007749;cursor:pointer" style-hover="color:#00623C">Open original ↗</span>
+      </div>
+      <div style="padding:22px;background:#F0F1F0;display:flex;justify-content:center">
+        <div style="width:318px;background:#fff;border:1px solid #E4E4E6;border-radius:3px;box-shadow:0 2px 10px rgba(20,20,20,.07);padding:24px 22px;min-height:400px">
+          <sc-if value="{{ pvPdf }}" hint-placeholder-val="{{ false }}">
+            <div style="height:11px;width:62%;background:#E0E1E0;border-radius:3px"></div>
+            <div style="height:7px;width:38%;background:#EDEEED;border-radius:3px;margin-top:8px"></div>
+            <div style="height:44px;margin-top:18px;border-radius:3px;background:repeating-linear-gradient(180deg,#F2F3F2 0 7px,#fff 7px 15px)"></div>
+            <sc-if value="{{ pvHighlight }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:16px;border:1.5px dashed #007749;border-radius:6px;padding:9px;position:relative">
+                <div style="position:absolute;top:-9px;right:8px;background:#007749;color:#fff;font-size:8.5px;font-weight:800;letter-spacing:.07em;padding:2px 7px;border-radius:4px">8 TREATMENTS → WIZARD</div>
+                <div style="height:9px;background:#E3F1EA;border-radius:2px"></div>
+                <div style="height:104px;margin-top:5px;border-radius:2px;background:repeating-linear-gradient(180deg,#F2F3F2 0 8px,#fff 8px 16px)"></div>
+              </div>
+            </sc-if>
+            <div style="height:44px;margin-top:16px;border-radius:3px;background:repeating-linear-gradient(180deg,#F2F3F2 0 7px,#fff 7px 15px)"></div>
+            <div style="margin-top:14px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#A9ABA9;text-align:center">pdf page preview</div>
+          </sc-if>
+          <sc-if value="{{ pvXlsx }}" hint-placeholder-val="{{ false }}">
+            <div style="height:9px;width:44%;background:#E0E1E0;border-radius:3px;margin-bottom:12px"></div>
+            <div style="height:236px;border:1px solid #EDEEED;background:repeating-linear-gradient(180deg,#fff 0 19px,#F4F6F4 19px 20px),repeating-linear-gradient(90deg,#fff 0 45px,#F4F6F4 45px 46px)"></div>
+            <div style="margin-top:14px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#A9ABA9;text-align:center">spreadsheet preview</div>
+          </sc-if>
+          <sc-if value="{{ pvDocx }}" hint-placeholder-val="{{ false }}">
+            <div style="height:11px;width:56%;background:#E0E1E0;border-radius:3px"></div>
+            <div style="height:70px;margin-top:14px;border-radius:3px;background:repeating-linear-gradient(180deg,#F2F3F2 0 7px,#fff 7px 15px)"></div>
+            <div style="margin-top:14px;border:1.5px dashed #cf4520;border-radius:6px;padding:9px;position:relative">
+              <div style="position:absolute;top:-9px;right:8px;background:#cf4520;color:#fff;font-size:8.5px;font-weight:800;letter-spacing:.07em;padding:2px 7px;border-radius:4px">TABLE UNREADABLE</div>
+              <div style="height:64px;border-radius:2px;background:repeating-linear-gradient(180deg,#F7F0EE 0 8px,#fff 8px 16px)"></div>
+            </div>
+            <div style="height:44px;margin-top:14px;border-radius:3px;background:repeating-linear-gradient(180deg,#F2F3F2 0 7px,#fff 7px 15px)"></div>
+            <div style="margin-top:14px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#A9ABA9;text-align:center">document preview — drag a box around the table to re-parse</div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;padding:9px;border-top:1px solid #EDEEED;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#6B6D6B">
+        <span style="cursor:pointer" style-hover="color:#141414">‹</span><span>{{ pvPage }}</span><span style="cursor:pointer" style-hover="color:#141414">›</span>
+      </div>
+    </div>
+    <div style="flex:1;min-width:300px;background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:18px 20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#141414">Generated protocol</div><div style="font-size:11.5px;color:#8A8C8A;margin-top:2px">Builds from parsed documents · wizard edits win</div></div>
+        <div style="position:relative">
+          <div onClick="{{ toggleExpMenu }}" style="padding:8px 14px;background:#007749;color:#fff;font-size:12.5px;font-weight:700;border-radius:8px;cursor:pointer;white-space:nowrap" style-hover="background:#00623C">Export ▾</div>
+          <sc-if value="{{ expMenu }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;right:0;top:38px;z-index:20;background:#fff;border:1px solid #E4E4E6;border-radius:9px;box-shadow:0 10px 30px rgba(20,20,20,.13);width:196px;overflow:hidden">
+              <div onClick="{{ closeExpMenu }}" style="padding:10px 14px;font-size:12.5px;font-weight:600;color:#141414;cursor:pointer" style-hover="background:#F5F8F6">Protocol PDF</div>
+              <div onClick="{{ closeExpMenu }}" style="padding:10px 14px;font-size:12.5px;font-weight:600;color:#141414;cursor:pointer;border-top:1px solid #F0F1F0" style-hover="background:#F5F8F6">Excel workbook (.xlsx)</div>
+              <div onClick="{{ closeExpMenu }}" style="padding:10px 14px;font-size:12.5px;font-weight:600;color:#141414;cursor:pointer;border-top:1px solid #F0F1F0" style-hover="background:#F5F8F6">ARM study definition</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0 6px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A">AIM</div><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;color:#6B6D6B;background:#F0F1F0;border-radius:4px;padding:1px 6px">PDF · P1</span></div>
+      <div style="font-size:12.5px;color:#141414;line-height:1.6">Compare label-rate foliar fungicide programs for stripe rust and septoria in Scepter wheat, and show the timing response (GS31 vs GS39) for the Matong grower group field day.</div>
+      <div style="display:flex;align-items:center;gap:8px;margin:16px 0 8px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A">SITE</div><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;color:#6B6D6B;background:#F0F1F0;border-radius:4px;padding:1px 6px">PDF · P1</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px">
+        <sc-for list="{{ siteRowsWiz }}" as="sr" hint-placeholder-count="6">
+          <div style="min-width:0"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;color:#A9ABA9">{{ sr.l }}</div><div style="font-size:12px;font-weight:600;color:#141414;margin-top:2px;line-height:1.4">{{ sr.v }}</div></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin:16px 0 8px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A">TREATMENTS</div><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;color:#6B6D6B;background:#F0F1F0;border-radius:4px;padding:1px 6px">PDF · P2</span></div>
+      <div style="border:1px solid #EDEEED;border-radius:8px;overflow:hidden">
+        <sc-for list="{{ protoRows }}" as="pr" hint-placeholder-count="8">
+          <div style="display:flex;gap:10px;align-items:baseline;padding:6px 12px;border-top: {{ pr.bt }}">
+            <span style="flex:none;width:26px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:600;color:#141414">{{ pr.no }}</span>
+            <span style="flex:1;min-width:0;font-size:11.5px;font-weight:600;color:#3E403E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pr.name }}</span>
+            <span style="flex:none;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#6B6D6B">{{ pr.rate }}</span>
+            <span style="flex:none;width:34px;text-align:right;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;color:#8A8C8A">{{ pr.tim }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin:16px 0 8px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A">ASSESSMENTS</div><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;color:#6B6D6B;background:#F0F1F0;border-radius:4px;padding:1px 6px">PDF · P4</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <sc-for list="{{ assessRowsWiz }}" as="ar">
+          <div style="display:flex;gap:10px;align-items:baseline"><span style="flex:none;width:26px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:600;color:#141414">{{ ar.a }}</span><span style="flex:none;width:64px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#6B6D6B">{{ ar.stage }}</span><span style="flex:1;min-width:0;font-size:11.5px;color:#3E403E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ar.what }}</span><span style="flex:none;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#6B6D6B">{{ ar.date }}</span></div>
+        </sc-for>
+      </div>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid #F0F1F0;font-size:11px;color:#8A8C8A;line-height:1.5">Exports match the ARM study format — treatments, layout and schedule stay linked to this trial.</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Trial review and approve" style="flex:1;min-width:0;overflow:auto">
+  <div style="padding:22px 34px 44px;max-width:1200px">
+    <div onClick="{{ goTrials }}" style="display:inline-block;font-size:12px;font-weight:700;color:#8A8C8A;cursor:pointer;margin-bottom:10px" style-hover="color:#00623C">← All trials</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <h1 style="margin:0;font-size:22px;font-weight:800;color:#141414;letter-spacing:-.01em">Ganmain Barley Net Blotch 2026</h1>
+      <span style="display:inline-block;padding:4px 11px;border-radius:999px;font-size:11.5px;font-weight:800;background: {{ rvSBg }};color: {{ rvSFg }};border:1px solid {{ rvSBd }}">{{ rvStatus }}</span>
+    </div>
+    <div style="margin-top:5px;font-size:12.5px;color:#8A8C8A">Submitted for approval by Sam Kelleher · Mon 10 Aug, 9:41 am · Ganmain branch · read-only until signed off</div>
+    <div style="display:flex;gap:18px;align-items:flex-start;margin-top:18px">
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:16px 20px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:7px">AIM</div>
+          <div style="font-size:13.5px;color:#141414;line-height:1.6">Compare registered foliar fungicides and one experimental SDHI for net form net blotch in Spartacus CL barley — one- and two-spray programs, ranked by yield response for the Ganmain grower group.</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:16px 20px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:10px">SITE</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 18px">
+            <sc-for list="{{ siteRowsRev }}" as="sr" hint-placeholder-count="6">
+              <div style="min-width:0"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;color:#A9ABA9">{{ sr.l }}</div><div style="font-size:12.5px;font-weight:600;color:#141414;margin-top:3px;line-height:1.45">{{ sr.v }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 20px 0">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A">TREATMENTS</div>
+            <div style="display:flex;gap:12px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#6B6D6B"><span><b style="color:#141414">A</b> GS39 · 20 Aug</span><span><b style="color:#141414">B</b> GS55 · 4 Sep</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:44px minmax(0,1.15fr) minmax(0,1.6fr) 74px;gap:12px;padding:10px 20px 8px;font-size:10px;font-weight:800;letter-spacing:.11em;color:#A9ABA9;border-bottom:1px solid #F0F1F0"><div>NO.</div><div>TREATMENT</div><div>PRODUCTS &amp; RATES</div><div>TIMING</div></div>
+          <sc-for list="{{ rvRows }}" as="it" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:44px minmax(0,1.15fr) minmax(0,1.6fr) 74px;gap:12px;align-items:center;padding:9px 20px;border-top:1px solid #F5F6F5">
+              <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;font-weight:600;color:#141414">{{ it.no }}</div>
+              <div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:12.5px;font-weight:700;color:#141414;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.name }}</span><sc-if value="{{ it.exp }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:8.5px;font-weight:800;letter-spacing:.08em;color:#cf4520;border:1px solid #cf4520;background:#FBEDE8;border-radius:4px;padding:1px 5px">EXP</span></sc-if></div>
+              <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                <sc-if value="{{ it.nil }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#8A8C8A">— nil applied</div></sc-if>
+                <sc-for list="{{ it.lines }}" as="ln"><div style="display:flex;gap:7px;align-items:baseline;min-width:0"><span style="font-size:12px;color:#141414;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ln.name }}</span><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#3E403E;white-space:nowrap">{{ ln.rate }}</span><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#8A8C8A">{{ ln.tim }}</span></div></sc-for>
+              </div>
+              <div><span style="display:inline-block;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;font-weight:600;padding:2px 7px;border:1px solid #E0E1E0;border-radius:5px;color:#141414;background:#F7F8F7;white-space:nowrap">{{ it.timing }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:16px 20px">
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px"><div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A">PLOT LAYOUT</div><div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#6B6D6B">RCBD · 4 reps · seed #A7F3 · plots 2 m × 10 m</div></div>
+          <div style="overflow:auto;padding-bottom:4px">
+            <sc-for list="{{ rvBands }}" as="bd" hint-placeholder-count="4">
+              <div style="display:flex;align-items:stretch;gap:4px;padding:4px;background: {{ bd.rowBg }};border-radius:8px;margin-bottom:3px;width:max-content">
+                <div style="width:44px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;font-weight:600;color:#6B6D6B">{{ bd.label }}</div>
+                <sc-for list="{{ bd.cells }}" as="cl">
+                  <div style="width:64px;height:46px;flex:none;border-radius:6px;background: {{ cl.bg }};border: {{ cl.border }};color: {{ cl.fg }};display:flex;flex-direction:column;align-items:center;justify-content:center">
+                    <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:8.5px;opacity:.72">{{ cl.num }}</div>
+                    <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13.5px;font-weight:600">{{ cl.t }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 16px;margin-top:10px">
+            <sc-for list="{{ rvLegend }}" as="lg" hint-placeholder-count="9">
+              <div style="display:flex;gap:7px;align-items:center;min-width:0"><div style="width:11px;height:11px;flex:none;border-radius:3px;background: {{ lg.bg }};border: {{ lg.border }}"></div><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;font-weight:600;color:#141414">{{ lg.t }}</span><span style="font-size:11px;color:#6B6D6B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ lg.name }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:16px 20px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:10px">ASSESSMENT SCHEDULE</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <sc-for list="{{ assessRowsRev }}" as="ar" hint-placeholder-count="4">
+              <div style="display:flex;gap:12px;align-items:baseline"><span style="flex:none;width:26px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;font-weight:600;color:#141414">{{ ar.a }}</span><span style="flex:none;width:78px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#6B6D6B">{{ ar.stage }}</span><span style="flex:1;min-width:0;font-size:12.5px;color:#141414">{{ ar.what }}</span><span style="flex:none;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#3E403E">{{ ar.date }}</span><span style="flex:none;width:52px;text-align:right;font-size:10.5px;font-weight:800;color: {{ ar.stFg }}">{{ ar.status }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:16px 20px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:10px">DOCUMENTS</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ rvDocs }}" as="d" hint-placeholder-count="3">
+              <div style="display:flex;gap:9px;align-items:center;min-width:0"><span style="flex:none;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:8.5px;font-weight:600;letter-spacing:.06em;padding:2px 5px;border-radius:4px;background: {{ d.extBg }};color: {{ d.extFg }}">{{ d.ext }}</span><span style="flex:none;font-size:12.5px;font-weight:700;color:#141414">{{ d.name }}</span><span style="flex:1;min-width:0;font-size:11px;color:#8A8C8A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.st }}</span><span style="flex:none;font-size:11px;font-weight:700;color:#007749;cursor:pointer" style-hover="color:#00623C">Open ↗</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="width:296px;flex:none;position:sticky;top:0;display:flex;flex-direction:column;gap:14px">
+        <sc-if value="{{ notApproved }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:18px">
+            <div style="font-size:13.5px;font-weight:800;color:#141414">Approval</div>
+            <div style="font-size:12px;color:#3E403E;line-height:1.55;margin-top:6px">Approving locks treatments and the layout, and opens the trial to the field app for spraying and scoring.</div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
+              <div style="width:32px;height:32px;flex:none;border-radius:50%;background:#E3F1EA;color:#00623C;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center">IM</div>
+              <div><div style="font-size:12.5px;font-weight:700;color:#141414">Ian McPherson</div><div style="font-size:11px;color:#8A8C8A">Senior agronomist · reviewing</div></div>
+            </div>
+            <div onClick="{{ toggleAck }}" style="display:flex;gap:10px;margin-top:14px;cursor:pointer;align-items:flex-start">
+              <div style="width:17px;height:17px;flex:none;border-radius:5px;border:1.5px solid {{ ackBd }};background: {{ ackBg }};display:flex;align-items:center;justify-content:center;margin-top:1px"><sc-if value="{{ ackTick }}" hint-placeholder-val="{{ false }}"><span style="color:#fff;font-size:11px;font-weight:800;line-height:1">✓</span></sc-if></div>
+              <div style="font-size:12px;color:#3E403E;line-height:1.45">I’ve checked products, rates and timings against current labels and permits.</div>
+            </div>
+            <div onClick="{{ tryApprove }}" style="margin-top:14px;padding:11px;text-align:center;background: {{ apBg }};color:#fff;font-size:13px;font-weight:800;border-radius:8px;cursor: {{ apCur }}">Approve trial</div>
+            <div style="margin-top:8px;padding:8px;text-align:center;font-size:12.5px;font-weight:800;color:#cf4520;border-radius:8px;cursor:pointer" style-hover="background:#FBEDE8">⚑ Request changes</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ approvedV }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#E3F1EA;border:1px solid #9CC9B4;border-radius:10px;padding:18px">
+            <div style="font-size:14px;font-weight:800;color:#00512F">✓ Approved</div>
+            <div style="font-size:12px;color:#2F6B4F;margin-top:6px;line-height:1.5">Signed Ian McPherson<br>Wed 12 Aug 2026 · 2:04 pm</div>
+            <div style="font-size:11.5px;color:#2F6B4F;margin-top:10px;padding-top:10px;border-top:1px solid #BCDCCB;line-height:1.5">Treatments and layout are locked. The field app is now open for the spray record.</div>
+          </div>
+        </sc-if>
+        <div style="background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:16px 18px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:9px">AT A GLANCE</div>
+          <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;color:#3E403E">
+            <div><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;color:#141414">8</span> treatments · <span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;color:#141414">4</span> reps · <span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;color:#141414">36</span> plots</div>
+            <div>Sprays: A <span style="font-family:'IBM Plex Mono',ui-monospace,monospace;color:#141414">20 Aug</span> · B <span style="font-family:'IBM Plex Mono',ui-monospace,monospace;color:#141414">4 Sep</span></div>
+            <div>First assessment <span style="font-family:'IBM Plex Mono',ui-monospace,monospace;color:#141414">18 Aug</span></div>
+            <div>Harvest <span style="font-family:'IBM Plex Mono',ui-monospace,monospace;color:#141414">w/c 24 Nov</span></div>
+            <div style="padding-top:7px;border-top:1px solid #F0F1F0;color:#8A8C8A;font-size:11.5px">1 experimental product — EXP flagged, excluded from grower report by default.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:18px;background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:14px 20px">
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:10px">CHANGE LOG</div>
+      <div style="display:flex;gap:0;overflow:auto;padding-bottom:4px">
+        <sc-for list="{{ logRows }}" as="lg" hint-placeholder-count="5">
+          <div style="flex:none;max-width:230px;padding:0 18px;border-left: {{ lg.bl }}">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;color:#8A8C8A;white-space:nowrap">{{ lg.when }}</div>
+            <div style="font-size:12px;font-weight:600;color:#141414;margin-top:3px;line-height:1.4">{{ lg.what }}</div>
+            <div style="font-size:10.5px;color:#8A8C8A;margin-top:3px">{{ lg.who }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Trial map" style="flex:1;min-width:0;overflow:auto;padding:26px 34px 40px">
+  <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:18px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#8A8C8A">MATONG WHEAT FUNGICIDE DEMO 2026</div>
+      <h1 style="margin:4px 0 0;font-size:22px;font-weight:800;color:#141414;letter-spacing:-.01em">Trial map</h1>
+      <div style="margin-top:3px;font-size:12.5px;color:#8A8C8A">‘Glenview’, Matong NSW · <span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#3E403E">−34.768, 146.929</span> · <a href="https://maps.google.com/?q=-34.768,146.929" target="_blank" style="font-weight:700;text-decoration:none">Open in Google Maps ↗</a></div>
+    </div>
+    <div onClick="{{ goNew }}" style="padding:9px 16px;background:#fff;border:1px solid #D8DAD8;color:#141414;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;white-space:nowrap" style-hover="border-color:#007749;color:#00623C">Open in wizard →</div>
+  </div>
+  <div style="display:flex;gap:16px;align-items:stretch">
+    <div style="flex:1;min-width:0;position:relative;border:1px solid #E4E4E6;border-radius:10px;overflow:hidden;height:calc(100vh - 220px);min-height:460px;background:#DDE0D8">
+      <sc-if value="{{ mapSat }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;inset:0;background:linear-gradient(115deg, oklch(0.6 0.05 130) 0%, oklch(0.66 0.06 112) 34%, oklch(0.71 0.07 96) 34.4%, oklch(0.73 0.06 100) 62%, oklch(0.58 0.05 134) 62.4%, oklch(0.63 0.05 124) 100%)"></div>
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(24deg, rgba(255,255,255,.05) 0 2px, transparent 2px 16px),repeating-linear-gradient(114deg, rgba(0,0,0,.045) 0 3px, transparent 3px 34px)"></div>
+      </sc-if>
+      <sc-if value="{{ mapRoads }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:#EFF0EA"></div>
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,#E2E3DC 0 1px, transparent 1px 110px),repeating-linear-gradient(90deg,#E2E3DC 0 1px, transparent 1px 110px)"></div>
+        <div style="position:absolute;top:-10%;left:60%;width:7px;height:120%;background:#DBDCD4;transform:rotate(13deg)"></div>
+        <div style="position:absolute;top:18%;left:63%;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#A9ABA9;transform:rotate(77deg)">Silo Rd</div>
+      </sc-if>
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg)">
+        <sc-if value="{{ droneOn }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:-30px;border-radius:10px;background: {{ droneBg }};opacity: {{ droneOpCss }}"></div>
+          <div style="position:absolute;top:-52px;left:-30px;background:rgba(20,20,20,.72);color:#fff;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;padding:3px 8px;border-radius:5px;white-space:nowrap">{{ droneLabel }}</div>
+        </sc-if>
+        <sc-if value="{{ showPlots }}" hint-placeholder-val="{{ true }}">
+          <div style="position:relative;display:flex;flex-direction:column;gap:3px">
+            <sc-for list="{{ mapBands }}" as="bd" hint-placeholder-count="4">
+              <div style="display:flex;gap:3px">
+                <sc-for list="{{ bd.cells }}" as="cl">
+                  <div style="width:34px;height:64px;flex:none;border-radius:3px;background: {{ cl.fill }};border:1.5px solid rgba(255,255,255,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+                    <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:7.5px;color: {{ cl.fg }};opacity:.8;text-shadow: {{ cl.shadow }}">{{ cl.num }}</div>
+                    <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:600;color: {{ cl.fg }};text-shadow: {{ cl.shadow }}">{{ cl.t }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+            <div style="position:absolute;left:62%;top:38%">
+              <div style="width:11px;height:11px;border-radius:50%;background:#00E38C;border:2px solid #fff;box-shadow:0 0 0 5px rgba(0,227,140,.25);animation:ompulse 1.8s ease-in-out infinite"></div>
+              <div style="position:absolute;left:16px;top:-4px;background:#141414;color:#fff;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;padding:3px 7px;border-radius:5px;white-space:nowrap">Sam’s phone · plot 214</div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="position:absolute;top:14px;left:14px;background:rgba(255,255,255,.92);border-radius:7px;padding:5px 9px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;font-weight:600;color:#141414;box-shadow:0 1px 4px rgba(0,0,0,.12)">N ↑</div>
+      <div style="position:absolute;top:14px;right:14px;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;box-shadow:0 1px 5px rgba(0,0,0,.15)">
+        <div style="width:32px;height:32px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;color:#141414;cursor:pointer" style-hover="background:#F2F4F2">+</div>
+        <div style="width:32px;height:32px;background:#fff;border-top:1px solid #EDEEED;display:flex;align-items:center;justify-content:center;font-size:16px;color:#141414;cursor:pointer" style-hover="background:#F2F4F2">−</div>
+      </div>
+      <div style="position:absolute;bottom:14px;right:14px;background:rgba(255,255,255,.94);border-radius:8px;padding:7px 12px;font-size:11.5px;font-weight:700;color:#141414;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.15)" style-hover="color:#00623C">⌖ Centre on trial</div>
+      <div style="position:absolute;bottom:14px;left:14px;background:rgba(20,20,20,.5);color:rgba(255,255,255,.9);font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;padding:3px 8px;border-radius:4px">google maps satellite · placeholder — API key connects the live basemap</div>
+    </div>
+    <div style="width:262px;flex:none;background:#fff;border:1px solid #E4E4E6;border-radius:10px;padding:16px 16px;overflow:auto;height:calc(100vh - 220px);min-height:460px">
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:9px">BASE</div>
+      <div style="display:flex;border:1px solid #D8DAD8;border-radius:8px;overflow:hidden;width:max-content">
+        <sc-for list="{{ baseOpts }}" as="b" hint-placeholder-count="2">
+          <div onClick="{{ b.pick }}" style="padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;background: {{ b.bg }};color: {{ b.fg }};border-left: {{ b.bl }}">{{ b.label }}</div>
+        </sc-for>
+      </div>
+      <div style="height:1px;background:#F0F1F0;margin:15px 0"></div>
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:9px">TRIAL OVERLAY</div>
+      <div onClick="{{ togglePlots }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:5px 0">
+        <div style="font-size:12.5px;font-weight:700;color:#141414">Plot boundaries</div>
+        <div style="width:30px;height:18px;flex:none;border-radius:99px;background: {{ swPBg }};position:relative;transition:background .15s"><div style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transform: {{ swPX }};transition:transform .15s"></div></div>
+      </div>
+      <div onClick="{{ toggleFills }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:5px 0">
+        <div style="font-size:12.5px;font-weight:700;color:#141414">Treatment colours</div>
+        <div style="width:30px;height:18px;flex:none;border-radius:99px;background: {{ swFBg }};position:relative;transition:background .15s"><div style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transform: {{ swFX }};transition:transform .15s"></div></div>
+      </div>
+      <div style="font-size:11px;color:#8A8C8A;margin-top:4px;line-height:1.45">36 plots · seed #A7F3 · corners pegged from the spray map</div>
+      <div style="height:1px;background:#F0F1F0;margin:15px 0"></div>
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#8A8C8A;margin-bottom:9px">DRONE IMAGERY</div>
+      <sc-for list="{{ droneOpts }}" as="dr" hint-placeholder-count="3">
+        <div onClick="{{ dr.pick }}" style="display:flex;align-items:center;gap:9px;padding:6px 0;cursor:pointer">
+          <div style="width:14px;height:14px;flex:none;border-radius:50%;border:1.5px solid {{ dr.dotBd }};display:flex;align-items:center;justify-content:center"><sc-if value="{{ dr.on }}" hint-placeholder-val="{{ false }}"><div style="width:6px;height:6px;border-radius:50%;background:#007749"></div></sc-if></div>
+          <div style="min-width:0"><div style="font-size:12.5px;font-weight:700;color:#141414">{{ dr.name }}</div><div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#8A8C8A;margin-top:1px">{{ dr.meta }}</div></div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ droneOn }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;font-weight:800;letter-spacing:.1em;color:#A9ABA9">OPACITY</span><span style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#3E403E">{{ droneOp }}%</span></div>
+          <input type="range" min="20" max="100" value="{{ droneOp }}" onChange="{{ setDroneOp }}" style="width:100%;accent-color:#007749;margin-top:4px"></input>
+        </div>
+      </sc-if>
+      <div style="margin-top:12px;border:1.5px dashed #C7CAC7;border-radius:8px;padding:10px 12px;text-align:center;cursor:pointer" style-hover="border-color:#007749;background:#F7FAF8">
+        <div style="font-size:12px;font-weight:700;color:#007749">+ Add flight</div>
+        <div style="font-size:10.5px;color:#8A8C8A;margin-top:2px">GeoTIFF, JPG or Ag Leader export</div>
+      </div>
+      <div style="font-size:11px;color:#8A8C8A;margin-top:8px;line-height:1.45">Imagery georeferences to the plot corners automatically and stays with the trial.</div>
+      <div style="height:1px;background:#F0F1F0;margin:15px 0"></div>
+      <div style="display:flex;gap:8px;align-items:center"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#007749;animation:ompulse 1.8s ease-in-out infinite"></span><div style="font-size:11.5px;color:#3E403E;font-weight:600">2 phones in field · last fix 24 min ago</div></div>
+    </div>
+  </div>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;mapStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;colour&quot;,&quot;print&quot;],&quot;default&quot;:&quot;colour&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Plot map&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;comfortable&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Tables&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen:'trials', step:'treatments', q:'', season:'W2026', statusF:'All',
+    picker:false, pq:'prothio', exp:true, expName:'AGV-X31', expCat:'Fungicide',
+    expNotes:'Sample from company rep — evaluation only, not for sale',
+    expRows:[{n:'pydiflumetofen',r:'200 g/L'}],
+    confirmed:{0:1,1:1,4:1,7:1}, extras:[], lastAdded:-1,
+    design:'RCBD', reps:4, plotW:'2', plotL:'10', seed:'A7F3', fact:false,
+    selDoc:0, expMenu:false, ack:false, approved:false,
+    trialType:'Demonstration', trialName:'Matong Wheat Fungicide Demo 2026',
+    aimText:'Compare label-rate foliar fungicide programs for stripe rust and septoria in Scepter wheat, and show the timing response (GS31 vs GS39) at the Matong field day.',
+    tCrop:'Wheat · Scepter', tSeason:'Winter 2026',
+    mapBase:'Satellite', showPlots:true, showFills:false, drone:'NDVI', droneOp:65
+  };
+  nav(screen, more){ this.setState(Object.assign({screen, picker:false, expMenu:false}, more||{})); }
+  core(){
+    const s=this.state;
+    const mk=(on)=>({bg:on?'#E3F1EA':'transparent', fg:on?'#00512F':'#3E403E', hv:on?'background:#E3F1EA':'background:#F2F4F2'});
+    const nT=mk(s.screen==='trials'||s.screen==='review'), nN=mk(s.screen==='wizard'&&!s.picker), nP=mk(s.screen==='wizard'&&s.picker), nD=mk(s.screen==='docs'), nM=mk(s.screen==='map');
+    return {
+      isTrials:s.screen==='trials', isWizard:s.screen==='wizard', isDocs:s.screen==='docs', isReview:s.screen==='review', isMap:s.screen==='map',
+      navMapBg:nM.bg, navMapFg:nM.fg, navMapHv:nM.hv, goMap:()=>this.nav('map'),
+      navTrialsBg:nT.bg, navTrialsFg:nT.fg, navTrialsHv:nT.hv,
+      navNewBg:nN.bg, navNewFg:nN.fg, navNewHv:nN.hv,
+      navProductsBg:nP.bg, navProductsFg:nP.fg, navProductsHv:nP.hv,
+      navDocsBg:nD.bg, navDocsFg:nD.fg, navDocsHv:nD.hv,
+      goTrials:()=>this.nav('trials'), goNew:()=>this.nav('wizard',{step:'treatments'}),
+      goProducts:()=>this.nav('wizard',{step:'treatments', picker:true}),
+      goDocs:()=>this.nav('docs'), goReview:()=>this.nav('review'),
+      stop:(e)=>e.stopPropagation(),
+      rowPad:(this.props.density??'comfortable')==='compact'?'8px':'14px'
+    };
+  }
+  dash(){
+    const s=this.state;
+    const T=[
+      {name:'Matong Wheat Fungicide Demo', client:'Doyle Bros · ‘Glenview’, Matong', crop:'Wheat · Scepter', type:'FUNGICIDE', status:'Active', season:'W2026', updated:'24 min ago', pct:68, main:'Assessment 2 of 4 · 68% scored', sub:'2 phones in field · Timing B spray due Fri', live:true},
+      {name:'Coolamon Canola Sclerotinia Timing', client:'A & J Pertzel · Coolamon', crop:'Canola · 45Y28', type:'FUNGICIDE', status:'Active', season:'W2026', updated:'2 h ago', pct:33, main:'Assessment 1 of 3 · bloom scoring', sub:'Synced 2 h ago · 1 phone'},
+      {name:'Ganmain Barley Net Blotch', client:'L & K Hardy · ‘Hillview’, Ganmain', crop:'Barley · Spartacus CL', type:'FUNGICIDE', status:'In review', season:'W2026', updated:'Yesterday', main:'Submitted Mon · awaiting I. McPherson', review:true},
+      {name:'Ardlethan Faba Chocolate Spot', client:'‘Mirrool Creek’ · Ardlethan', crop:'Faba bean · Amberley', type:'FUNGICIDE', status:'Approved', season:'W2026', updated:'3 d ago', main:'Locked · first spray booked 15 Aug'},
+      {name:'Wagga Aphid Threshold Screen', client:'Kooringal Ag · Wagga Wagga', crop:'Wheat · Sunmaster', type:'INSECTICIDE', status:'Draft', season:'W2026', updated:'5 d ago', main:'Treatments 60% entered'},
+      {name:'Junee Ryegrass Pre-em Screen', client:'‘Illabo Park’ · Junee', crop:'Wheat · LRPB Lancer', type:'HERBICIDE', status:'Draft', season:'W2027', updated:'1 w ago', main:'Aim & site entered'},
+      {name:'Matong Wheat Fungicide Demo 2025', client:'Doyle Bros · ‘Glenview’, Matong', crop:'Wheat · Scepter', type:'FUNGICIDE', status:'Complete', season:'W2025', updated:'12 Jan', main:'Report sent · ranked by yield'},
+      {name:'Coolamon Broadleaf Herbicide', client:'A & J Pertzel · Coolamon', crop:'Canola · 44Y27', type:'HERBICIDE', status:'Complete', season:'W2025', updated:'20 Dec', main:'Report sent'}
+    ];
+    const chipStyle={
+      'Draft':{bg:'#F0F1F0',fg:'#6B6D6B',bd:'#E0E1E0'},
+      'In review':{bg:'#FFFFFF',fg:'#141414',bd:'#B9BBB9'},
+      'Approved':{bg:'#FFFFFF',fg:'#00623C',bd:'#9CC9B4'},
+      'Active':{bg:'#007749',fg:'#FFFFFF',bd:'#007749'},
+      'Complete':{bg:'#F0F1F0',fg:'#8A8C8A',bd:'#E4E4E6'}
+    };
+    const inSeason=T.filter(t=>s.season==='All'||t.season===s.season);
+    const statuses=['All','Draft','In review','Approved','Active','Complete'];
+    const statusChips=statuses.map(st=>{
+      const count=st==='All'?inSeason.length:inSeason.filter(t=>t.status===st).length;
+      const on=s.statusF===st;
+      return {label:st==='All'?('All · '+count):(st+' · '+count), bg:on?'#141414':'#FFFFFF', fg:on?'#FFFFFF':'#3E403E', bd:on?'#141414':'#E4E4E6', pick:()=>this.setState({statusF:st})};
+    });
+    const q=s.q.toLowerCase();
+    const rows=inSeason.filter(t=>s.statusF==='All'||t.status===s.statusF)
+      .filter(t=>!q||(t.name+t.client+t.crop).toLowerCase().includes(q))
+      .map(t=>{
+        const c=chipStyle[t.status];
+        return {name:t.name, client:t.client, crop:t.crop, type:t.type, status:t.status,
+          sBg:c.bg, sFg:c.fg, sBd:c.bd, season:t.season, updated:t.updated,
+          main:t.main, sub:t.sub, hasSub:!!t.sub, hasBar:t.pct!=null, pctW:(t.pct||0)+'%',
+          liveEl:t.live?React.createElement('span',{style:{display:'inline-block',width:7,height:7,borderRadius:'50%',background:'#007749',animation:'ompulse 1.8s ease-in-out infinite',marginRight:7,verticalAlign:'1px'}}):null,
+          isReview:!!t.review, cursor:t.review?'pointer':'default', open:t.review?()=>this.nav('review'):undefined};
+      });
+    return {q:s.q, setQ:(e)=>this.setState({q:e.target.value}), season:s.season,
+      setSeason:(e)=>this.setState({season:e.target.value}), statusChips,
+      trialRows:rows, noTrials:rows.length===0,
+      trialsSub:rows.length+' of '+T.length+' trials · Riverina trial program · winter '+(s.season==='All'?'& summer seasons':s.season.slice(1))};
+  }
+  baseT(){
+    return [
+      {name:'Untreated control', lines:[], timing:'—'},
+      {name:'Prosaro — single spray', lines:[['Prosaro 420 SC','300 mL/ha','A']], timing:'A'},
+      {name:'Aviator Xpro — timing A', lines:[['Aviator Xpro','500 mL/ha','A']], timing:'A'},
+      {name:'Aviator Xpro — timing B', lines:[['Aviator Xpro','500 mL/ha','B']], timing:'B'},
+      {name:'Two-spray program', lines:[['Elatus Ace','400 mL/ha','A'],['Prosaro 420 SC','300 mL/ha','B']], timing:'A + B'},
+      {name:'Maxentis — single spray', lines:[['Maxentis','750 mL/ha','A']], timing:'A'},
+      {name:'AGV-X24 — candidate SDHI', exp:true, note:'Evaluation sample — not for sale', lines:[['AGV-X24','400 mL/ha','A']], timing:'A'},
+      {name:'District practice', lines:[['Tilt 250 EC','500 mL/ha','A']], timing:'A'}
+    ];
+  }
+  allT(){
+    const ex=this.state.extras.map(e=>({name:e.name, exp:e.exp, fromPicker:true,
+      lines:[[e.name,'—','·']], timing:'—', note:e.exp?'Experimental — flagged EXP in maps and reports':'Added from product list'}));
+    return this.baseT().concat(ex);
+  }
+  wiz(){
+    const s=this.state;
+    const unconf=8-Object.keys(s.confirmed).length;
+    const meta={
+      aim:{title:'Aim & basics', hint:'what kind of trial, and why', count:'Step 1 of 6', next:'Save & continue →', back:null, to:'treatments'},
+      treatments:{title:'Treatments', hint:'what goes on each plot, and when', count:'Step 3 of 6', next:'Save & continue →', back:'aim', to:'rand'},
+      rand:{title:'Randomisation', hint:'design and plot layout', count:'Step 4 of 6', next:'Save & continue →', back:'treatments', to:'assess'},
+      assess:{title:'Assessments', hint:'what gets scored, and when', count:'Step 5 of 6', next:'Save & continue →', back:'rand', to:'review'},
+      review:{title:'Review & submit', hint:'final check before approval', count:'Step 6 of 6', next:'Submit for approval →', back:'assess', to:null}
+    };
+    const m=meta[s.step]||meta.treatments;
+    const defs=[
+      {id:'aim', label:'Aim & basics', sub:s.trialType+' · field-day focus'},
+      {id:'site', label:'Site', sub:'‘Glenview’, Matong NSW', done:true},
+      {id:'treatments', label:'Treatments', sub:'8 treatments · '+(unconf?unconf+' to check':'all checked ✓')},
+      {id:'rand', label:'Randomisation', sub:s.design+' · '+s.reps+' reps · seed #'+s.seed},
+      {id:'assess', label:'Assessments', sub:'4 timings from protocol'},
+      {id:'review', label:'Review & submit', sub:''}
+    ];
+    const steps=defs.map((d,i)=>{
+      const cur=s.step===d.id;
+      return {n:d.done?'✓':String(i+1), label:d.label, sub:d.sub, hasSub:!!d.sub,
+        bg:cur?'#E3F1EA':'transparent', fg:cur?'#00512F':(d.done?'#141414':'#6B6D6B'),
+        nBg:cur?'#007749':(d.done?'#E3F1EA':'#fff'), nFg:cur?'#fff':(d.done?'#00623C':'#8A8C8A'),
+        nBd:cur?'#007749':(d.done?'#BCDCCB':'#D8DAD8'),
+        cursor:d.done?'default':'pointer', go:d.done?undefined:()=>this.setState({step:d.id})};
+    });
+    const rowsT=this.allT().map((t,i)=>{
+      const auto=i<8, conf=!!s.confirmed[i];
+      return {no:'T'+(i+1), name:t.name, exp:!!t.exp, note:t.note, hasNote:!!t.note,
+        nil:t.lines.length===0, timing:t.timing,
+        lines:t.lines.map(l=>({name:l[0], rate:l[1], tim:l[2], dash:(auto&&!conf)?'1px dashed #A9ABA9':'none'})),
+        showConfirm:auto&&!conf, showChecked:auto&&conf, showSetRate:!!t.fromPicker,
+        confirm:()=>this.setState(st=>({confirmed:Object.assign({},st.confirmed,{[i]:1})})),
+        rowBg:i===s.lastAdded?'#F0F8F3':'#FFFFFF'};
+    });
+    const types=[
+      ['Demonstration','Products side by side for growers to walk — light or no replication.','field days · visual scoring'],
+      ['Plot trial','Replicated small plots with stats — the standard for product comparisons.','RCBD · ranked by yield'],
+      ['Paddock scale','Grower-run strips across the paddock — scored by header and imagery.','strips · yield maps · drone']
+    ];
+    const typeOpts=types.map(t=>({name:t[0], desc:t[1], meta:t[2], on:s.trialType===t[0],
+      bd:s.trialType===t[0]?'1.5px solid #007749':'1px solid #E4E4E6', bg:s.trialType===t[0]?'#F7FAF8':'#FFFFFF',
+      dotBd:s.trialType===t[0]?'#007749':'#C7CAC7', pick:()=>this.setState({trialType:t[0]})}));
+    return {steps, stepTitle:m.title, stepHint:m.hint, stepCount:m.count, nextLabel:m.next,
+      typeOpts, trialName:s.trialName, setTrialName:(e)=>this.setState({trialName:e.target.value}),
+      aimText:s.aimText, setAimText:(e)=>this.setState({aimText:e.target.value}),
+      tCrop:s.tCrop, setTCrop:(e)=>this.setState({tCrop:e.target.value}),
+      tSeason:s.tSeason, setTSeason:(e)=>this.setState({tSeason:e.target.value}),
+      stepAim:s.step==='aim', stepTreat:s.step==='treatments', stepRand:s.step==='rand', stepAssess:s.step==='assess', stepReviewStep:s.step==='review',
+      backCur:m.back?'pointer':'default', backOp:m.back?'1':'.45',
+      stepBack:m.back?()=>this.setState({step:m.back}):undefined,
+      stepNext:m.to?()=>this.setState({step:m.to}):()=>this.nav('review'),
+      bannerPending:unconf>0, bannerDone:unconf===0,
+      unconfirmedLabel:unconf+(unconf===1?' row still needs':' rows still need')+' a check',
+      confirmAll:()=>this.setState({confirmed:{0:1,1:1,2:1,3:1,4:1,5:1,6:1,7:1}}),
+      openPicker:()=>this.setState({picker:true}),
+      rowsT};
+  }
+  pick(){
+    const s=this.state;
+    const P=[
+      ['Prosaro 420 SC','Bayer','Fungicide','prothioconazole 210 g/L + tebuconazole 210 g/L'],
+      ['Aviator Xpro','Bayer','Fungicide','bixafen 75 g/L + prothioconazole 150 g/L'],
+      ['Maxentis','Adama','Fungicide','azoxystrobin 200 g/L + prothioconazole 150 g/L'],
+      ['Elatus Ace','Syngenta','Fungicide','benzovindiflupyr 75 g/L + propiconazole 250 g/L'],
+      ['Amistar Xtra','Syngenta','Fungicide','azoxystrobin 200 g/L + cyproconazole 80 g/L'],
+      ['Veritas Opti','Adama','Fungicide','tebuconazole 200 g/L + azoxystrobin 120 g/L'],
+      ['Tilt 250 EC','Syngenta','Fungicide','propiconazole 250 g/L'],
+      ['Sakura 850 WG','Bayer','Herbicide','pyroxasulfone 850 g/kg'],
+      ['Boxer Gold','Syngenta','Herbicide','prosulfocarb 800 g/L + S-metolachlor 120 g/L'],
+      ['Transform WG','Corteva','Insecticide','sulfoxaflor 500 g/kg']
+    ];
+    const catC={
+      'Fungicide':{bg:'#E3F1EA',fg:'#00623C',bd:'#BCDCCB'},
+      'Herbicide':{bg:'oklch(0.93 0.05 85)',fg:'oklch(0.42 0.08 85)',bd:'oklch(0.85 0.06 85)'},
+      'Insecticide':{bg:'oklch(0.93 0.04 250)',fg:'oklch(0.42 0.07 250)',bd:'oklch(0.85 0.05 250)'},
+      'Other':{bg:'#F0F1F0',fg:'#6B6D6B',bd:'#E0E1E0'}
+    };
+    const q=s.pq.trim().toLowerCase();
+    const segs=(str)=>{
+      if(!q) return [{t:str,fg:'#6B6D6B',fw:400}];
+      const out=[]; const low=str.toLowerCase(); let i=0;
+      while(true){ const j=low.indexOf(q,i);
+        if(j<0){ if(i<str.length) out.push({t:str.slice(i),fg:'#6B6D6B',fw:400}); break; }
+        if(j>i) out.push({t:str.slice(i,j),fg:'#6B6D6B',fw:400});
+        out.push({t:str.slice(j,j+q.length),fg:'#00623C',fw:600}); i=j+q.length; }
+      return out;
+    };
+    const addRow=(name,exp)=>this.setState(st=>({extras:st.extras.concat([{name,exp}]), picker:false, lastAdded:8+st.extras.length, step:'treatments'}));
+    const results=P.filter(p=>!q||(p[0]+' '+p[1]+' '+p[3]).toLowerCase().includes(q))
+      .map(p=>({name:p[0], co:p[1], cat:p[2], segs:segs(p[3]),
+        catBg:catC[p[2]].bg, catFg:catC[p[2]].fg, catBd:catC[p[2]].bd,
+        add:()=>addRow(p[0],false)}));
+    const expRows=s.expRows.map((r,i)=>({n:r.n, r:r.r,
+      setName:(e)=>{const v=e.target.value; this.setState(st=>({expRows:st.expRows.map((x,j)=>j===i?{n:v,r:x.r}:x)}));},
+      setRate:(e)=>{const v=e.target.value; this.setState(st=>({expRows:st.expRows.map((x,j)=>j===i?{n:x.n,r:v}:x)}));},
+      rm:()=>this.setState(st=>({expRows:st.expRows.filter((x,j)=>j!==i)}))}));
+    return {pickerOpen:s.picker, closePicker:()=>this.setState({picker:false}),
+      pq:s.pq, setPq:(e)=>this.setState({pq:e.target.value}),
+      results, noResults:results.length===0, nextT:'T'+(this.allT().length+1),
+      expOpen:s.exp, expClosed:!s.exp, toggleExp:()=>this.setState(st=>({exp:!st.exp})),
+      expName:s.expName, setExpName:(e)=>this.setState({expName:e.target.value}),
+      expCat:s.expCat, setExpCat:(e)=>this.setState({expCat:e.target.value}),
+      expNotes:s.expNotes, setExpNotes:(e)=>this.setState({expNotes:e.target.value}),
+      expRows, addExpRow:()=>this.setState(st=>({expRows:st.expRows.concat([{n:'',r:''}])})),
+      addExp:()=>addRow(s.expName||'EXP product', true)};
+  }
+  rngFor(str){
+    let h=1779033703^str.length;
+    for(let i=0;i<str.length;i++){ h=Math.imul(h^str.charCodeAt(i),3432918353); h=(h<<13)|(h>>>19); }
+    return ()=>{ h=Math.imul(h^(h>>>16),2246822507); h=Math.imul(h^(h>>>13),3266489909); h=(h^(h>>>16))>>>0; return h/4294967296; };
+  }
+  shuffle(a,r){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+  cellColors(t){
+    const print=(this.props.mapStyle??'colour')==='print';
+    if(t===0) return {bg:'#EEF0EE', fg:'#A9ABA9', border:'1px solid #E4E4E6'};
+    if(print) return {bg:'#FFFFFF', fg:'#141414', border:'1px solid #B9BBB9'};
+    if(t===1) return {bg:'#FFFFFF', fg:'#6B6D6B', border:'1px dashed #B9BBB9'};
+    const hues=[0,0,25,65,105,150,195,240,290,330,15,60,205,85,265];
+    const h=hues[t]||((t*47)%360);
+    return {bg:'oklch(0.9 0.055 '+h+')', fg:'oklch(0.41 0.095 '+h+')', border:'1px solid oklch(0.83 0.07 '+h+')'};
+  }
+  layout(seed, design, reps, n){
+    const r=this.rngFor(seed+design+reps+'x'+n);
+    const bands=[];
+    if(design==='Latin square'){
+      const idx=[...Array(n).keys()];
+      const rp=this.shuffle(idx,r), cp=this.shuffle(idx,r);
+      for(let i=0;i<n;i++){
+        const cells=[];
+        for(let c=0;c<n;c++) cells.push({num:String((i+1)*100+c+1), t:((rp[i]+cp[c])%n)+1});
+        bands.push({label:'ROW '+(i+1), cells});
+      }
+    } else {
+      for(let b=0;b<reps;b++){
+        const ord=this.shuffle([...Array(n).keys()].map(x=>x+1), r);
+        const cells=ord.map((t,c)=>({num:String((b+1)*100+c+1), t}));
+        cells.push({num:String((b+1)*100+n+1), t:0});
+        bands.push({label:'REP '+(b+1), cells});
+      }
+    }
+    return bands;
+  }
+  decorateBands(bands){
+    return bands.map((b,i)=>({label:b.label, rowBg:i%2?'#FBFCFB':'#F5F7F5',
+      cells:b.cells.map(c=>{
+        const cc=this.cellColors(c.t);
+        return {num:c.num, t:c.t===0?'SP':('T'+c.t), bg:cc.bg, fg:cc.fg, border:cc.border};
+      })}));
+  }
+  rand(){
+    const s=this.state, n=this.allT().length;
+    const designs=['RCBD','Latin square','Split-plot'];
+    const designOpts=designs.map((d,i)=>({label:d, pick:()=>this.setState({design:d}),
+      bg:s.design===d?'#141414':'#FFFFFF', fg:s.design===d?'#FFFFFF':'#3E403E', bl:i?'1px solid #E4E4E6':'none'}));
+    const notes={
+      'RCBD':'Complete blocks — every treatment appears once per rep, order shuffled within each range. The workhorse for product demos.',
+      'Latin square':'Each treatment once per row AND once per range — controls fertility gradients both ways. Needs '+n+' × '+n+' = '+(n*n)+' plots.',
+      'Split-plot':'Main plots split by application timing, products randomised within — fewer sprayer turns, right for timing comparisons.'
+    };
+    const latin=s.design==='Latin square';
+    const bands=this.decorateBands(this.layout(s.seed, s.design, s.reps, n));
+    const legend=[];
+    for(let t=1;t<=n;t++){ const cc=this.cellColors(t); legend.push({t:'T'+t, name:this.allT()[t-1].name, bg:cc.bg, border:cc.border}); }
+    if(!latin){ const sp=this.cellColors(0); legend.push({t:'SP', name:'Spare / buffer', bg:sp.bg, border:sp.border}); }
+    const cw=latin?Math.max(54,Math.floor(700/n)):Math.max(58,Math.min(80,Math.floor(730/(n+1))));
+    const hex='0123456789ABCDEF';
+    return {designOpts, designNote:notes[s.design],
+      factOpen:s.fact, toggleFact:()=>this.setState(st=>({fact:!st.fact})),
+      repsLabel:String(s.reps), repsDec:()=>this.setState(st=>({reps:Math.max(2,st.reps-1)})), repsInc:()=>this.setState(st=>({reps:Math.min(6,st.reps+1)})),
+      plotW:s.plotW, setPlotW:(e)=>this.setState({plotW:e.target.value}),
+      plotL:s.plotL, setPlotL:(e)=>this.setState({plotL:e.target.value}),
+      gridLabel:latin?(n+' rows × '+n+' ranges'):((n+1)+' rows × '+s.reps+' ranges'),
+      plotTotal:latin?('= '+(n*n)+' plots, no spares'):('= '+(n*s.reps)+' plots + '+s.reps+' spares — '+((n+1)*s.reps)+' total'),
+      seed:s.seed, reRand:()=>this.setState({seed:[0,0,0,0].map(()=>hex[Math.floor(Math.random()*16)]).join('')}),
+      bands, legend, cellW:cw+'px',
+      assessRowsWiz:[
+        {a:'A1', stage:'GS30–31', what:'Disease baseline — stripe rust & septoria incidence', method:'% plants infected · 10 plants/plot', date:'26 Jun'},
+        {a:'A2', stage:'GS39', what:'Severity on top 3 leaves + NDVI', method:'0–100% leaf area · Greenseeker pass', date:'10 Aug'},
+        {a:'A3', stage:'GS65', what:'Green leaf retention · phytotoxicity check', method:'0–9 scale · photos per plot', date:'15 Sep'},
+        {a:'A4', stage:'Harvest', what:'Yield, protein, screenings', method:'Plot harvester + grain samples', date:'8 Dec'}
+      ]};
+  }
+  docs(){
+    const s=this.state;
+    const F=[
+      {ext:'PDF', name:'Matong Demo Protocol v3.pdf', size:'1.2 MB', st:'parsed', text:'Parsed — 8 treatments found → used in wizard', kind:'pdf', page:'p 2 / 6', hi:true},
+      {ext:'XLSX', name:'Spray map W2026.xlsx', size:'86 KB', st:'parsed', text:'Parsed — 36-plot layout matched to randomisation', kind:'xlsx', page:'Sheet 1 · Layout'},
+      {ext:'XLSX', name:'Mixing plan — Timing A.xlsx', size:'64 KB', st:'parsing', text:'Parsing — reading mix rates…', kind:'xlsx', page:'Sheet 1 · Mix'},
+      {ext:'DOCX', name:'Field day run sheet.docx', size:'310 KB', st:'error', text:'Couldn’t read tables — open & mark up', kind:'docx', page:'p 1 / 3'}
+    ];
+    const extC={PDF:{bg:'#141414',fg:'#fff'}, XLSX:{bg:'#E3F1EA',fg:'#00623C'}, DOCX:{bg:'#F0F1F0',fg:'#6B6D6B'}};
+    const fileRows=F.map((f,i)=>({ext:f.ext, extBg:extC[f.ext].bg, extFg:extC[f.ext].fg,
+      name:f.name, size:f.size, stText:f.text,
+      stParsed:f.st==='parsed', stParsing:f.st==='parsing', stError:f.st==='error',
+      spinEl:f.st==='parsing'?React.createElement('span',{style:{display:'inline-block',width:10,height:10,border:'2px solid #C7CAC7',borderTopColor:'#007749',borderRadius:'50%',animation:'omspin .9s linear infinite',marginRight:6,verticalAlign:'-1px'}}):null,
+      sel:()=>this.setState({selDoc:i}),
+      cardBd:s.selDoc===i?'#007749':'#E4E4E6', cardBg:s.selDoc===i?'#F7FAF8':'#FFFFFF'}));
+    const cur=F[s.selDoc]||F[0];
+    const protoRows=this.baseT().map((t,i)=>({no:'T'+(i+1), name:t.name,
+      rate:t.lines.map(l=>l[1]).join(' + ')||'—', tim:t.timing, bt:i?'1px solid #F5F6F5':'none'}));
+    return {fileRows, pvName:cur.name, pvPage:cur.page,
+      pvPdf:cur.kind==='pdf', pvXlsx:cur.kind==='xlsx', pvDocx:cur.kind==='docx', pvHighlight:!!cur.hi,
+      expMenu:s.expMenu, toggleExpMenu:()=>this.setState(st=>({expMenu:!st.expMenu})),
+      closeExpMenu:()=>this.setState({expMenu:false}),
+      protoRows,
+      siteRowsWiz:[
+        {l:'GROWER', v:'Doyle Bros — ‘Glenview’'},
+        {l:'LOCATION', v:'Matong NSW · −34.768, 146.929'},
+        {l:'CROP', v:'Wheat cv. Scepter · sown 12 May'},
+        {l:'PADDOCK', v:'Church block · red-brown earth'},
+        {l:'PLOTS', v:'2 m × 10 m · 32 + 4 spare'},
+        {l:'PREV CROP', v:'Canola 2025 · stubble retained'}
+      ]};
+  }
+  rev(){
+    const s=this.state;
+    const chip=s.approved?{t:'Approved ✓',bg:'#007749',fg:'#FFFFFF',bd:'#007749'}:{t:'In review',bg:'#FFFFFF',fg:'#141414',bd:'#B9BBB9'};
+    const rvRows=this.baseT().map((t,i)=>({no:'T'+(i+1), name:t.name, exp:!!t.exp, nil:t.lines.length===0, timing:t.timing,
+      lines:t.lines.map(l=>({name:l[0], rate:l[1], tim:l[2]}))}));
+    const rvLegend=[];
+    for(let t=1;t<=8;t++){ const cc=this.cellColors(t); rvLegend.push({t:'T'+t, name:this.baseT()[t-1].name, bg:cc.bg, border:cc.border}); }
+    const sp=this.cellColors(0); rvLegend.push({t:'SP', name:'Spare / buffer', bg:sp.bg, border:sp.border});
+    const baseLog=[
+      {when:'Mon 10 Aug · 9:41', what:'Submitted for approval → Ian McPherson', who:'Sam Kelleher'},
+      {when:'Mon 10 Aug · 9:38', what:'Randomisation generated — RCBD · 4 reps · seed #A7F3', who:'Sam Kelleher'},
+      {when:'Sun 9 Aug · 16:12', what:'8 treatments imported from “Net blotch demo protocol.pdf” · 2 rates edited', who:'Sam Kelleher'},
+      {when:'Sun 9 Aug · 15:47', what:'Site added — ‘Hillview’, Ganmain · GPS pinned', who:'Sam Kelleher'},
+      {when:'Sun 9 Aug · 15:30', what:'Trial created from template “Cereal fungicide demo”', who:'Sam Kelleher'}
+    ];
+    const log=(s.approved?[{when:'Wed 12 Aug · 2:04 pm', what:'Approved & locked — signed', who:'Ian McPherson'}].concat(baseLog):baseLog)
+      .map((l,i)=>Object.assign({bl:i?'1px solid #F0F1F0':'none'},l));
+    return {rvStatus:chip.t, rvSBg:chip.bg, rvSFg:chip.fg, rvSBd:chip.bd,
+      rvRows, rvLegend, rvBands:this.decorateBands(this.layout('A7F3','RCBD',4,8)),
+      siteRowsRev:[
+        {l:'GROWER', v:'L & K Hardy — ‘Hillview’'},
+        {l:'LOCATION', v:'Ganmain NSW · −34.792, 147.041'},
+        {l:'CROP', v:'Barley cv. Spartacus CL · sown 8 May @ 70 kg/ha'},
+        {l:'PADDOCK', v:'Racecourse block · pH 5.4 (CaCl₂)'},
+        {l:'PLOTS', v:'2 m × 10 m · 32 + 4 spare'},
+        {l:'PREV CROP', v:'Wheat 2025 — stubble retained, NFNB carryover risk'}
+      ],
+      assessRowsRev:[
+        {a:'A1', stage:'GS37–39', what:'Net blotch baseline — % leaf area, top 3 leaves', date:'18 Aug', status:'Booked', stFg:'#007749'},
+        {a:'A2', stage:'GS55 +10d', what:'Severity + green leaf retention', date:'14 Sep', status:'—', stFg:'#B8BAB8'},
+        {a:'A3', stage:'GS71', what:'Final severity · phytotoxicity check', date:'28 Sep', status:'—', stFg:'#B8BAB8'},
+        {a:'A4', stage:'Harvest', what:'Yield, test weight, retention & screenings', date:'w/c 24 Nov', status:'—', stFg:'#B8BAB8'}
+      ],
+      rvDocs:[
+        {ext:'PDF', extBg:'#141414', extFg:'#fff', name:'Net blotch demo protocol.pdf', st:'Parsed — 8 treatments → wizard'},
+        {ext:'XLSX', extBg:'#E3F1EA', extFg:'#00623C', name:'Spray map — Hillview.xlsx', st:'Parsed — layout matched'},
+        {ext:'PDF', extBg:'#141414', extFg:'#fff', name:'Chem labels pack.pdf', st:'Stored — 6 labels attached'}
+      ],
+      logRows:log,
+      ack:s.ack, ackTick:s.ack, toggleAck:()=>this.setState(st=>({ack:!st.ack})),
+      ackBg:s.ack?'#007749':'#FFFFFF', ackBd:s.ack?'#007749':'#B9BBB9',
+      apBg:s.ack&&!s.approved?'#007749':'#B7C9C0', apCur:s.ack&&!s.approved?'pointer':'not-allowed',
+      tryApprove:()=>{ if(this.state.ack) this.setState({approved:true}); },
+      notApproved:!s.approved, approvedV:s.approved};
+  }
+  map(){
+    const s=this.state;
+    const seg=(v)=>({label:v, pick:()=>this.setState({mapBase:v}),
+      bg:s.mapBase===v?'#141414':'#FFFFFF', fg:s.mapBase===v?'#FFFFFF':'#3E403E', bl:v==='Roads'?'1px solid #E4E4E6':'none'});
+    const droneDefs=[['None','hide imagery'],['RGB ortho','12 Aug · 4 cm/px · DJI M3M'],['NDVI','12 Aug · 4 cm/px · DJI M3M']];
+    const droneOpts=droneDefs.map(d=>({name:d[0], meta:d[1], on:s.drone===d[0],
+      dotBd:s.drone===d[0]?'#007749':'#C7CAC7', pick:()=>this.setState({drone:d[0]})}));
+    const mapBands=this.layout('A7F3','RCBD',4,8).map(b=>({cells:b.cells.map(c=>{
+      const cc=this.cellColors(c.t);
+      const filled=s.showFills&&c.t!==0;
+      return {num:c.num, t:c.t===0?'SP':('T'+c.t),
+        fill:c.t===0?'rgba(20,20,20,.16)':(filled?cc.bg:'rgba(255,255,255,.08)'),
+        fg:filled?cc.fg:'#FFFFFF', shadow:filled?'none':'0 1px 2px rgba(0,0,0,.55)'};
+    })}));
+    const sw=(on)=>({bg:on?'#007749':'#C9CCC9', x:on?'translateX(12px)':'translateX(0)'});
+    const swP=sw(s.showPlots), swF=sw(s.showFills);
+    return {mapSat:s.mapBase==='Satellite', mapRoads:s.mapBase==='Roads', baseOpts:[seg('Satellite'),seg('Roads')],
+      showPlots:s.showPlots, togglePlots:()=>this.setState(st=>({showPlots:!st.showPlots})),
+      toggleFills:()=>this.setState(st=>({showFills:!st.showFills})),
+      swPBg:swP.bg, swPX:swP.x, swFBg:swF.bg, swFX:swF.x,
+      droneOpts, droneOn:s.drone!=='None',
+      droneLabel:(s.drone==='NDVI'?'NDVI':'RGB ortho')+' · 12 Aug · drone',
+      droneBg:s.drone==='NDVI'
+        ?'radial-gradient(circle at 22% 30%, oklch(0.74 0.16 140) 0 16%, transparent 44%), radial-gradient(circle at 72% 58%, oklch(0.8 0.15 98) 0 20%, transparent 48%), radial-gradient(circle at 46% 82%, oklch(0.67 0.15 48) 0 10%, transparent 32%), linear-gradient(140deg, oklch(0.7 0.14 130), oklch(0.78 0.12 102))'
+        :'radial-gradient(circle at 30% 40%, oklch(0.55 0.06 120) 0 20%, transparent 46%), radial-gradient(circle at 74% 56%, oklch(0.63 0.05 92) 0 18%, transparent 42%), linear-gradient(120deg, oklch(0.58 0.05 112), oklch(0.66 0.05 96))',
+      droneOpCss:String((s.droneOp||65)/100), droneOp:String(s.droneOp),
+      setDroneOp:(e)=>this.setState({droneOp:+e.target.value}),
+      mapBands};
+  }
+  renderVals(){
+    return Object.assign({}, this.core(), this.dash(), this.wiz(), this.pick(), this.rand(), this.docs(), this.rev(), this.map());
+  }
+}
+</script>
+</body>
+</html>
