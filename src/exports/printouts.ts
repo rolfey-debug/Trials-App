@@ -27,8 +27,12 @@ const BASE_CSS = `
 function openPrint(title: string, body: string) {
   const w = window.open('', '_blank')
   if (!w) return
+  // The print window is about:blank, so relative URLs are unreliable — resolve
+  // the self-hosted stylesheet against this document instead. Same URL as the
+  // app already loaded, so it comes straight from cache.
+  const fontsHref = new URL('fonts/fonts.css', document.baseURI).href
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="${fontsHref}" rel="stylesheet">
     <style>${BASE_CSS}</style></head><body>${body}</body></html>`)
   w.document.close()
   w.focus()

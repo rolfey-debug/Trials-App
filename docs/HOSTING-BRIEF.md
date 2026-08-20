@@ -246,12 +246,11 @@ and in the UI, but the per-role restrictions are not yet enforced in the databas
 (§6) and should be closed before growers or reps are given logins.
 
 **"What third parties are involved?"**
-See the register in §5. Short version: Supabase (database/auth/storage), GitHub
-(code/build/hosting), Google Fonts (fonts loaded at runtime — trivially removable by
-self-hosting the two font files, which also makes the app load faster offline; worth doing
-before the meeting if you want one fewer row in the table). Build-time only, no runtime
-dependency: APVMA product register via data.gov.au, and SILO climate data from the
-Queensland Government for the phenology model.
+See the register in §5. Short version: at runtime, Supabase (database/auth/storage)
+and GitHub (hosting) — nothing else; the webfonts that used to load from Google are now
+self-hosted. Build-time only, no runtime dependency: APVMA product register via
+data.gov.au, and SILO climate data from the Queensland Government for the phenology
+model.
 
 **"What happens if it breaks, or if you're not here?"**
 Currently: it stays broken. This is the honest weak point and it is better to say so than
@@ -287,15 +286,14 @@ For the security questionnaire.
 |---|---|---|---|---|
 | Supabase | Postgres, auth, file storage | Runtime | All trial + user data | AWS — region TBC |
 | GitHub | Source, CI, Pages hosting | Build + runtime | Source code; the site | US |
-| Google Fonts | Mulish + IBM Plex Mono webfonts | Runtime | Requesting IP/user-agent | Global CDN |
 | data.gov.au (APVMA PubCRIS) | Product register — 7,841 products | Build only | Nothing | AU |
 | SILO / Long Paddock (QLD Gov) | Daily climate for phenology model | Build only | Site coordinates | AU |
 | Google Maps | Satellite basemap in portal | **Not yet wired** | Would see map requests | — |
 
-Two notes worth carrying into the meeting:
+Two items closed since the first draft of this brief:
 
-- **Google Fonts is the only avoidable runtime third party.** Self-hosting the fonts removes an external request from every page load, which is both a privacy answer and a genuine offline improvement.
-- **The APVMA product data is CC-BY licensed**, which requires visible attribution. The product picker does not currently carry it. Small fix, but it is a licence condition, not a nicety.
+- **Google Fonts is gone from the register.** The two brand faces are now self-hosted (`npm run fonts:build`, files in `public/fonts/`), precached by the service worker, and redistributed under their SIL Open Font License with the licence text alongside. The apps make no runtime request to any third party except Supabase.
+- **The APVMA CC-BY attribution** now appears in the product picker, linking the PubCRIS dataset on data.gov.au.
 
 ---
 
@@ -362,13 +360,14 @@ Done in this change:
 - Stopped tracking TypeScript build artefacts (`*.tsbuildinfo`) that were committed by accident
 - Added migration `004_close_open_signup.sql` — prepared, deliberately not applied
 - Moved synced photo paths to `{org}/{trial}/{photo}.jpg` so the org-scoped bucket policy in 004 has something to scope on (no photo files exist yet, so nothing to migrate)
+- **Merged PR #1** — `main` now carries the whole application, CI deploys from it, and the superseded feature branch was removed from the deploy trigger
+- **Self-hosted the two webfonts** (`npm run fonts:build`) — no runtime third party except Supabase, and the brand faces now render offline from the first visit
+- **Added the APVMA CC-BY attribution** to the product picker
 
-Still worth doing, needs your say-so because they are one-way doors:
+Still needs a human (repo settings, no API for it here):
 
-- **Merge PR #1 and set `main` back as the default branch.** `main` is currently an empty initial commit while the entire application lives on `claude/build-app-from-readme-e1hq80`, which is also the default branch. The PR is mergeable with no conflicts. Merging it makes the repo look like a normal project, which matters if IT is going to look at it.
+- **Flip the default branch to `main`** — Settings → General → Default branch → switch icon → `main`; then delete the old `claude/build-app-from-readme-e1hq80` branch
 - **Make the repo private** — sequenced against the hosting decision (§2.2)
-- **Self-host the two webfonts** — removes the last avoidable third-party runtime call
-- **Add the APVMA CC-BY attribution** to the product picker
 
 ---
 
