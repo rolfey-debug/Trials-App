@@ -140,7 +140,9 @@ async function pushTrial(
     id: stableId(trial_id, 'photo', p.id),
     trial_id,
     plot: p.pid,
-    storage_path: `photos/${p.id}.jpg`,
+    // Org-partitioned path: migration 004 scopes the bucket policy on the
+    // first segment, so blobs can only ever be read within their own org.
+    storage_path: `${ORG_ID}/${trial_id}/${p.id}.jpg`,
     taken_at: new Date().toISOString(),
     meta: { flagged: p.flagged, trt: p.trt, sizeKB: p.sizeKB ?? null, label: p.date },
   }))
