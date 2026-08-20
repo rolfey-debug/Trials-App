@@ -146,12 +146,17 @@ network restriction) because it has to load in a paddock on mobile data. Authent
 happens *inside* the app. The office portal is a different matter and could reasonably sit
 behind SSO at the network edge.
 
-### 3.3 Where does the database live? — *ask this early*
+### 3.3 Where does the database live? — *confirmed wrong, rebuild in progress*
 
 Supabase runs on AWS, and **the region is chosen at project creation and cannot be
-changed afterwards**. Check Project Settings → General for the current region. If it is
-not `ap-southeast-2` (Sydney), the project has to be recreated in the right region before
-real data goes in — which is easy now and painful later.
+changed afterwards**. The live project has been checked and **is not in Sydney**, so it
+is being recreated in `ap-southeast-2` before real data accumulates — the runbook is
+[`docs/REGION-MOVE.md`](REGION-MOVE.md) and the one-paste setup SQL is
+[`server/fresh-project.sql`](../server/fresh-project.sql). The move is cheap precisely
+because it is happening now: phones hold the authoritative data and re-push idempotently,
+so nothing is exported — and retiring the old project closes the §2.1 signup hole with it.
+By the time of the IT meeting the answer to "where is the data?" should simply be
+"Sydney".
 
 Data residency will be the first question from anyone who has been through a privacy
 review, so have the answer in hand.
@@ -232,10 +237,11 @@ contact details are **personal information** under the Privacy Act, so the app i
 for the Australian Privacy Principles. No payment data, no health data.
 
 **"Where is it stored, and does it leave Australia?"**
-Postgres in Supabase (AWS) — region to be confirmed and, if necessary, moved to Sydney
-(§3.3). Photo *files* currently never leave the phone; only metadata syncs. If data does
-end up offshore, APP 8 (cross-border disclosure) engages and IT will want that documented
-— which is the argument for pinning the region to Sydney and closing the question.
+Postgres in Supabase (AWS). The original project was created in the wrong region; it is
+being rebuilt in Sydney (`ap-southeast-2`) per [`docs/REGION-MOVE.md`](REGION-MOVE.md),
+so the answer at meeting time is "Sydney". Photo *files* currently never leave the phone;
+only metadata syncs. Keeping the region pinned onshore closes the APP 8 (cross-border
+disclosure) question before it is asked.
 
 **"Who can see what?"**
 Row-level security scopes every table to the user's organisation, enforced by the database
