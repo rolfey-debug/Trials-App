@@ -1,14 +1,15 @@
 # Backend setup (Supabase)
 
-Project: `https://lwudweiuihcdksageaxs.supabase.co` — the publishable key is
-embedded in the apps (`shared/supa.ts`); it is public by design and only
-grants what row-level security allows.
+Project: `https://ebhsnggwekhfcpgnyxxs.supabase.co` (Sydney, `ap-southeast-2`) —
+the publishable key is embedded in the apps (`shared/supa.ts`); it is public by
+design and only grants what row-level security allows.
 
-> **Region move in progress:** this project is in the wrong AWS region and is
-> being replaced by a fresh one in Sydney — see [`docs/REGION-MOVE.md`](../REGION-MOVE.md).
-> For a brand-new project, skip the migration steps below and run
-> `server/fresh-project.sql` (`npm run sql:fresh`) instead; it is 001+003+004
-> in one paste, invite-only from the start.
+> This is the second project: the original (`lwudweiuihcdksageaxs`, wrong
+> region, open signup) was replaced per [`docs/REGION-MOVE.md`](../REGION-MOVE.md)
+> and should be paused, then deleted. A fresh project is set up by running
+> `server/fresh-project.sql` (`npm run sql:fresh`) — 001+003+004 in one paste,
+> invite-only from the start — so the migration steps below are history, not
+> instructions.
 
 ## One manual step: apply the migration
 

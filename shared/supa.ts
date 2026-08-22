@@ -4,8 +4,10 @@
  * The publishable key is safe to embed: it only grants what RLS allows.
  */
 
-export const SUPA_URL = 'https://lwudweiuihcdksageaxs.supabase.co'
-export const SUPA_KEY = 'sb_publishable_bE8diDIr1jSVGxUZlRZuog_Tx-Ddct5'
+// Sydney (ap-southeast-2) project — the original was created in the wrong
+// region and region is fixed at creation; see docs/REGION-MOVE.md.
+export const SUPA_URL = 'https://ebhsnggwekhfcpgnyxxs.supabase.co'
+export const SUPA_KEY = 'sb_publishable_jqRJrNZiyAqE5wcH23Oo3g_JlQqcFWk'
 
 /** Fixed ids seeded by server/migrations/001_init.sql */
 export const ORG_ID = '00000000-0000-0000-0000-000000000001'

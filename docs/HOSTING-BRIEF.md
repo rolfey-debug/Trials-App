@@ -14,7 +14,7 @@ We have two working web apps sharing one Postgres database:
 |---|---|---|
 | **Field app** | Offline-first phone PWA — spray checklists, GPS plot-by-plot assessment, photos, field-day walk mode, Excel/PDF export | `rolfey-debug.github.io/Trials-App/` |
 | **Office portal** | Desktop companion — trial wizard, randomisation, APVMA product picker, protocol docs, review & approve, trial map | `rolfey-debug.github.io/Trials-App/office/` |
-| **Backend** | Supabase (managed Postgres + Auth + file storage), org-scoped row-level security | project `lwudweiuihcdksageaxs` |
+| **Backend** | Supabase (managed Postgres + Auth + file storage), org-scoped row-level security | project `ebhsnggwekhfcpgnyxxs` (Sydney) |
 
 It is real software, not a clickable mock-up: ~7,800 lines of TypeScript, 44 automated
 checks plus three end-to-end browser walkthroughs, both apps building green in CI. The
