@@ -31,8 +31,9 @@ export function Account() {
 
   const doPassword = async () => {
     if (busy) return
-    if (pw.length < 6) {
-      setFlash({ msg: 'Password needs at least 6 characters.', err: true })
+    // ASVS 2.1.1: new passwords 12+ characters (existing sign-ins unaffected)
+    if (pw.length < 12) {
+      setFlash({ msg: 'Password needs at least 12 characters.', err: true })
       return
     }
     if (pw !== pw2) {
@@ -91,7 +92,7 @@ export function Account() {
         <Eyebrow>PASSWORD</Eyebrow>
         {online ? (
           <>
-            <input type="password" placeholder="new password (6+ characters)" value={pw} onChange={(e) => setPw(e.target.value)} style={{ ...input, margin: '8px 0' }} />
+            <input type="password" placeholder="new password (12+ characters)" value={pw} onChange={(e) => setPw(e.target.value)} style={{ ...input, margin: '8px 0' }} />
             <input type="password" placeholder="repeat it" value={pw2} onChange={(e) => setPw2(e.target.value)} style={{ ...input, marginBottom: 10 }} />
             <div
               onClick={doPassword}

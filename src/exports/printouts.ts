@@ -5,6 +5,12 @@ import { SAMPLE_SEV, rankedControl } from '../lib/results'
 /** Client-facing printouts rendered to a print window (print → Save as PDF).
  * Cover · site + conditions · means table · ranked chart · photo pages. */
 
+/** Escape user- and document-sourced text before HTML interpolation — the
+ * print window is same-origin, so this is hardening, not a live exploit fix
+ * (ITSP 11.0 secure-coding: context-sensitive escaping). */
+const esc = (v: string | number | null | undefined): string =>
+  String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
 const BASE_CSS = `
   * { box-sizing: border-box; }
   body { font-family: 'Mulish', Arial, sans-serif; color: #141414; margin: 0; padding: 32px 40px; }
@@ -31,7 +37,7 @@ function openPrint(title: string, body: string) {
   // the self-hosted stylesheet against this document instead. Same URL as the
   // app already loaded, so it comes straight from cache.
   const fontsHref = new URL('fonts/fonts.css', document.baseURI).href
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
     <link href="${fontsHref}" rel="stylesheet">
     <style>${BASE_CSS}</style></head><body>${body}</body></html>`)
   w.document.close()
@@ -43,7 +49,7 @@ export function printClientReport(doc: TrialDoc, ts: TrialState, opts: { blindCo
   const flat = measureFlat(doc.measures)
   const primary = ts.activeMeasures[0]
   const { bars, live } = rankedControl(doc, ts)
-  const nameOf = (n: number) => (opts.blindCodes ? `T${n}` : `T${n} · ${treatmentByN(doc, n)?.name ?? ''}`)
+  const nameOf = (n: number) => (opts.blindCodes ? `T${n}` : `T${n} · ${esc(treatmentByN(doc, n)?.name ?? '')}`)
 
   const pids = Object.keys(doc.cells).map(Number).filter((p) => typeof doc.cells[p] === 'number').sort((a, b) => a - b)
   const scored = pids.filter((p) => ts.scores[p])
@@ -53,7 +59,7 @@ export function printClientReport(doc: TrialDoc, ts: TrialState, opts: { blindCo
       const tp = pids.filter((p) => (ts.relabel[p] ?? doc.cells[p]) === t.n && !ts.excluded.includes(p))
       const vals = tp.map((p) => ts.scores[p]?.v[primary]).filter((v): v is number => v !== undefined)
       const mean = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—'
-      return `<tr><td class="mono">${t.n}</td><td>${opts.blindCodes ? `T${t.n}` : t.name}</td><td>${opts.blindCodes ? '—' : t.recipe}</td><td class="mono">${vals.length}</td><td class="mono">${mean}</td></tr>`
+      return `<tr><td class="mono">${t.n}</td><td>${opts.blindCodes ? `T${t.n}` : esc(t.name)}</td><td>${opts.blindCodes ? '—' : esc(t.recipe)}</td><td class="mono">${vals.length}</td><td class="mono">${mean}</td></tr>`
     })
     .join('')
 
@@ -70,7 +76,7 @@ export function printClientReport(doc: TrialDoc, ts: TrialState, opts: { blindCo
     .map(
       (p) =>
         `<td style="width:33%;padding:8px"><div style="height:110px;background:repeating-linear-gradient(45deg,#DCE4DE 0 8px,#D0DAD3 8px 16px);border-radius:8px"></div>
-        <div class="mono" style="font-size:10px;margin-top:3px">${p.pid} · T${p.trt} · ${p.date}${p.flagged ? ' · ⚑' : ''}</div></td>`
+        <div class="mono" style="font-size:10px;margin-top:3px">${p.pid} · T${p.trt} · ${esc(p.date)}${p.flagged ? ' · ⚑' : ''}</div></td>`
     )
     .join('')
 
@@ -78,18 +84,18 @@ export function printClientReport(doc: TrialDoc, ts: TrialState, opts: { blindCo
   ${opts.watermark ? '<div class="wm">DRAFT — NOT FINAL</div>' : ''}
   <div class="page">
     <div class="eyebrow">AGnVET SERVICES — IK CALDWELL · ${doc.trial.season} SEASON</div>
-    <h1><span class="green">${doc.trial.name}</span></h1>
+    <h1><span class="green">${esc(doc.trial.name)}</span></h1>
     <div class="grey" style="font-size:13px">${doc.treatments.length} treatments · ${doc.trial.reps} reps · ${pids.length} plots · ${doc.trial.plot.widthM} × ${doc.trial.plot.lengthM} m · ${doc.trial.waterRateLPerHa} L/ha</div>
-    <div style="margin-top:16px;font-size:12px">Source: ${doc.trial.sourceDocument}</div>
+    <div style="margin-top:16px;font-size:12px">Source: ${esc(doc.trial.sourceDocument)}</div>
     <h2>Site & paddock</h2>
-    <table>${[...ts.site.cooperator, ...ts.site.paddock].map(([k, v]) => `<tr><th style="width:32%">${k}</th><td>${v}</td></tr>`).join('')}
-    <tr><th>Site notes</th><td>${ts.site.notes || '—'}</td></tr></table>
+    <table>${[...ts.site.cooperator, ...ts.site.paddock].map(([k, v]) => `<tr><th style="width:32%">${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}
+    <tr><th>Site notes</th><td>${esc(ts.site.notes) || '—'}</td></tr></table>
     <h2>Application A — conditions record</h2>
-    <table><tr>${Object.keys(ts.conditions).map((k) => `<th>${k}</th>`).join('')}</tr>
-    <tr>${Object.values(ts.conditions).map((v) => `<td class="mono">${v}</td>`).join('')}</tr></table>
+    <table><tr>${Object.keys(ts.conditions).map((k) => `<th>${esc(k)}</th>`).join('')}</tr>
+    <tr>${Object.values(ts.conditions).map((v) => `<td class="mono">${esc(v)}</td>`).join('')}</tr></table>
   </div>
   <div class="page">
-    <h2>Treatment means — ${flat[primary][1]} ${unitOf(flat[primary])} <span class="grey">(${scored.length} of ${pids.length} plots scored)</span></h2>
+    <h2>Treatment means — ${esc(flat[primary][1])} ${esc(unitOf(flat[primary]))} <span class="grey">(${scored.length} of ${pids.length} plots scored)</span></h2>
     <table><tr><th>Trt #</th><th>Treatment</th><th>Application</th><th>n</th><th>Mean</th></tr>${meansRows}</table>
     <h2>Ranked control vs untreated ${live ? '' : '<span style="font-size:10px;background:#EEEFEE;padding:2px 6px;border-radius:4px">SAMPLE DATA</span>'}</h2>
     ${barRows}
@@ -109,12 +115,12 @@ export function printFieldDayHandout(doc: TrialDoc, ts: TrialState) {
       const trt = (ts.relabel[pid] ?? doc.cells[pid]) as number
       const t = treatmentByN(doc, trt)
       return `<tr><td class="mono">${i + 1}</td><td class="mono">${pid}</td><td class="mono">R${Math.floor(pid / 100)} · P${pid % 100} · Rep ${repOf(doc, pid)}</td>
-        <td style="font-weight:700">${t?.name ?? `T${trt}`}</td><td class="grey">${t?.recipe ?? ''}</td></tr>`
+        <td style="font-weight:700">${esc(t?.name ?? `T${trt}`)}</td><td class="grey">${esc(t?.recipe ?? '')}</td></tr>`
     })
     .join('')
   const body = `
     <div class="eyebrow">AGnVET SERVICES — IK CALDWELL · FIELD DAY</div>
-    <h1><span class="green">${doc.trial.name}</span> — Rep 1 walk</h1>
+    <h1><span class="green">${esc(doc.trial.name)}</span> — Rep 1 walk</h1>
     <div class="grey" style="font-size:12px;margin-bottom:12px">Rep 1 runs the treatment list in order across the front: position 1 rows 1→${doc.trial.grid.rows}, then position 2 back. Reps 2–3 are randomised — quote treatment means, not single plots.</div>
     <table style="font-size:12px"><tr><th>Stop</th><th>Plot</th><th>Where</th><th>Treatment</th><th>Applied</th></tr>${rows}</table>`
   openPrint(`${doc.trial.name} — Field-day handout`, body)

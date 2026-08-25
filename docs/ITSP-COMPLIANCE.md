@@ -67,6 +67,13 @@ Verdicts: ✅ compliant today · 🔧 action identified (owner noted) · 🤝 ne
 
 ## 3. Proposed sequence
 
-1. **This week (dev):** enable secret scanning + Dependabot + CodeQL; database password into 1Password; escape interpolated text in print views.
+1. **This week (dev):** ~~CodeQL workflow + Dependabot config committed; print-view
+   escaping done; ASVS L1 draft self-assessment written
+   ([`ASVS-L1-ASSESSMENT.md`](ASVS-L1-ASSESSMENT.md)); security configuration
+   guide + data-flow diagram written ([`SECURITY.md`](SECURITY.md)); new-password
+   minimum raised to 12 characters~~ **done 22 Aug**. Remaining hands-on:
+   database password into 1Password; repo Settings → Advanced Security → confirm
+   secret-scanning push protection + Dependabot alerts toggles; Supabase Auth →
+   set minimum password length 12 + enable leaked-password protection.
 2. **At the meeting:** agree data classification; agree pilot exception (risk assessment + CIO approval) for the Sydney Supabase environment with an end date; agree the Azure target architecture (Static Web Apps + Azure Database for PostgreSQL + Entra ID + Functions/Container Apps with managed identities + Blob Storage + Key Vault); AGnVET GitHub org for the repo transfer; nominate a code reviewer; scope ASVS assessment and pen test; put production deploys under change management.
 3. **Then:** build the Azure environment with IT as a project under their methodology — which simultaneously satisfies the environments-separation requirement (Azure = production, current setup retires or becomes staging).
