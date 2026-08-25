@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { DASH_TRIALS, STATUS_CHIP } from '../data'
 import { MONO, useApp } from '../state'
 import { deleteTrial, loadLiveTrials, portalToken, saveTrial, type LiveTrial, type TrialPatch } from '../lib/db'
+import { exportTrialData } from '../lib/exportXlsx'
 import TrialsMap from './TrialsMap'
 
 /** DB status → the display vocabulary the filter chips use. */
@@ -87,7 +88,18 @@ function EditModal({ trial, token, onDone }: { trial: LiveTrial; token: string; 
         <div style={lbl}>AIM</div>
         <textarea value={f.aim ?? ''} onChange={(e) => setF({ ...f, aim: e.target.value || null })} rows={3} style={{ ...field, resize: 'vertical', fontFamily: 'inherit' }} />
         {err && <div style={{ marginTop: 10, fontSize: 12, color: '#A93414' }}>{err}</div>}
-        <div style={{ display: 'flex', gap: 10, marginTop: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 14, marginTop: 16, alignItems: 'center' }}>
+          <div
+            onClick={async () => {
+              setErr('')
+              const res = await exportTrialData(trial, token)
+              if (res === 'empty') setErr('Nothing synced yet for this trial — score or spray on a phone first.')
+              else if (res === 'failed') setErr('Export failed — check the connection and try again.')
+            }}
+            style={{ fontSize: 12, fontWeight: 700, color: '#007749', cursor: 'pointer', padding: '8px 0' }}
+          >
+            Export field data (.xlsx)
+          </div>
           <div onClick={del} style={{ fontSize: 12, fontWeight: 700, color: '#A93414', cursor: 'pointer', padding: '8px 0' }}>
             Delete trial…
           </div>
