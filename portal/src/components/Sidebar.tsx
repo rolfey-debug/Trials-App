@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { backendState, type BackendState } from '../../../shared/supa'
+import { backendState, signInOrUp, type BackendState } from '../../../shared/supa'
 import { useApp } from '../state'
 
 const BACKEND_LABEL: Record<BackendState, { dot: string; text: string; label: string }> = {
@@ -105,30 +105,128 @@ function NavItem({ active, onClick, icon, children }: { active: boolean; onClick
   )
 }
 
-/** The field app stores its Supabase session in localStorage under this key
- * (src/lib/backend.ts); same origin, so the portal can read who's signed in. */
-function whoAmI(): { name: string; initials: string; sub: string } {
+/** Same localStorage key as the field app (src/lib/backend.ts) — same origin,
+ * so one sign-in serves both apps in this browser. */
+const SESSION_KEY = 'tw.supaSession'
+
+function sessionEmail(): string | null {
   try {
-    const raw = localStorage.getItem('tw.supaSession')
-    if (raw) {
-      const email: string = JSON.parse(raw).email
-      const name = email
-        .split('@')[0]
-        .split(/[._-]+/)
-        .filter(Boolean)
-        .map((w) => w[0].toUpperCase() + w.slice(1))
-        .join(' ')
-      const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
-      return { name, initials, sub: email }
-    }
+    const raw = localStorage.getItem(SESSION_KEY)
+    return raw ? (JSON.parse(raw).email as string) : null
   } catch {
-    /* private mode / malformed */
+    return null
   }
-  return { name: 'Not signed in', initials: '·', sub: 'Sign in via the field app on this browser' }
+}
+
+function nameFromEmail(email: string): string {
+  return email
+    .split('@')[0]
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
+function UserChip() {
+  const [email, setEmail] = useState<string | null>(sessionEmail())
+  const [open, setOpen] = useState(false)
+  const [formEmail, setFormEmail] = useState('')
+  const [formPw, setFormPw] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const signIn = async () => {
+    if (busy) return
+    if (!formEmail.includes('@') || formPw.length < 6) {
+      setErr('Email and a password of 6+ characters.')
+      return
+    }
+    setBusy(true)
+    setErr('')
+    const res = await signInOrUp(formEmail, formPw)
+    setBusy(false)
+    if (res.mode === 'online') {
+      try {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(res.session))
+      } catch {
+        /* private mode */
+      }
+      setEmail(res.session.email)
+      setOpen(false)
+      setFormPw('')
+    } else if (res.mode === 'bad-credentials') {
+      setErr('Wrong password, or no account — accounts are created by an admin.')
+    } else {
+      setErr('Backend unreachable — check your connection.')
+    }
+  }
+
+  const signOut = () => {
+    try {
+      localStorage.removeItem(SESSION_KEY)
+    } catch {
+      /* private mode */
+    }
+    setEmail(null)
+  }
+
+  if (!email) {
+    return (
+      <div style={{ padding: '10px 18px 16px' }}>
+        {open ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <input
+              value={formEmail}
+              onChange={(e) => setFormEmail(e.target.value)}
+              placeholder="name@company.com"
+              style={{ padding: '7px 9px', fontSize: 12, border: '1px solid #D8DAD8', borderRadius: 7, outline: 'none' }}
+            />
+            <input
+              type="password"
+              value={formPw}
+              onChange={(e) => setFormPw(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && signIn()}
+              placeholder="password"
+              style={{ padding: '7px 9px', fontSize: 12, border: '1px solid #D8DAD8', borderRadius: 7, outline: 'none' }}
+            />
+            {err && <div style={{ fontSize: 10.5, color: '#A93414', lineHeight: 1.4 }}>{err}</div>}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <div onClick={signIn} style={{ flex: 1, textAlign: 'center', padding: '7px 0', borderRadius: 7, background: busy ? '#B9BBB9' : '#007749', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                {busy ? 'Signing in…' : 'Sign in'}
+              </div>
+              <div onClick={() => setOpen(false)} style={{ flex: 'none', padding: '7px 10px', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#8A8C8A', cursor: 'pointer' }}>
+                ✕
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div onClick={() => setOpen(true)} style={{ textAlign: 'center', padding: '8px 0', borderRadius: 8, border: '1.5px solid #D6D7D6', fontSize: 12.5, fontWeight: 700, color: '#3E403E', cursor: 'pointer', background: '#fff' }}>
+            Sign in
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const name = nameFromEmail(email)
+  const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '12px 18px 16px' }}>
+      <div style={{ width: 32, height: 32, flex: 'none', borderRadius: '50%', background: '#E3F1EA', color: '#00623C', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {initials}
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#141414', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+        <div style={{ fontSize: 11, color: '#8A8C8A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>
+      </div>
+      <div onClick={signOut} title="Sign out" style={{ flex: 'none', fontSize: 11, fontWeight: 700, color: '#A93414', cursor: 'pointer', padding: '4px 2px' }}>
+        Sign out
+      </div>
+    </div>
+  )
 }
 
 export default function Sidebar() {
-  const who = whoAmI()
   const { s, nav } = useApp()
   return (
     <div style={{ width: 228, flex: 'none', background: '#FFFFFF', borderRight: '1px solid #E4E4E6', display: 'flex', flexDirection: 'column' }}>
@@ -163,15 +261,7 @@ export default function Sidebar() {
         <div style={{ padding: '12px 18px 0', borderTop: '1px solid #EDEEED' }}>
           <img src="./assets/aglink-logo.jpg" alt="Member of AgLink Australia" style={{ height: 14, display: 'block', opacity: 0.85 }} />
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '12px 18px 16px' }}>
-          <div style={{ width: 32, height: 32, flex: 'none', borderRadius: '50%', background: '#E3F1EA', color: '#00623C', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {who.initials}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#141414', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{who.name}</div>
-            <div style={{ fontSize: 11, color: '#8A8C8A' }}>{who.sub}</div>
-          </div>
-        </div>
+        <UserChip />
       </div>
     </div>
   )
