@@ -80,6 +80,20 @@ export async function signInOrUp(email: string, password: string): Promise<AuthR
   }
 }
 
+/** Change the signed-in user's password (GoTrue user update). */
+export async function updatePassword(token: string, password: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: headers(token),
+      body: JSON.stringify({ password }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 export async function refresh(session: Session): Promise<Session | null> {
   try {
     const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`, {

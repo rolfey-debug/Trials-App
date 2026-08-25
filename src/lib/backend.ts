@@ -3,7 +3,7 @@
  * back to the offline demo path — the app's offline-first promise is that
  * nothing here ever blocks field work.
  */
-import { insert, refresh, signInOrUp, stableId, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
+import { insert, refresh, signInOrUp, stableId, updatePassword, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
 import type { AppState, TrialState } from '../store/types'
 
 const KEY = 'tw.supaSession'
@@ -34,6 +34,13 @@ export async function login(email: string, password: string): Promise<AuthResult
 
 export function logout() {
   persist(null)
+}
+
+/** 'ok' | 'offline' (no online session / unreachable) | 'failed' (rejected). */
+export async function changePassword(pw: string): Promise<'ok' | 'offline' | 'failed'> {
+  const token = await activeToken()
+  if (!token) return 'offline'
+  return (await updatePassword(token, pw)) ? 'ok' : 'failed'
 }
 
 /** Valid access token, refreshing when close to expiry; null = not signed in online. */

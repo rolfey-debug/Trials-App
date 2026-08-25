@@ -129,7 +129,7 @@ export function Team() {
               {st.session.email ?? 'not signed in'}
             </div>
             <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-              Trial data stays on this phone — signing out only stops syncing until the next sign-in.
+              Name, password and sign-out live in Account (Today › Account).
             </div>
           </div>
           <div
