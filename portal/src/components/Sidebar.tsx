@@ -105,7 +105,30 @@ function NavItem({ active, onClick, icon, children }: { active: boolean; onClick
   )
 }
 
+/** The field app stores its Supabase session in localStorage under this key
+ * (src/lib/backend.ts); same origin, so the portal can read who's signed in. */
+function whoAmI(): { name: string; initials: string; sub: string } {
+  try {
+    const raw = localStorage.getItem('tw.supaSession')
+    if (raw) {
+      const email: string = JSON.parse(raw).email
+      const name = email
+        .split('@')[0]
+        .split(/[._-]+/)
+        .filter(Boolean)
+        .map((w) => w[0].toUpperCase() + w.slice(1))
+        .join(' ')
+      const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+      return { name, initials, sub: email }
+    }
+  } catch {
+    /* private mode / malformed */
+  }
+  return { name: 'Not signed in', initials: '·', sub: 'Sign in via the field app on this browser' }
+}
+
 export default function Sidebar() {
+  const who = whoAmI()
   const { s, nav } = useApp()
   return (
     <div style={{ width: 228, flex: 'none', background: '#FFFFFF', borderRight: '1px solid #E4E4E6', display: 'flex', flexDirection: 'column' }}>
@@ -141,10 +164,12 @@ export default function Sidebar() {
           <img src="./assets/aglink-logo.jpg" alt="Member of AgLink Australia" style={{ height: 14, display: 'block', opacity: 0.85 }} />
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '12px 18px 16px' }}>
-          <div style={{ width: 32, height: 32, flex: 'none', borderRadius: '50%', background: '#E3F1EA', color: '#00623C', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>SK</div>
+          <div style={{ width: 32, height: 32, flex: 'none', borderRadius: '50%', background: '#E3F1EA', color: '#00623C', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {who.initials}
+          </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#141414' }}>Sam Kelleher</div>
-            <div style={{ fontSize: 11, color: '#8A8C8A' }}>Trials agronomist · Ganmain</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#141414', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{who.name}</div>
+            <div style={{ fontSize: 11, color: '#8A8C8A' }}>{who.sub}</div>
           </div>
         </div>
       </div>
