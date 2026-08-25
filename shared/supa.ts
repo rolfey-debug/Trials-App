@@ -122,6 +122,33 @@ export async function insert(table: string, rows: unknown[], token: string, opts
   return r.ok
 }
 
+/** PATCH rows matching `filter` (PostgREST query string, e.g. "id=eq.<uuid>"). */
+export async function update(table: string, filter: string, patch: Record<string, unknown>, token: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+      method: 'PATCH',
+      headers: { ...headers(token), Prefer: 'return=minimal' },
+      body: JSON.stringify(patch),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
+/** DELETE rows matching `filter`. Cascades follow the schema's FK rules. */
+export async function remove(table: string, filter: string, token: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+      method: 'DELETE',
+      headers: { ...headers(token), Prefer: 'return=minimal' },
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 export async function select<T = unknown>(table: string, query: string, token?: string): Promise<T[] | null> {
   try {
     const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${query}`, { headers: headers(token) })
