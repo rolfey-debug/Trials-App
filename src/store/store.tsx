@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppState, Screen, SyncItem, TrialDoc, TrialState } from './types'
 import { idb } from './idb'
-import { RINGWOOD_ID, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
+import { MATONG_ID, RINGWOOD_ID, matongDoc, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
 import { logout as backendLogout, pushToBackend } from '../lib/backend'
 
 interface StoreCtx {
@@ -29,16 +29,44 @@ export function useApp(): StoreCtx {
 
 let syncId = 1000
 
-/** Additive in-place upgrades for state persisted before a trial shipped —
- * installs that predate Ringwood get the trial injected (and its old
- * placeholder stub dropped) without touching any scored data. */
+/** Additive in-place upgrades for state persisted by older app versions —
+ * never touches scored data.
+ *  1. Installs that predate Ringwood get the trial injected (and its old
+ *     placeholder stub dropped).
+ *  2. Measures added to the seed after an install's first run are merged into
+ *     the stored trial docs (an install otherwise keeps the measure library it
+ *     was born with — LAI shipped invisible to existing phones this way). */
 function upgrade(saved: AppState): AppState {
-  if (saved.trials[RINGWOOD_ID]) return saved
   const next = structuredClone(saved)
-  next.trials[RINGWOOD_ID] = ringwoodDoc()
-  next.trialState[RINGWOOD_ID] = ringwoodTrialState()
-  next.otherTrials = next.otherTrials.filter((t) => !/ringwood/i.test(t.name))
-  return next
+  let changed = false
+
+  if (!next.trials[RINGWOOD_ID]) {
+    next.trials[RINGWOOD_ID] = ringwoodDoc()
+    next.trialState[RINGWOOD_ID] = ringwoodTrialState()
+    next.otherTrials = next.otherTrials.filter((t) => !/ringwood/i.test(t.name))
+    changed = true
+  }
+
+  const freshDocs: Array<[string, TrialDoc]> = [
+    [MATONG_ID, matongDoc()],
+    [RINGWOOD_ID, ringwoodDoc()],
+  ]
+  const groups = ['disease', 'weeds', 'crop'] as const
+  for (const [id, fresh] of freshDocs) {
+    const cur = next.trials[id]
+    if (!cur) continue
+    for (const g of groups) {
+      const have = new Set(cur.measures[g].map((m) => m[0]))
+      for (const m of fresh.measures[g]) {
+        if (!have.has(m[0])) {
+          cur.measures[g].push(m)
+          changed = true
+        }
+      }
+    }
+  }
+
+  return changed ? next : saved
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
