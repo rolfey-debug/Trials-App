@@ -86,9 +86,16 @@ export function measureFlat(lib: MeasureLib): Record<string, MeasureDef> {
   return flat
 }
 
-/** Value cap while keying scores: % measures cap at 100, counts at 999. */
+/** Value cap while keying scores: % measures cap at 100, counts at 999,
+ * LAI at 9.9 (one decimal — see src/lib/lai.ts for the entry scheme). */
 export function capFor(m: MeasureDef): number {
-  return m[2] === '/m2' || m[2] === '/m²' ? 999 : m[2] === 'GS' ? 99 : 100
+  return m[2] === '/m2' || m[2] === '/m²' ? 999 : m[2] === 'GS' ? 99 : m[2] === 'LAI' ? 9.9 : 100
+}
+
+/** Score value as the assessor should read it — LAI always shows one decimal. */
+export function fmtVal(m: MeasureDef, v: number | undefined): string {
+  if (v === undefined) return '–'
+  return m[2] === 'LAI' ? v.toFixed(1) : String(v)
 }
 
 /** Per-batch mixing note for the Mix checklist, derived from recipe + perBatchMl. */
