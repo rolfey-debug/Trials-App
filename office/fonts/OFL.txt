@@ -1,0 +1,11 @@
+These fonts are redistributed under the SIL Open Font License, Version 1.1.
+
+  Mulish          — Copyright (c) The Mulish Project Authors
+                    https://github.com/googlefonts/mulish
+  IBM Plex Mono   — Copyright (c) 2017 IBM Corp.
+                    https://github.com/IBM/plex
+
+Full licence text: https://openfontlicense.org/
+
+Regenerate with `npm run fonts:build` (shared/fonts/build-fonts.mjs).
+Do not edit these files by hand.
