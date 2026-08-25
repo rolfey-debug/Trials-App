@@ -50,7 +50,7 @@ const FOOTER = `
 -- ===========================================================================
 
 insert into allowed_signups (email, org_id, role, invited_by) values
-  ('andrew.rolfe@agnvet.com.au', '00000000-0000-0000-0000-000000000001', 'admin', 'setup')
+  ('andrewrolfe@agnvet.com.au', '00000000-0000-0000-0000-000000000001', 'admin', 'setup')
   -- , ('colleague@agnvet.com.au', '00000000-0000-0000-0000-000000000001', 'agronomist', 'setup')
 on conflict (email) do nothing;
 

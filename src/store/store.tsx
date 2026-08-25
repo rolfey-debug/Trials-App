@@ -119,7 +119,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     ts.mixDone = {}
     ts.sprDone = {}
     fresh.syncQueue = []
-    fresh.session = { email: 'andrew.rolfe@agnvet.com.au', name: 'A. Rolfe', role: 'admin' }
+    fresh.session = { email: 'andrewrolfe@agnvet.com.au', name: 'A. Rolfe', role: 'admin' }
     setSt(fresh)
   }, [])
 

@@ -48,7 +48,7 @@ create policy allowed_signups_admin on allowed_signups for all
 -- replace these with the pilot list before running.
 --
 -- insert into allowed_signups (email, org_id, role, invited_by) values
---   ('andrew.rolfe@agnvet.com.au', '00000000-0000-0000-0000-000000000001', 'admin',      'setup'),
+--   ('andrewrolfe@agnvet.com.au', '00000000-0000-0000-0000-000000000001', 'admin',      'setup'),
 --   ('someone.else@agnvet.com.au', '00000000-0000-0000-0000-000000000001', 'agronomist', 'setup')
 -- on conflict (email) do nothing;
 
