@@ -4,8 +4,10 @@
  * The publishable key is safe to embed: it only grants what RLS allows.
  */
 
-export const SUPA_URL = 'https://lwudweiuihcdksageaxs.supabase.co'
-export const SUPA_KEY = 'sb_publishable_bE8diDIr1jSVGxUZlRZuog_Tx-Ddct5'
+// Sydney (ap-southeast-2) project — the original was created in the wrong
+// region and region is fixed at creation; see docs/REGION-MOVE.md.
+export const SUPA_URL = 'https://ebhsnggwekhfcpgnyxxs.supabase.co'
+export const SUPA_KEY = 'sb_publishable_jqRJrNZiyAqE5wcH23Oo3g_JlQqcFWk'
 
 /** Fixed ids seeded by server/migrations/001_init.sql */
 export const ORG_ID = '00000000-0000-0000-0000-000000000001'
@@ -78,6 +80,20 @@ export async function signInOrUp(email: string, password: string): Promise<AuthR
   }
 }
 
+/** Change the signed-in user's password (GoTrue user update). */
+export async function updatePassword(token: string, password: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: headers(token),
+      body: JSON.stringify({ password }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 export async function refresh(session: Session): Promise<Session | null> {
   try {
     const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`, {
@@ -104,6 +120,33 @@ export async function insert(table: string, rows: unknown[], token: string, opts
     body: JSON.stringify(rows),
   })
   return r.ok
+}
+
+/** PATCH rows matching `filter` (PostgREST query string, e.g. "id=eq.<uuid>"). */
+export async function update(table: string, filter: string, patch: Record<string, unknown>, token: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+      method: 'PATCH',
+      headers: { ...headers(token), Prefer: 'return=minimal' },
+      body: JSON.stringify(patch),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
+/** DELETE rows matching `filter`. Cascades follow the schema's FK rules. */
+export async function remove(table: string, filter: string, token: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+      method: 'DELETE',
+      headers: { ...headers(token), Prefer: 'return=minimal' },
+    })
+    return r.ok
+  } catch {
+    return false
+  }
 }
 
 export async function select<T = unknown>(table: string, query: string, token?: string): Promise<T[] | null> {

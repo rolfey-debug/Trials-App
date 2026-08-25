@@ -3,7 +3,7 @@
  * back to the offline demo path — the app's offline-first promise is that
  * nothing here ever blocks field work.
  */
-import { insert, refresh, signInOrUp, stableId, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
+import { insert, refresh, signInOrUp, stableId, updatePassword, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
 import type { AppState, TrialState } from '../store/types'
 
 const KEY = 'tw.supaSession'
@@ -36,6 +36,13 @@ export function logout() {
   persist(null)
 }
 
+/** 'ok' | 'offline' (no online session / unreachable) | 'failed' (rejected). */
+export async function changePassword(pw: string): Promise<'ok' | 'offline' | 'failed'> {
+  const token = await activeToken()
+  if (!token) return 'offline'
+  return (await updatePassword(token, pw)) ? 'ok' : 'failed'
+}
+
 /** Valid access token, refreshing when close to expiry; null = not signed in online. */
 export async function activeToken(): Promise<string | null> {
   let s = savedSession()
@@ -49,12 +56,13 @@ export async function activeToken(): Promise<string | null> {
   return s.access_token
 }
 
-/** Map a local trial id to its seeded backend uuid (locally-added trials stay local). */
+/** Map a local trial id to its seeded backend uuid (locally-added trials stay
+ * local). Staged rollout: only Matong syncs for now — the Sydney project keeps
+ * just the Matong rows, and pushing an unmapped trial would fail its foreign
+ * keys and mark the whole sync red. Re-add lines here as trials go live. */
 function trialUuid(localId: string): string | null {
   const k = localId.toLowerCase()
   if (k.includes('matong')) return TRIAL_IDS.matong
-  if (k.includes('ganmain')) return TRIAL_IDS.ganmain
-  if (k.includes('ringwood')) return TRIAL_IDS.ringwood
   return null
 }
 
@@ -140,7 +148,9 @@ async function pushTrial(
     id: stableId(trial_id, 'photo', p.id),
     trial_id,
     plot: p.pid,
-    storage_path: `photos/${p.id}.jpg`,
+    // Org-partitioned path: migration 004 scopes the bucket policy on the
+    // first segment, so blobs can only ever be read within their own org.
+    storage_path: `${ORG_ID}/${trial_id}/${p.id}.jpg`,
     taken_at: new Date().toISOString(),
     meta: { flagged: p.flagged, trt: p.trt, sizeKB: p.sizeKB ?? null, label: p.date },
   }))

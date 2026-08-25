@@ -2,7 +2,8 @@ import React, { useMemo, useRef, useState } from 'react'
 import { C, MONO, SANS } from '../theme'
 import { useApp } from '../store/store'
 import { useGps } from '../gps/useGps'
-import { assessmentOrder, capFor, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf } from '../lib/trial'
+import { assessmentOrder, capFor, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf } from '../lib/trial'
+import { analyzeCanopyPhoto, laiBackspace, laiKeyDigit, type CanopyAnalysis } from '../lib/lai'
 import { gridFromCorners, locate } from '../gps/geo'
 import { compressAndStore } from '../lib/photo'
 import { PulseDot } from '../components/bits'
@@ -17,6 +18,8 @@ export function Assess() {
   const [flash, setFlash] = useState('')
   const [noteOpen, setNoteOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const laiFileRef = useRef<HTMLInputElement>(null)
+  const [laiRes, setLaiRes] = useState<(CanopyAnalysis & { file: File }) | null>(null)
   const voiceTimer = useRef<number | undefined>(undefined)
 
   const order = useMemo(() => assessmentOrder(doc), [doc])
@@ -68,9 +71,15 @@ export function Assess() {
       t.scores[pid] = cur
     })
 
+  const isLai = flat[field][2] === 'LAI'
   const keyDigit = (d: string) => {
     setFlash('')
     setScore(null, (v) => {
+      if (isLai) {
+        // one-decimal fixed point: "3" then "4" reads 3.4 (see lib/lai.ts)
+        v[field] = laiKeyDigit(v[field], Number(d))
+        return
+      }
       const curStr = String(v[field] ?? '')
       const next = Number(curStr + d)
       v[field] = Math.min(capFor(flat[field]), next)
@@ -78,10 +87,38 @@ export function Assess() {
   }
   const backspace = () =>
     setScore(null, (v) => {
+      if (isLai) {
+        const next = laiBackspace(v[field])
+        if (next === undefined) delete v[field]
+        else v[field] = next
+        return
+      }
       const s = String(v[field] ?? '')
       if (s.length > 1) v[field] = Number(s.slice(0, -1))
       else delete v[field]
     })
+
+  // --- LAI from a downward canopy photo ---------------------------------
+  const onLaiFile = async (f: File | undefined) => {
+    if (!f) return
+    setFlash('')
+    try {
+      const res = await analyzeCanopyPhoto(f)
+      setLaiRes({ ...res, file: f })
+    } catch {
+      setFlash('Could not read that photo — try again')
+    }
+  }
+  const acceptLai = async () => {
+    if (!laiRes) return
+    const { lai, fraction, file } = laiRes
+    setScore(`LAI ${lai.toFixed(1)} from photo · plot ${pid}`, (v) => {
+      v[field] = lai
+    })
+    setLaiRes(null)
+    setFlash(`LAI ${lai.toFixed(1)} · canopy ${Math.round(fraction * 100)}% — photo attached`)
+    await onPhotoFile(file)
+  }
 
   const fi = measures.indexOf(field)
   const nextMeasure = measures[(fi + 1) % measures.length]
@@ -276,7 +313,7 @@ export function Assess() {
             >
               <div style={{ fontSize: 11, fontWeight: 700, color: active ? C.greenDark : C.grey, whiteSpace: 'nowrap' }}>{m[1]}</div>
               <div style={{ font: `600 24px ${MONO}`, marginTop: 1 }}>
-                {sc?.v[k] ?? '–'}
+                {fmtVal(m, sc?.v[k])}
                 <span style={{ fontSize: 12, color: C.muted }}> {unitOf(m)}</span>
               </div>
             </div>
@@ -302,6 +339,24 @@ export function Assess() {
                 e.target.value = ''
               }}
             />
+            {isLai && (
+              <>
+                <div style={{ ...auxSt(false), color: C.greenDark, borderColor: '#9CC7B2', background: C.greenTint }} onClick={() => laiFileRef.current?.click()}>
+                  LAI camera
+                </div>
+                <input
+                  ref={laiFileRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    onLaiFile(e.target.files?.[0])
+                    e.target.value = ''
+                  }}
+                />
+              </>
+            )}
             <div
               style={{ ...auxSt(listening), color: listening ? C.greenDark : C.body, animation: listening ? 'gpsPulse 1.1s infinite' : undefined }}
               onClick={onVoice}
@@ -327,6 +382,38 @@ export function Assess() {
                 fontFamily: SANS, marginBottom: 6, resize: 'none', height: 44, outline: 'none',
               }}
             />
+          )}
+          {laiRes && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: '#fff', border: `1.5px solid ${C.green}`, borderRadius: 12, padding: 8, marginBottom: 6 }}>
+              <img src={laiRes.thumb} alt="canopy classification" style={{ width: 74, height: 74, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ font: `600 17px ${MONO}` }}>
+                  LAI {laiRes.lai.toFixed(1)}
+                  <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}> · canopy {Math.round(laiRes.fraction * 100)}% · k 0.5</span>
+                </div>
+                <div style={{ fontSize: 10.5, color: laiRes.saturated ? C.burntDark : C.muted, marginTop: 2, lineHeight: 1.35 }}>
+                  {laiRes.saturated
+                    ? 'Canopy closed — cover saturates, treat as ≥ this value'
+                    : 'Green = counted as canopy. Check the tint looks right.'}
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <div onClick={acceptLai} style={{ flex: 1, textAlign: 'center', padding: '7px 0', borderRadius: 8, background: C.green, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    Use {laiRes.lai.toFixed(1)}
+                  </div>
+                  <div onClick={() => laiFileRef.current?.click()} style={{ flex: 1, textAlign: 'center', padding: '7px 0', borderRadius: 8, border: `1.5px solid ${C.ghostBorder}`, fontSize: 12, fontWeight: 700, color: C.body, cursor: 'pointer', background: '#fff' }}>
+                    Retake
+                  </div>
+                  <div onClick={() => setLaiRes(null)} style={{ flex: 'none', padding: '7px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, color: C.muted, cursor: 'pointer' }}>
+                    ✕
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {isLai && !laiRes && !flash && (
+            <div style={{ fontSize: 10.5, color: C.muted, margin: '0 2px 6px' }}>
+              Keypad enters tenths — 3 then 4 reads 3.4. Or point the camera straight down over the row.
+            </div>
           )}
           {flash && <div style={{ fontSize: 11.5, color: C.greenDark, margin: '0 2px 6px' }}>{flash}</div>}
 

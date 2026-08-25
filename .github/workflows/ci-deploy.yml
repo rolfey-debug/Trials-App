@@ -2,7 +2,7 @@ name: CI + Deploy to Pages
 
 on:
   push:
-    branches: [main, claude/build-app-from-readme-e1hq80]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 

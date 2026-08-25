@@ -62,7 +62,7 @@
   "measures": {
     "disease": [["rust", "Stripe rust", "%"], ["lrust", "Leaf rust", "%"], ["sept", "Septoria tritici", "%"], ["yls", "Yellow leaf spot", "%"], ["mild", "Powdery mildew", "%"], ["netb", "Net blotch", "%"], ["scald", "Scald", "%"]],
     "weeds": [["arg", "Annual ryegrass", "/m2"], ["wo", "Wild oats", "/m2"], ["brome", "Brome grass", "/m2"], ["bgrass", "Barley grass", "/m2"], ["wrad", "Wild radish", "/m2"], ["cape", "Capeweed", "/m2"], ["sow", "Sowthistle", "/m2"], ["flea", "Fleabane", "/m2"]],
-    "crop": [["phy", "Phytotox", "%"], ["gs", "Growth stage", "GS"], ["plants", "Plants", "/m"], ["bio", "Biomass", "%"], ["lodg", "Lodging", "%"]],
+    "crop": [["phy", "Phytotox", "%"], ["gs", "Growth stage", "GS"], ["plants", "Plants", "/m"], ["bio", "Biomass", "%"], ["lodg", "Lodging", "%"], ["lai", "Leaf area index", "LAI"]],
     "defaultActive": ["rust", "phy"]
   },
   "conditionsRecordA": {"date": "2026-08-06", "start": "07:40", "operator": "A. Rolfe", "tempC": 9, "rhPct": 72, "wind": "6 km/h SW", "nozzle": "Orange 01 AI", "pressure": "40 PSI", "speed": "4.5 km/h"}
