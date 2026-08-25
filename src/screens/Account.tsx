@@ -127,6 +127,10 @@ export function Account() {
           Sign out
         </div>
       </div>
+
+      <div style={{ textAlign: 'center', font: `500 10px ${MONO}`, color: C.muted, padding: '2px 0 8px' }}>
+        AGnVET Trial Work · build {__BUILD__}
+      </div>
     </div>
   )
 }
