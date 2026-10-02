@@ -5,6 +5,7 @@ export type Role = 'admin' | 'team' | 'grower' | 'rep'
 export type Screen =
   | 'login'
   | 'home'
+  | 'account'
   | 'assess'
   | 'map'
   | 'spray'

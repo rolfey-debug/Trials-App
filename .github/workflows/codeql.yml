@@ -1,0 +1,27 @@
+# Static analysis (SAST) per ITSP 11.0 "DevSecOps & CI/CD pipeline".
+# CodeQL scans every push/PR to main and runs weekly; findings appear under
+# the repository's Security tab.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '30 18 * * 1' # weekly, Tue 04:30 AEST
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3

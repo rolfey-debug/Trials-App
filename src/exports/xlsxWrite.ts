@@ -87,6 +87,9 @@ export function downloadBlob(data: Uint8Array, fileName: string, mime: string) {
   const a = document.createElement('a')
   a.href = url
   a.download = fileName
+  // attached anchors keep their download name across engines
+  document.body.appendChild(a)
   a.click()
+  a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 5000)
 }

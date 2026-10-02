@@ -2,18 +2,20 @@
   "name": "agnvet-trial-work",
   "private": true,
   "version": "1.0.0",
-  "description": "AGnVET Trial Work \u2014 offline-first PWA for small-plot field trials: spray, assess, present",
+  "description": "AGnVET Trial Work — offline-first PWA for small-plot field trials: spray, assess, present",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "tsx test/parsers.test.ts && tsx test/groundwork.test.ts && tsx test/phenology.test.ts",
+    "test": "tsx test/parsers.test.ts && tsx test/groundwork.test.ts && tsx test/phenology.test.ts && tsx test/lai.test.ts",
     "weather:build": "node shared/phenology/fetch-weather.mjs",
+    "fonts:build": "node shared/fonts/build-fonts.mjs",
     "products:build": "node shared/products/build-products.mjs",
     "portal:dev": "vite portal",
     "portal:build": "vite build portal",
-    "build:all": "tsc -b && vite build && vite build portal"
+    "build:all": "tsc -b && vite build && vite build portal",
+    "sql:fresh": "node server/build-fresh-project.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.2",
@@ -21,6 +23,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/node": "^26.3.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
