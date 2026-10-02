@@ -57,12 +57,13 @@ export async function activeToken(): Promise<string | null> {
 }
 
 /** Map a local trial id to its seeded backend uuid (locally-added trials stay
- * local). Staged rollout: only Matong syncs for now — the Sydney project keeps
- * just the Matong rows, and pushing an unmapped trial would fail its foreign
- * keys and mark the whole sync red. Re-add lines here as trials go live. */
+ * local). Staged rollout — a trial syncs once its rows exist in Sydney, since
+ * pushing an unmapped trial would fail its foreign keys and mark the whole
+ * sync red. Re-add lines here as trials go live. */
 function trialUuid(localId: string): string | null {
   const k = localId.toLowerCase()
   if (k.includes('matong')) return TRIAL_IDS.matong
+  if (k.includes('ringwood')) return TRIAL_IDS.ringwood
   return null
 }
 
