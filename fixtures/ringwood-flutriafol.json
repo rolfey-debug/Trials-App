@@ -303,6 +303,11 @@
     "lai",
     "Leaf area index",
     "LAI"
+   ],
+   [
+    "pgreen",
+    "Photo green cover",
+    "%"
    ]
   ],
   "defaultActive": [

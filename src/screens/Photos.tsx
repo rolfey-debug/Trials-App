@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { C, MONO } from '../theme'
 import { useApp } from '../store/store'
 import { ScreenTitle } from '../components/bits'
+import { analyzeCanopyPhoto } from '../lib/lai'
+import { idb } from '../store/idb'
 import { photoUrl, saveAllWatermarked, saveWatermarked } from '../lib/photo'
 import type { PhotoMeta } from '../store/types'
 
@@ -81,6 +83,52 @@ export function Photos() {
     window.setTimeout(() => setBulk(''), 6000)
   }
 
+  // Run every stored photo through the canopy engine and save the per-plot
+  // mean green fraction as its own measure (pgreen) — the machine's number
+  // lives beside the assessor's scores, never in place of them.
+  const analyseAll = async () => {
+    if (bulk) return
+    const byPlot = new Map<number, PhotoMeta[]>()
+    for (const p of all) {
+      if (!p.stored) continue
+      const list = byPlot.get(p.pid) ?? []
+      list.push(p)
+      byPlot.set(p.pid, list)
+    }
+    let done = 0
+    const total = [...byPlot.values()].reduce((n, l) => n + l.length, 0)
+    const plotMeans: Array<[number, number, number]> = []
+    for (const [pid, list] of byPlot) {
+      const fractions: number[] = []
+      for (const p of list) {
+        setBulk(`Analysing ${++done}/${total}…`)
+        try {
+          const blob = await idb.getPhoto(p.id)
+          if (!blob) continue
+          const res = await analyzeCanopyPhoto(new File([blob], `${p.id}.jpg`, { type: 'image/jpeg' }))
+          fractions.push(res.fraction)
+        } catch {
+          /* unreadable photo — skip */
+        }
+      }
+      if (fractions.length) {
+        const mean = (fractions.reduce((a, b) => a + b, 0) / fractions.length) * 100
+        plotMeans.push([pid, Math.round(mean * 10) / 10, fractions.length])
+      }
+    }
+    mutTrial({ kind: 'assessment', label: `Photo green cover analysed — ${plotMeans.length} plots` }, (t) => {
+      for (const [pid, mean, n] of plotMeans) {
+        const cur = t.scores[pid] ?? { v: {}, photoIds: [], ts: Date.now(), by: st.session.name }
+        cur.v.pgreen = mean
+        cur.note = [cur.note, `pgreen from ${n} photo${n === 1 ? '' : 's'}`].filter(Boolean).join(' · ')
+        cur.ts = Date.now()
+        t.scores[pid] = cur
+      }
+    })
+    setBulk(`✓ Green cover saved for ${plotMeans.length} plots — Sync now to push`)
+    window.setTimeout(() => setBulk(''), 8000)
+  }
+
   const pillSt = (act: boolean): React.CSSProperties => ({
     padding: '6px 12px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
     ...(act ? { background: C.ink, color: '#fff' } : { background: '#fff', border: `1px solid ${C.ghostBorder}`, color: C.body }),
@@ -97,9 +145,16 @@ export function Photos() {
           Flagged · {flagged.length}
         </div>
         {storedShown.length > 0 && (
-          <div style={{ ...pillSt(false), marginLeft: 'auto', color: C.greenDark, borderColor: '#9CC7B2', background: C.greenTint }} onClick={saveAll}>
-            {bulk && !bulk.startsWith('✓') ? bulk : `⬇ Save all · ${storedShown.length}`}
-          </div>
+          <>
+            <div style={{ ...pillSt(false), marginLeft: 'auto', color: C.greenDark, borderColor: '#9CC7B2', background: C.greenTint }} onClick={saveAll}>
+              {bulk && !bulk.startsWith('✓') ? bulk : `⬇ Save all · ${storedShown.length}`}
+            </div>
+            {!bulk && (
+              <div style={{ ...pillSt(false), color: C.greenDark, borderColor: '#9CC7B2' }} onClick={analyseAll}>
+                Analyse
+              </div>
+            )}
+          </>
         )}
       </div>
       {bulk.startsWith('✓') && (
