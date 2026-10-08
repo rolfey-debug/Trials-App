@@ -4,6 +4,7 @@ import Wizard from './components/Wizard'
 import Picker from './components/Picker'
 import Docs from './components/Docs'
 import Review from './components/Review'
+import LiveMap from './components/LiveMap'
 import MapScreen from './components/MapScreen'
 import Results from './components/Results'
 import { useApp } from './state'
@@ -18,7 +19,8 @@ export default function App() {
         {s.screen === 'wizard' && <Wizard />}
         {s.screen === 'docs' && <Docs />}
         {s.screen === 'review' && <Review />}
-        {s.screen === 'map' && <MapScreen />}
+        {s.screen === 'map' && <LiveMap />}
+        {s.screen === 'plotmap' && <MapScreen />}
         {s.screen === 'results' && <Results />}
       </div>
       <Picker />

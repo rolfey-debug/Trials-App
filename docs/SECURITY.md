@@ -41,8 +41,15 @@ flowchart LR
 ```
 
 Build-time only (no runtime connection): APVMA product register via
-data.gov.au; SILO daily climate (Qld Government). Photo *files* remain in
-IndexedDB on the phone; only metadata rows sync.
+data.gov.au; SILO daily climate (Qld Government). Photo *files* sync to the
+org-partitioned storage bucket; a copy remains in IndexedDB on the phone.
+
+Runtime third parties (portal map only, added 8 Oct 2026, deliberate): map
+tiles are fetched read-only from Esri World Imagery, OpenStreetMap, NSW
+Spatial Services aerial imagery, and NASA GIBS (MODIS NDVI overlay). The
+only data sent is the tile coordinates being viewed; no trial data leaves
+the org. The field app makes no such calls — it stays Supabase-only and
+offline-first.
 
 ## Trust boundaries and controls
 
