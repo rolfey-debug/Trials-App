@@ -1,7 +1,7 @@
 /** Live trial data for the portal — reads/writes the real backend as the
  * signed-in user (RLS scopes everything to the org). The session is the one
  * the sidebar sign-in (or the field app, same origin) saved to localStorage. */
-import { fetchObject, insert, refresh, remove, select, update, type Session } from '../../../shared/supa'
+import { fetchObject, insert, refresh, remove, select, stableId, update, type Session } from '../../../shared/supa'
 
 const SESSION_KEY = 'tw.supaSession'
 
@@ -138,6 +138,34 @@ export async function photoObjectUrl(path: string): Promise<string | null> {
   if (!token) return null
   const blob = await fetchObject('photos', path, token)
   return blob ? URL.createObjectURL(blob) : null
+}
+
+/** Write machine-derived plot values (e.g. drone NDVI) as scores, beside the
+ * assessor's eye scores, never in place of them. Deterministic ids (same
+ * scheme as the field app: trial/round/plot/measure) make re-running an
+ * ortho an upsert, not a duplicate. */
+export async function saveMachineScores(
+  trialId: string,
+  measure: string,
+  rows: Array<{ plot: number; value: number; note: string }>,
+  token: string
+): Promise<boolean> {
+  return insert(
+    'scores',
+    rows.map((r) => ({
+      id: stableId(trialId, 1, String(r.plot), measure),
+      trial_id: trialId,
+      assessment: 1,
+      plot: r.plot,
+      measure,
+      value: r.value,
+      note: r.note,
+      assessor: jwtSub(token),
+      recorded_at: new Date().toISOString(),
+    })),
+    token,
+    { upsert: true }
+  )
 }
 
 // --- Audit log --------------------------------------------------------------
