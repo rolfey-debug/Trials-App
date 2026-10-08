@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { C, MONO } from '../theme'
 import { useApp } from '../store/store'
 import { ScreenTitle } from '../components/bits'
-import { photoUrl, saveWatermarked } from '../lib/photo'
+import { photoUrl, saveAllWatermarked, saveWatermarked } from '../lib/photo'
 import type { PhotoMeta } from '../store/types'
 
 const STRIPES = 'repeating-linear-gradient(45deg,#DCE4DE 0 8px,#D0DAD3 8px 16px)'
@@ -65,10 +65,21 @@ function Tile({ p, trialName, onFlag }: { p: PhotoMeta; trialName: string; onFla
  * Tap a tile to flag/unflag it for the report. */
 export function Photos() {
   const { st, doc, ts, mut, mutTrial } = useApp()
+  const [bulk, setBulk] = useState('')
   const filter = st.photoFilter
   const all = ts.photos
   const flagged = all.filter((p) => p.flagged)
   const shown = filter === 'all' ? all : flagged
+  const storedShown = shown.filter((p) => p.stored)
+
+  const saveAll = async () => {
+    if (bulk) return
+    setBulk('Preparing…')
+    const n = await saveAllWatermarked(shown, doc.trial.name.split('—')[0].trim(), (done, total) => setBulk(`Saving ${done}/${total}…`))
+    setBulk('')
+    if (n > 0) setBulk(`✓ ${n} handed to the phone — tap “Save Images” in the share sheet if it's still open`)
+    window.setTimeout(() => setBulk(''), 6000)
+  }
 
   const pillSt = (act: boolean): React.CSSProperties => ({
     padding: '6px 12px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
@@ -85,7 +96,15 @@ export function Photos() {
         <div style={pillSt(filter === 'flag')} onClick={() => mut(null, (d) => void (d.photoFilter = 'flag'))}>
           Flagged · {flagged.length}
         </div>
+        {storedShown.length > 0 && (
+          <div style={{ ...pillSt(false), marginLeft: 'auto', color: C.greenDark, borderColor: '#9CC7B2', background: C.greenTint }} onClick={saveAll}>
+            {bulk && !bulk.startsWith('✓') ? bulk : `⬇ Save all · ${storedShown.length}`}
+          </div>
+        )}
       </div>
+      {bulk.startsWith('✓') && (
+        <div style={{ fontSize: 11.5, color: C.greenDark, margin: '-4px 0 10px' }}>{bulk}</div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
         {shown.map((p) => (
           <Tile

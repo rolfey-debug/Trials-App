@@ -32,13 +32,12 @@ export async function photoUrl(id: string): Promise<string | null> {
   return blob ? URL.createObjectURL(blob) : null
 }
 
-/** Render a copy of a stored photo with the plot details burned in along the
- * bottom, then hand it to the phone — the share sheet where the browser has
- * one (iOS: Save Image → camera roll), a plain download otherwise. The stored
- * original is untouched: photos are trial evidence. */
-export async function saveWatermarked(p: PhotoMeta, trialName: string): Promise<'ok' | 'missing' | 'failed'> {
+/** Render a stored photo into a watermarked File (plot, treatment, trial,
+ * date, GPS burned along the bottom). The stored original is untouched:
+ * photos are trial evidence. */
+export async function watermarkFile(p: PhotoMeta, trialName: string): Promise<File | null> {
   const blob = await idb.getPhoto(p.id)
-  if (!blob) return 'missing'
+  if (!blob) return null
   const url = URL.createObjectURL(blob)
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -70,23 +69,67 @@ export async function saveWatermarked(p: PhotoMeta, trialName: string): Promise<
     const out = await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', 0.85)
     )
-    const file = new File([out], `plot-${p.pid}-${p.date}.jpg`, { type: 'image/jpeg' })
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: `Plot ${p.pid}` })
-    } else {
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(out)
-      a.download = file.name
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(a.href)
-    }
-    return 'ok'
-  } catch (e) {
-    // user closing the share sheet is not a failure
-    return (e as Error).name === 'AbortError' ? 'ok' : 'failed'
+    return new File([out], `plot-${p.pid}-${p.date}-${p.id.slice(-4)}.jpg`, { type: 'image/jpeg' })
+  } catch {
+    return null
   } finally {
     URL.revokeObjectURL(url)
   }
+}
+
+/** Hand files to the phone: the share sheet where the browser has one
+ * (iOS: Save Images → camera roll), plain downloads otherwise. */
+async function handOff(files: File[], title: string): Promise<'ok' | 'failed'> {
+  try {
+    if (navigator.canShare?.({ files })) {
+      await navigator.share({ files, title })
+    } else {
+      for (const f of files) {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(f)
+        a.download = f.name
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(a.href)
+      }
+    }
+    return 'ok'
+  } catch (e) {
+    // the user closing the share sheet is not a failure
+    return (e as Error).name === 'AbortError' ? 'ok' : 'failed'
+  }
+}
+
+/** Save one photo to the phone, watermarked. */
+export async function saveWatermarked(p: PhotoMeta, trialName: string): Promise<'ok' | 'missing' | 'failed'> {
+  const file = await watermarkFile(p, trialName)
+  if (!file) return 'missing'
+  return handOff([file], `Plot ${p.pid}`)
+}
+
+/** Save many photos to the phone in share-sheet-sized batches (iOS: Save
+ * Images puts the whole batch in the camera roll). Returns how many files
+ * were handed over. */
+export async function saveAllWatermarked(
+  photos: PhotoMeta[],
+  trialName: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<number> {
+  const stored = photos.filter((p) => p.stored)
+  const BATCH = 12
+  let handed = 0
+  for (let i = 0; i < stored.length; i += BATCH) {
+    const files: File[] = []
+    for (const p of stored.slice(i, i + BATCH)) {
+      const f = await watermarkFile(p, trialName)
+      if (f) files.push(f)
+    }
+    if (!files.length) continue
+    const res = await handOff(files, `${trialName} — plot photos`)
+    if (res === 'failed') break
+    handed += files.length
+    onProgress?.(Math.min(i + BATCH, stored.length), stored.length)
+  }
+  return handed
 }
