@@ -111,7 +111,10 @@ async function pushTrial(
   ts: TrialState,
   token: string,
 ): Promise<{ scores: number; corrections: number; photos: number; spray: number } | null> {
-  const assessment = ts.assessIdx + 1
+  // The app models one assessment round today, so every score syncs under
+  // round 1. assessIdx is the WALK POSITION, not the round — using it here
+  // re-identified every row on each sync from a new position (duplicates).
+  const assessment = 1
   const scoreRows: unknown[] = []
   for (const [pid, sc] of Object.entries(ts.scores)) {
     for (const [measure, value] of Object.entries(sc.v)) {

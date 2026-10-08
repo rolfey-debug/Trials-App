@@ -20,6 +20,7 @@ export function Assess() {
   const fileRef = useRef<HTMLInputElement>(null)
   const laiFileRef = useRef<HTMLInputElement>(null)
   const [laiRes, setLaiRes] = useState<(CanopyAnalysis & { file: File }) | null>(null)
+  const [pickOpen, setPickOpen] = useState(false)
   const voiceTimer = useRef<number | undefined>(undefined)
 
   const order = useMemo(() => assessmentOrder(doc), [doc])
@@ -242,7 +243,10 @@ export function Assess() {
       {/* plot card */}
       <div style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 14, padding: '12px 14px 11px', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ font: `700 32px ${MONO}`, letterSpacing: -1 }}>{pid}</div>
+          <div onClick={() => setPickOpen(true)} style={{ font: `700 32px ${MONO}`, letterSpacing: -1, cursor: 'pointer' }}>
+            {pid}
+            <span style={{ fontSize: 14, color: C.grey, marginLeft: 6, verticalAlign: 'middle' }}>▾</span>
+          </div>
           <div
             onClick={() => mutTrial(null, (t) => void (t.blind = !t.blind))}
             style={{
@@ -511,6 +515,48 @@ export function Assess() {
             Done — back to scoring
           </div>
         </>
+      )}
+
+      {/* jump-to-plot picker — tap the plot number to open */}
+      {pickOpen && (
+        <div
+          onClick={() => setPickOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,.45)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: '14px 14px 12px', maxHeight: '82%', overflow: 'auto', width: '100%', maxWidth: 400 }}>
+            <div style={{ font: `600 10px ${MONO}`, color: C.grey, letterSpacing: '.08em', marginBottom: 2 }}>JUMP TO PLOT</div>
+            <div style={{ fontSize: 11.5, color: C.grey, marginBottom: 10 }}>Tap the plot you’re standing at — scored plots are green.</div>
+            {Array.from({ length: doc.trial.grid.rows }, (_, ri) => ri + 1).map((r) => (
+              <div key={r} style={{ display: 'grid', gridTemplateColumns: `repeat(${doc.trial.grid.positions}, 1fr)`, gap: 4, marginBottom: 4 }}>
+                {Array.from({ length: doc.trial.grid.positions }, (_, pi) => pi + 1).map((p) => {
+                  const cellPid = r * 100 + p
+                  const live = typeof doc.cells[cellPid] === 'number'
+                  const done = live && !!ts.scores[cellPid]
+                  const here = cellPid === pid
+                  return (
+                    <div
+                      key={cellPid}
+                      onClick={() => {
+                        if (!live) return
+                        mutTrial(null, (t) => void (t.assessIdx = Math.max(0, order.indexOf(cellPid))))
+                        setPickOpen(false)
+                      }}
+                      style={{
+                        textAlign: 'center', padding: '8px 0', borderRadius: 7, font: `600 10.5px ${MONO}`,
+                        border: here ? `2px solid ${C.ink}` : `1px solid ${C.hairline}`,
+                        background: !live ? C.chipBg : done ? C.greenTint : '#fff',
+                        color: !live ? C.muted : done ? C.greenDark : C.body,
+                        cursor: live ? 'pointer' : 'default',
+                      }}
+                    >
+                      {cellPid}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )
