@@ -288,6 +288,16 @@ export function Assess() {
               {ts.relabel[pid] !== undefined && <span style={{ color: C.burntDark, fontSize: 11 }}> · relabelled</span>}
             </div>
             <div style={{ fontSize: 11.5, color: C.grey, marginTop: 1 }}>{tinfo?.recipe}</div>
+            {tinfo && trtN !== 1 && (
+              <span
+                style={{
+                  display: 'inline-block', marginTop: 4, font: `700 9px ${MONO}`, letterSpacing: '.06em', padding: '2px 8px', borderRadius: 99,
+                  background: tinfo.bSpray ? C.greenTint : C.burntTint, color: tinfo.bSpray ? C.greenDark : C.burntDark,
+                }}
+              >
+                {tinfo.bSpray ? 'A + B PROGRAM' : 'A ONLY — NO B PASS'}
+              </span>
+            )}
           </>
         )}
       </div>

@@ -41,6 +41,20 @@ export interface LiveTrial {
   variety: string | null
   sown_date: string | null
   aim: string | null
+  design: {
+    type?: string
+    reps?: number
+    blocking?: string
+    grid?: { rows: number; positions: number }
+    plot?: { widthM: number; lengthM: number; areaM2: number }
+    notes?: string[]
+  } | null
+  spraying: {
+    waterRateLPerHa?: number
+    sprayVolumePerPlotMl?: number
+    batchVolumeL?: number
+    timings?: Record<string, { due?: string; applied?: string }>
+  } | null
   site: { property: string | null; town: string | null; lat: number | null; lng: number | null } | null
   scores: number
   plotsScored: number
@@ -58,12 +72,14 @@ interface TrialRow {
   variety: string | null
   sown_date: string | null
   aim: string | null
+  design: LiveTrial['design']
+  spraying: LiveTrial['spraying']
   sites: LiveTrial['site']
 }
 
 export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null> {
   const [trials, scores, ops] = await Promise.all([
-    select<TrialRow>('trials', 'select=id,name,season,status,trial_type,crop,variety,sown_date,aim,sites(property,town,lat,lng)&order=season.desc,name.asc', token),
+    select<TrialRow>('trials', 'select=id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,sites(property,town,lat,lng)&order=season.desc,name.asc', token),
     select<{ trial_id: string; plot: number; recorded_at: string }>('scores', 'select=trial_id,plot,recorded_at', token),
     select<{ trial_id: string; detail: { sprayed?: number[] } | null; performed_at: string }>('operations', 'select=trial_id,detail,performed_at', token),
   ])
@@ -126,6 +142,18 @@ export function loadScores(trialId: string, token: string): Promise<ScoreRow[] |
 
 export function loadTreatments(trialId: string, token: string): Promise<TreatmentRow[] | null> {
   return select<TreatmentRow>('treatments', `select=n,name,recipe,b_spray,components&trial_id=eq.${trialId}&order=n.asc`, token)
+}
+
+export interface OperationRow {
+  kind: string
+  timing: string | null
+  performed_at: string
+  detail: { sprayed?: number[]; mixed?: number[]; note?: string } | null
+  conditions: Record<string, string> | null
+}
+
+export function loadOperations(trialId: string, token: string): Promise<OperationRow[] | null> {
+  return select<OperationRow>('operations', `select=kind,timing,performed_at,detail,conditions&trial_id=eq.${trialId}&order=performed_at.asc`, token)
 }
 
 export function loadTrialPhotos(trialId: string, token: string): Promise<PhotoRow[] | null> {

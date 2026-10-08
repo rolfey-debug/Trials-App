@@ -2,7 +2,7 @@
  * map, a measure-vs-measure scatter, and per-plot detail with photos. Reads
  * the real backend under RLS; everything renders from scores + treatments. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { correctScore, loadLiveTrials, loadScores, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, type LiveTrial, type PhotoRow, type ScoreRow, type TreatmentRow } from '../lib/db'
+import { correctScore, loadLiveTrials, loadOperations, loadScores, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, type LiveTrial, type OperationRow, type PhotoRow, type ScoreRow, type TreatmentRow } from '../lib/db'
 import { exportResults } from '../lib/exportXlsx'
 import { rcbdAnova, type Anova } from '../lib/stats'
 
@@ -66,6 +66,8 @@ export default function Results() {
   const [scores, setScores] = useState<ScoreRow[]>([])
   const [trts, setTrts] = useState<TreatmentRow[]>([])
   const [photos, setPhotos] = useState<PhotoRow[]>([])
+  const [ops, setOps] = useState<OperationRow[]>([])
+  const [detOpen, setDetOpen] = useState(false)
   const [measure, setMeasure] = useState('dmg_f1')
   const [xM, setXM] = useState('pgreen')
   const [yM, setYM] = useState('dmg_f1')
@@ -108,10 +110,11 @@ export default function Results() {
         setState('signedout')
         return
       }
-      const [sc, tr, ph] = await Promise.all([loadScores(trialId, token), loadTreatments(trialId, token), loadTrialPhotos(trialId, token)])
+      const [sc, tr, ph, op] = await Promise.all([loadScores(trialId, token), loadTreatments(trialId, token), loadTrialPhotos(trialId, token), loadOperations(trialId, token)])
       setScores(sc ?? [])
       setTrts(tr ?? [])
       setPhotos(ph ?? [])
+      setOps(op ?? [])
       setState('ready')
     })()
   }, [trialId])
@@ -308,7 +311,73 @@ export default function Results() {
         </div>
         <div style={{ fontSize: 12, color: GREY, marginBottom: 16 }}>
           {scores.length} synced scores · {new Set(scores.map((s) => s.plot)).size} plots · {photos.length} photo records — tap a plot anywhere for detail and photos
+          <span onClick={() => setDetOpen(!detOpen)} style={{ marginLeft: 10, fontWeight: 700, color: GREEN, cursor: 'pointer' }}>
+            {detOpen ? 'Hide trial details ▴' : 'Trial details ▾'}
+          </span>
         </div>
+
+        {/* trial details: agronomy, design, spray history */}
+        {detOpen && trial && (
+          <div style={{ ...card, marginBottom: 16, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', marginBottom: 12 }}>
+              {(
+                [
+                  ['CROP', [trial.crop, trial.variety].filter(Boolean).join(' · ') || '—'],
+                  ['SOWN', trial.sown_date ?? '—'],
+                  ['SITE', [trial.site?.property, trial.site?.town].filter(Boolean).join(', ') || '—'],
+                  ['SEASON', `${trial.season ?? '—'} · ${trial.status}`],
+                  [
+                    'DESIGN',
+                    trial.design?.type
+                      ? [trial.design.type, trial.design.reps && `${trial.design.reps} reps`, trial.design.grid && `${trial.design.grid.rows} × ${trial.design.grid.positions} grid`, trial.design.plot && `${trial.design.plot.widthM} × ${trial.design.plot.lengthM} m plots`].filter(Boolean).join(' · ')
+                      : '—',
+                  ],
+                  ['SPRAY SETUP', trial.spraying?.waterRateLPerHa ? `${trial.spraying.waterRateLPerHa} L/ha water · ${trial.spraying.sprayVolumePerPlotMl} mL/plot · ${trial.spraying.batchVolumeL} L batches` : '—'],
+                ] as Array<[string, string]>
+              ).map(([k, v]) => (
+                <div key={k}>
+                  <div style={eyebrow}>{k}</div>
+                  <div style={{ fontSize: 12.5, color: INK, fontWeight: 600 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={eyebrow}>SPRAY HISTORY</div>
+            {ops.filter((o) => o.kind === 'spray').length === 0 && <div style={{ fontSize: 12, color: GREY }}>No spray operations recorded yet.</div>}
+            {ops
+              .filter((o) => o.kind === 'spray')
+              .map((o, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', padding: '5px 0', borderBottom: '1px solid #F2F3F2', fontSize: 12.5 }}>
+                  <b style={{ color: GREEN }}>{o.timing ?? '—'} spray</b>
+                  <span style={{ fontWeight: 700 }}>{o.conditions?.Date ?? new Date(o.performed_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  {o.detail?.sprayed && <span style={{ color: GREY }}>{o.detail.sprayed.length} plots</span>}
+                  {Object.entries(o.conditions ?? {})
+                    .filter(([k]) => k !== 'Date')
+                    .map(([k, v]) => (
+                      <span key={k} style={{ fontSize: 11, color: GREY }}>
+                        {k} <b style={{ color: '#3E403E' }}>{v}</b>
+                      </span>
+                    ))}
+                  {o.detail?.note && <span style={{ fontSize: 11, color: GREY, width: '100%' }}>{o.detail.note}</span>}
+                </div>
+              ))}
+            {(trial.design?.notes?.length ?? 0) > 0 && (
+              <>
+                <div style={{ ...eyebrow, marginTop: 12 }}>DESIGN NOTES</div>
+                {trial.design!.notes!.map((n, i) => (
+                  <div key={i} style={{ fontSize: 11.5, color: '#3E403E', lineHeight: 1.5, marginBottom: 3 }}>
+                    · {n}
+                  </div>
+                ))}
+              </>
+            )}
+            {trial.aim && (
+              <>
+                <div style={{ ...eyebrow, marginTop: 12 }}>AIM</div>
+                <div style={{ fontSize: 12, color: '#3E403E', lineHeight: 1.55 }}>{trial.aim}</div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* treatment means */}
         <div style={{ ...card, marginBottom: 16, overflow: 'auto' }}>
@@ -336,8 +405,16 @@ export default function Results() {
                     onMouseEnter={(e) => showTip(e, [t.name, t.recipe, `plots ${(t.components?.plots ?? []).join(' · ')}`])}
                     onMouseLeave={() => setTip(null)}
                   >
-                    <td style={{ padding: '5px 10px 5px 2px', fontWeight: 700, color: INK, borderTop: `1px solid #F0F1F0` }}>T{t.n}</td>
-                    <td style={{ padding: '5px 14px 5px 2px', color: INK, borderTop: `1px solid #F0F1F0`, whiteSpace: 'nowrap' }}>{t.name}</td>
+                    <td style={{ padding: '5px 10px 5px 2px', fontWeight: 700, color: INK, borderTop: `1px solid #F0F1F0`, verticalAlign: 'top' }}>T{t.n}</td>
+                    <td style={{ padding: '5px 14px 5px 2px', color: INK, borderTop: `1px solid #F0F1F0`, whiteSpace: 'nowrap' }}>
+                      {t.name}
+                      {t.n !== 1 && (
+                        <span style={{ marginLeft: 7, fontSize: 9, fontWeight: 800, letterSpacing: '.05em', padding: '2px 6px', borderRadius: 99, background: t.b_spray ? '#E3F1EA' : '#FBEAE3', color: t.b_spray ? '#00623C' : '#A93414' }}>
+                          {t.b_spray ? 'A + B' : 'A ONLY'}
+                        </span>
+                      )}
+                      <div style={{ fontSize: 10.5, color: GREY, whiteSpace: 'normal', maxWidth: 250, lineHeight: 1.35 }}>{t.recipe}</div>
+                    </td>
                     {measures.map((m) => (
                       <td key={m} style={{ textAlign: 'right', padding: '5px 12px', fontVariantNumeric: 'tabular-nums', color: INK, borderTop: `1px solid #F0F1F0`, whiteSpace: 'nowrap' }}>
                         {cells[m] === null ? (
@@ -579,7 +656,23 @@ export default function Results() {
           {trtOf.get(selPlot) && (
             <div style={{ fontSize: 12.5, color: '#3E403E', margin: '2px 0 12px' }}>
               <b>T{trtOf.get(selPlot)!.n} · {trtOf.get(selPlot)!.name}</b>
+              {trtOf.get(selPlot)!.n !== 1 && (
+                <span style={{ marginLeft: 7, fontSize: 9, fontWeight: 800, letterSpacing: '.05em', padding: '2px 6px', borderRadius: 99, background: trtOf.get(selPlot)!.b_spray ? '#E3F1EA' : '#FBEAE3', color: trtOf.get(selPlot)!.b_spray ? '#00623C' : '#A93414' }}>
+                  {trtOf.get(selPlot)!.b_spray ? 'A + B' : 'A ONLY'}
+                </span>
+              )}
               <div style={{ fontSize: 11.5, color: GREY }}>{trtOf.get(selPlot)!.recipe}</div>
+              {ops
+                .filter((o) => o.kind === 'spray')
+                .map((o, i) => {
+                  const hit = o.detail?.sprayed?.includes(selPlot)
+                  return (
+                    <div key={i} style={{ fontSize: 11, marginTop: 3, color: hit ? '#00623C' : GREY }}>
+                      {hit ? '✓' : '—'} {o.timing} spray {o.conditions?.Date ?? new Date(o.performed_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                      {hit ? ' · this plot sprayed' : ' · this plot skipped'}
+                    </div>
+                  )
+                })}
             </div>
           )}
           <div style={eyebrow}>SCORES</div>
