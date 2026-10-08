@@ -175,6 +175,11 @@ async function pushTrial(
   const scoreRows: unknown[] = []
   for (const [pid, sc] of Object.entries(ts.scores)) {
     for (const [measure, value] of Object.entries(sc.v)) {
+      // plant-level readings travel in the note, same shape the transcript
+      // parser writes ("plants 20/25/45 — …"), so the portal's per-plant
+      // chips pick them up unchanged
+      const plants = sc.plants?.[measure]
+      const note = [plants?.length ? `plants ${plants.join('/')}` : null, sc.note || null].filter(Boolean).join(' — ') || null
       scoreRows.push({
         id: stableId(trial_id, assessment, pid, measure),
         trial_id,
@@ -182,7 +187,7 @@ async function pushTrial(
         plot: Number(pid),
         measure,
         value,
-        note: sc.note ?? null,
+        note,
         assessor,
         recorded_at: new Date(sc.ts).toISOString(),
       })

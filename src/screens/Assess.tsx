@@ -74,16 +74,49 @@ export function Assess() {
       : `GPS · Row ${row} Pos ${pos} — on walk order`
 
   // --- score mutation helpers -------------------------------------------
-  const setScore = (label: string | null, fn: (v: Record<string, number>, s: { note?: string; photoIds: string[] }) => void) =>
+  const setScore = (label: string | null, fn: (v: Record<string, number>, s: { note?: string; photoIds: string[]; plants?: Record<string, number[]> }) => void) =>
     mutTrial(label ? { kind: 'assessment', label } : null, (t) => {
       const cur = t.scores[pid] ?? { v: {}, photoIds: [], ts: Date.now(), by: st.session.name }
-      const shell = { note: cur.note, photoIds: cur.photoIds }
+      const shell = { note: cur.note, photoIds: cur.photoIds, plants: cur.plants }
       fn(cur.v, shell)
       cur.note = shell.note
       cur.photoIds = shell.photoIds
+      cur.plants = shell.plants
       cur.ts = Date.now()
       t.scores[pid] = cur
     })
+
+  // --- plant-level entry: type a reading, add it, mean folds in on save --
+  const fieldPlants = sc?.plants?.[field] ?? []
+  const addPlant = () =>
+    setScore(null, (v, s) => {
+      if (v[field] === undefined) return
+      s.plants = { ...(s.plants ?? {}), [field]: [...(s.plants?.[field] ?? []), v[field]] }
+      delete v[field] // keypad clears for the next plant
+    })
+  const removePlant = (i: number) =>
+    setScore(null, (v, s) => {
+      const list = [...(s.plants?.[field] ?? [])]
+      list.splice(i, 1)
+      s.plants = { ...(s.plants ?? {}), [field]: list }
+      if (!list.length && s.plants) delete s.plants[field]
+    })
+  /** Fold any typed-but-not-added reading into the plant list and write the
+   * mean as the plot value for every measure with plant readings. A typed
+   * value equal to the current mean is treated as the already-saved mean
+   * (re-opening a saved plot), not a new reading — tap "+ Plant" to add a
+   * reading that happens to equal the mean. */
+  const foldPlants = (t: { scores: Record<number, { v: Record<string, number>; plants?: Record<string, number[]> }> }) => {
+    const cur = t.scores[pid]
+    if (!cur?.plants) return
+    for (const [m, list] of Object.entries(cur.plants)) {
+      if (!list.length) continue
+      const mean = Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10
+      const all = cur.v[m] !== undefined && cur.v[m] !== mean ? [...list, cur.v[m]] : [...list]
+      cur.plants[m] = all
+      cur.v[m] = Math.round((all.reduce((a, b) => a + b, 0) / all.length) * 10) / 10
+    }
+  }
 
   const isLai = flat[field][2] === 'LAI'
   const keyDigit = (d: string) => {
@@ -149,6 +182,7 @@ export function Assess() {
   const onSave = () =>
     mutTrial({ kind: 'assessment', label: `Assessment 1 · plot ${pid}` }, (t) => {
       if (!t.scores[pid]) t.scores[pid] = { v: {}, photoIds: [], ts: Date.now(), by: st.session.name }
+      foldPlants(t)
       t.assessIdx = Math.min(idx + 1, order.length - 1)
       t.assessField = measures[0]
     })
@@ -358,6 +392,35 @@ export function Assess() {
 
       {!msOpen ? (
         <>
+          {/* plant-level readings for the active measure — type, + Plant, repeat;
+              Save writes the mean and syncs the readings in the note */}
+          {!isLai && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', margin: '0 2px 6px' }}>
+              <span style={{ font: `600 9.5px ${MONO}`, color: C.muted, letterSpacing: '.06em' }}>PLANTS</span>
+              {fieldPlants.map((p, i) => (
+                <span key={i} onClick={() => removePlant(i)} title="Tap to remove" style={{ font: `600 11px ${MONO}`, background: C.chipBg, padding: '4px 9px', borderRadius: 7, cursor: 'pointer' }}>
+                  {p} ✕
+                </span>
+              ))}
+              <span
+                onClick={addPlant}
+                style={{
+                  fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 99, cursor: 'pointer',
+                  color: sc?.v[field] !== undefined ? C.greenDark : C.muted,
+                  border: `1.5px solid ${sc?.v[field] !== undefined ? '#9CC7B2' : C.hairline}`,
+                  background: sc?.v[field] !== undefined ? C.greenTint : '#fff',
+                }}
+              >
+                + Plant
+              </span>
+              {fieldPlants.length > 0 && (
+                <span style={{ fontSize: 11, color: C.grey }}>
+                  mean {Math.round((fieldPlants.reduce((a, b) => a + b, 0) / fieldPlants.length) * 10) / 10}
+                  {sc?.v[field] !== undefined ? ' + typed' : ''}
+                </span>
+              )}
+            </div>
+          )}
           {/* aux row */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
             <div style={auxSt(!!sc?.photoIds.length)} onClick={() => fileRef.current?.click()}>

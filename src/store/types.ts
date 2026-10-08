@@ -74,6 +74,9 @@ export interface Score {
   photoIds: string[]
   ts: number
   by: string
+  /** Per-measure plant-level readings; v[measure] holds their mean on save
+   * and the readings themselves travel in the synced note ("plants 20/25/45"). */
+  plants?: Record<string, number[]>
 }
 
 export interface Issue {
