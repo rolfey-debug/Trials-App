@@ -36,6 +36,7 @@ export default function LiveMap() {
   const [ndvi, setNdvi] = useState<Map<string, Map<number, { mean: number; pixels: number }>>>(new Map())
   const orthoLayerRef = useRef<L.ImageOverlay | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const didFitGrid = useRef(false)
 
   useEffect(() => {
     void (async () => {
@@ -78,8 +79,11 @@ export default function LiveMap() {
   useEffect(() => {
     if (state !== 'ready' || !divRef.current || mapRef.current) return
 
+    // rural NSW imagery runs out at z18 on both providers — upscale past it
+    // rather than show their "no data" placeholder tiles
     const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
+      maxNativeZoom: 18,
+      maxZoom: 20,
       attribution: 'Imagery © Esri & contributors',
     })
     const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -87,7 +91,8 @@ export default function LiveMap() {
       attribution: '© OpenStreetMap contributors',
     })
     const nsw = L.tileLayer('https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
+      maxNativeZoom: 18,
+      maxZoom: 20,
       attribution: 'Aerial imagery © NSW Spatial Services',
     })
     // NASA GIBS MODIS Terra NDVI, 16-day composite, 250 m. 'default' time =
@@ -141,6 +146,14 @@ export default function LiveMap() {
     if (!layer || !mapRef.current) return
     layer.clearLayers()
     if (!gMeasure) return
+    // first fit: frame the trial itself, not the site pin
+    if (grids.length && !didFitGrid.current) {
+      didFitGrid.current = true
+      const all: L.LatLngExpression[] = grids.flatMap((g) =>
+        [...new Set([...g.values.keys(), ...g.trtName.keys()])].flatMap((plot) => g.fit.cell(Math.floor(plot / 100), plot % 100))
+      )
+      if (all.length) mapRef.current.fitBounds(L.latLngBounds(all).pad(0.4), { maxZoom: 18 })
+    }
     for (const g of grids) {
       // ndvi comes from the loaded drone ortho; everything else from scores
       const vmap = new Map<number, number>()
