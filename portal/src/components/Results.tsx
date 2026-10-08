@@ -151,15 +151,33 @@ export default function Results() {
     return trts
       .map((t) => {
         const plots = t.components?.plots ?? []
-        const cells: Record<string, number | null> = {}
+        const cells: Record<string, { mean: number; sd: number | null; vals: Array<[number, number]> } | null> = {}
         for (const m of measures) {
-          const vals = plots.map((p) => byPlot.values.get(p)?.[m]).filter((v): v is number => v !== undefined)
-          cells[m] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+          const vals = plots.map((p) => [p, byPlot.values.get(p)?.[m]] as [number, number | undefined]).filter((x): x is [number, number] => x[1] !== undefined)
+          if (!vals.length) {
+            cells[m] = null
+            continue
+          }
+          const mean = vals.reduce((a, [, v]) => a + v, 0) / vals.length
+          const sd = vals.length > 1 ? Math.sqrt(vals.reduce((a, [, v]) => a + (v - mean) ** 2, 0) / (vals.length - 1)) : null
+          cells[m] = { mean, sd, vals }
         }
         return { t, cells, plots }
       })
       .sort((a, b) => a.t.n - b.t.n)
   }, [trts, measures, byPlot])
+
+  /** Plant-level readings and provisional flags live in the score notes —
+   * surface them structurally rather than as prose. */
+  const plantDetail = (plot: number, m: string): { plants: string[] | null; provisional: boolean; rest: string | null } => {
+    const row = scores.find((s) => s.plot === plot && s.measure === m)
+    if (!row?.note) return { plants: null, provisional: false, rest: null }
+    const provisional = /PROVISIONAL/i.test(row.note)
+    const match = row.note.match(/plants\s+([^—[]+)/i)
+    const plants = match ? match[1].trim().replace(/\s+$/, '').split('/').map((s) => s.trim()) : null
+    return { plants, provisional, rest: row.note }
+  }
+  const plotProvisional = (plot: number) => scores.some((s) => s.plot === plot && s.note && /PROVISIONAL/i.test(s.note))
 
   const scatter = useMemo(() => {
     const pts: Array<{ plot: number; x: number; y: number; trt: TreatmentRow | undefined }> = []
@@ -247,8 +265,15 @@ export default function Results() {
                     <td style={{ padding: '5px 10px 5px 2px', fontWeight: 700, color: INK, borderTop: `1px solid #F0F1F0` }}>T{t.n}</td>
                     <td style={{ padding: '5px 14px 5px 2px', color: INK, borderTop: `1px solid #F0F1F0`, whiteSpace: 'nowrap' }}>{t.name}</td>
                     {measures.map((m) => (
-                      <td key={m} style={{ textAlign: 'right', padding: '5px 12px', fontVariantNumeric: 'tabular-nums', color: INK, borderTop: `1px solid #F0F1F0` }}>
-                        {cells[m] === null ? <span style={{ color: '#C8CAC8' }}>—</span> : cells[m]!.toFixed(1)}
+                      <td key={m} style={{ textAlign: 'right', padding: '5px 12px', fontVariantNumeric: 'tabular-nums', color: INK, borderTop: `1px solid #F0F1F0`, whiteSpace: 'nowrap' }}>
+                        {cells[m] === null ? (
+                          <span style={{ color: '#C8CAC8' }}>—</span>
+                        ) : (
+                          <>
+                            {cells[m]!.mean.toFixed(1)}
+                            {cells[m]!.sd !== null && <span style={{ color: GREY, fontSize: 10.5 }}> ±{cells[m]!.sd!.toFixed(1)}</span>}
+                          </>
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -256,7 +281,56 @@ export default function Results() {
               })}
             </tbody>
           </table>
-          <div style={{ fontSize: 11, color: GREY, marginTop: 8 }}>Raw means, no significance letters yet. Click a column header to map it; click a row to highlight its plots.</div>
+          <div style={{ fontSize: 11, color: GREY, marginTop: 8 }}>Mean ± SD across reps — raw, no significance letters yet. Click a column header to map it; click a row for the rep breakdown.</div>
+
+          {/* rep breakdown for the selected treatment */}
+          {selTrt !== null &&
+            (() => {
+              const row = meansRows.find((r) => r.t.n === selTrt)
+              if (!row) return null
+              return (
+                <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: '#FAFBFA', border: `1px solid #EDEEED` }}>
+                  <div style={{ ...eyebrow, marginBottom: 6 }}>
+                    T{row.t.n} {row.t.name.toUpperCase()} — PLOT BY PLOT
+                  </div>
+                  <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '3px 12px 3px 0', color: GREY, fontWeight: 700 }}>Measure</th>
+                        {row.plots.map((p) => (
+                          <th key={p} style={{ textAlign: 'right', padding: '3px 12px', color: GREEN, fontWeight: 700, cursor: 'pointer' }} onClick={() => setSelPlot(p)}>
+                            {p}
+                          </th>
+                        ))}
+                        <th style={{ textAlign: 'right', padding: '3px 12px', color: GREY, fontWeight: 700 }}>mean</th>
+                        <th style={{ textAlign: 'right', padding: '3px 12px', color: GREY, fontWeight: 700 }}>CV%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {measures.map((m) => {
+                        const c = row.cells[m]
+                        if (!c) return null
+                        const byP = new Map(c.vals)
+                        const cv = c.sd !== null && c.mean ? (c.sd / c.mean) * 100 : null
+                        return (
+                          <tr key={m}>
+                            <td style={{ padding: '3px 12px 3px 0', color: '#3E403E', whiteSpace: 'nowrap' }}>{label(m)}</td>
+                            {row.plots.map((p) => (
+                              <td key={p} style={{ textAlign: 'right', padding: '3px 12px', fontVariantNumeric: 'tabular-nums' }}>
+                                {byP.has(p) ? byP.get(p) : <span style={{ color: '#C8CAC8' }}>—</span>}
+                              </td>
+                            ))}
+                            <td style={{ textAlign: 'right', padding: '3px 12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{c.mean.toFixed(1)}</td>
+                            <td style={{ textAlign: 'right', padding: '3px 12px', color: GREY, fontVariantNumeric: 'tabular-nums' }}>{cv === null ? '—' : cv.toFixed(0)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  <div style={{ fontSize: 11, color: GREY, marginTop: 6 }}>{row.t.recipe}</div>
+                </div>
+              )
+            })()}
         </div>
 
         {/* plot heat map */}
@@ -303,6 +377,7 @@ export default function Results() {
                         {Number.isInteger(v) ? v : v.toFixed(1)}
                       </text>
                     )}
+                    {vals && plotProvisional(plot) && <circle cx={(pi + 0.3) * cell + cell - 10} cy={(ri + 0.3) * cell + 9} r={3.5} fill="#E8A13C" stroke="#fff" strokeWidth={1} />}
                   </g>
                 )
               })
@@ -425,12 +500,30 @@ export default function Results() {
             </div>
           )}
           <div style={eyebrow}>SCORES</div>
-          {Object.entries(byPlot.values.get(selPlot) ?? {}).map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', fontSize: 13, padding: '4px 0', borderBottom: '1px solid #F2F3F2' }}>
-              <span style={{ color: '#3E403E' }}>{label(k)}</span>
-              <b style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{v}</b>
-            </div>
-          ))}
+          {Object.entries(byPlot.values.get(selPlot) ?? {}).map(([k, v]) => {
+            const d = plantDetail(selPlot, k)
+            return (
+              <div key={k} style={{ padding: '6px 0', borderBottom: '1px solid #F2F3F2' }}>
+                <div style={{ display: 'flex', fontSize: 13, alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: '#3E403E' }}>{label(k)}</span>
+                  {d.provisional && (
+                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.06em', color: '#8A5A00', background: '#FDF2DC', borderRadius: 4, padding: '2px 5px' }}>PROVISIONAL</span>
+                  )}
+                  <b style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{v}</b>
+                </div>
+                {d.plants && (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                    {d.plants.map((p, i) => (
+                      <span key={i} title={`plant ${i + 1}`} style={{ fontSize: 10.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#3E403E', background: '#F2F3F2', borderRadius: 5, padding: '2px 7px' }}>
+                        {p}
+                      </span>
+                    ))}
+                    <span style={{ fontSize: 10, color: GREY, alignSelf: 'center' }}>per plant</span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
           {(byPlot.notes.get(selPlot) ?? []).length > 0 && (
             <>
               <div style={{ ...eyebrow, marginTop: 14 }}>FIELD NOTES</div>
