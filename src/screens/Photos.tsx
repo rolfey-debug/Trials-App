@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { C, MONO } from '../theme'
 import { useApp } from '../store/store'
 import { ScreenTitle } from '../components/bits'
-import { photoUrl } from '../lib/photo'
+import { photoUrl, saveWatermarked } from '../lib/photo'
 import type { PhotoMeta } from '../store/types'
 
 const STRIPES = 'repeating-linear-gradient(45deg,#DCE4DE 0 8px,#D0DAD3 8px 16px)'
 
-function Tile({ p, onFlag }: { p: PhotoMeta; onFlag: () => void }) {
+function Tile({ p, trialName, onFlag }: { p: PhotoMeta; trialName: string; onFlag: () => void }) {
   const [url, setUrl] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   useEffect(() => {
     let alive = true
     let obj: string | null = null
@@ -34,11 +35,27 @@ function Tile({ p, onFlag }: { p: PhotoMeta; onFlag: () => void }) {
       }}
     >
       {p.flagged ? <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.burnt, margin: '6px 6px 0 auto' }} /> : <div />}
-      <div style={{ marginTop: 'auto', background: 'rgba(20,20,20,.72)', padding: '4px 7px' }}>
-        <div style={{ font: `600 10px ${MONO}`, color: '#fff' }}>
-          {p.pid} · T{p.trt}
+      <div style={{ marginTop: 'auto', background: 'rgba(20,20,20,.72)', padding: '4px 7px', display: 'flex', alignItems: 'center' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ font: `600 10px ${MONO}`, color: '#fff' }}>
+            {p.pid} · T{p.trt}
+          </div>
+          <div style={{ font: `400 9px ${MONO}`, color: 'rgba(255,255,255,.75)' }}>{p.date}</div>
         </div>
-        <div style={{ font: `400 9px ${MONO}`, color: 'rgba(255,255,255,.75)' }}>{p.date}</div>
+        {p.stored && (
+          <div
+            onClick={async (e) => {
+              e.stopPropagation()
+              if (saving) return
+              setSaving(true)
+              await saveWatermarked(p, trialName)
+              setSaving(false)
+            }}
+            style={{ marginLeft: 'auto', flex: 'none', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 7, background: 'rgba(255,255,255,.18)', color: '#fff', fontSize: 13 }}
+          >
+            {saving ? '…' : '⬇'}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -74,6 +91,7 @@ export function Photos() {
           <Tile
             key={p.id}
             p={p}
+            trialName={doc.trial.name.split('—')[0].trim()}
             onFlag={() =>
               mutTrial(null, (t) => {
                 const ph = t.photos.find((x) => x.id === p.id)
@@ -89,8 +107,9 @@ export function Photos() {
         </div>
       )}
       <div style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 12, padding: '11px 14px', fontSize: 11.5, color: C.grey, lineHeight: 1.6 }}>
-        <b style={{ color: C.ink }}>Storage:</b> compressed to ~300 KB on the phone so a season fits easily; full-res originals upload on Wi-Fi
-        and file themselves in the portal by trial › plot › date. Same plot across visits becomes a timeline for the report.
+        <b style={{ color: C.ink }}>Storage:</b> compressed to ~300 KB on the phone so a season fits easily. Tap a tile to flag it for the
+        report; the ⬇ button saves a copy to the phone with the plot, trial and date stamped on it. Photo files stay on this phone for now —
+        only their records sync.
       </div>
     </div>
   )
