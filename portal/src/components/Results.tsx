@@ -2,7 +2,8 @@
  * map, a measure-vs-measure scatter, and per-plot detail with photos. Reads
  * the real backend under RLS; everything renders from scores + treatments. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadLiveTrials, loadScores, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, type LiveTrial, type PhotoRow, type ScoreRow, type TreatmentRow } from '../lib/db'
+import { correctScore, loadLiveTrials, loadScores, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, type LiveTrial, type PhotoRow, type ScoreRow, type TreatmentRow } from '../lib/db'
+import { rcbdAnova, type Anova } from '../lib/stats'
 
 const GREEN = '#007749'
 const INK = '#141414'
@@ -72,6 +73,7 @@ export default function Results() {
   const [tip, setTip] = useState<Tip | null>(null)
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
   const [bigPhoto, setBigPhoto] = useState<string | null>(null)
+  const [edit, setEdit] = useState<{ measure: string; val: string; reason: string; busy: boolean } | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'signedout'>('loading')
   const urlsRef = useRef<string[]>([])
 
@@ -167,6 +169,35 @@ export default function Results() {
       .sort((a, b) => a.t.n - b.t.n)
   }, [trts, measures, byPlot])
 
+  /** RCBD ANOVA per measure, when every treatment carries the same complete
+   * block count (block = position in the treatment's plot list). */
+  const anovas = useMemo(() => {
+    const out: Record<string, Anova> = {}
+    for (const m of measures) {
+      const data: Record<string, number[]> = {}
+      let ok = trts.length >= 2
+      let r: number | null = null
+      for (const t of trts) {
+        const plots = t.components?.plots ?? []
+        const vals = plots.map((p) => byPlot.values.get(p)?.[m])
+        if (vals.some((v) => v === undefined) || !vals.length) {
+          ok = false
+          break
+        }
+        if (r === null) r = vals.length
+        if (vals.length !== r) {
+          ok = false
+          break
+        }
+        data[`T${t.n}`] = vals as number[]
+      }
+      if (!ok) continue
+      const a = rcbdAnova(data)
+      if (a) out[m] = a
+    }
+    return out
+  }, [measures, trts, byPlot])
+
   /** Plant-level readings and provisional flags live in the score notes —
    * surface them structurally rather than as prose. */
   const plantDetail = (plot: number, m: string): { plants: string[] | null; provisional: boolean; rest: string | null } => {
@@ -206,6 +237,25 @@ export default function Results() {
   }, [selPlot, photos])
 
   const showTip = (e: React.MouseEvent, lines: string[]) => setTip({ x: e.clientX + 14, y: e.clientY + 10, lines })
+
+  const saveEdit = async () => {
+    if (!edit || selPlot === null || !trialId || edit.busy) return
+    const row = scores.find((s) => s.plot === selPlot && s.measure === edit.measure)
+    const newVal = Number(edit.val)
+    if (!row || !Number.isFinite(newVal) || !edit.reason.trim()) return
+    setEdit({ ...edit, busy: true })
+    const token = await portalToken()
+    if (!token) {
+      setEdit(null)
+      return
+    }
+    const ok = await correctScore(row.id, trialId, selPlot, edit.measure, Number(row.value), newVal, edit.reason.trim(), token)
+    if (ok) {
+      const sc = await loadScores(trialId, token)
+      if (sc) setScores(sc)
+    }
+    setEdit(null)
+  }
 
   if (state === 'signedout')
     return (
@@ -271,6 +321,7 @@ export default function Results() {
                         ) : (
                           <>
                             {cells[m]!.mean.toFixed(1)}
+                            {anovas[m] && <b style={{ color: GREEN, fontSize: 11 }}> {anovas[m].letters[`T${t.n}`] ?? ''}</b>}
                             {cells[m]!.sd !== null && <span style={{ color: GREY, fontSize: 10.5 }}> ±{cells[m]!.sd!.toFixed(1)}</span>}
                           </>
                         )}
@@ -281,7 +332,15 @@ export default function Results() {
               })}
             </tbody>
           </table>
-          <div style={{ fontSize: 11, color: GREY, marginTop: 8 }}>Mean ± SD across reps — raw, no significance letters yet. Click a column header to map it; click a row for the rep breakdown.</div>
+          <div style={{ fontSize: 11, color: GREY, marginTop: 8 }}>
+            Mean ± SD across reps; letters from RCBD ANOVA + LSD 5% (treatments sharing a letter do not differ).
+            {anovas[measure] && (
+              <>
+                {' '}For {label(measure)}: LSD <b style={{ color: '#3E403E' }}>{anovas[measure].lsd05.toFixed(1)}</b> · CV {anovas[measure].cv.toFixed(0)}% · F {Number.isFinite(anovas[measure].fTrt) ? anovas[measure].fTrt.toFixed(1) : '∞'} on {anovas[measure].dfTrt},{anovas[measure].dfError} df.
+              </>
+            )}{' '}
+            Click a column header to map it; click a row for the rep breakdown.
+          </div>
 
           {/* rep breakdown for the selected treatment */}
           {selTrt !== null &&
@@ -502,6 +561,7 @@ export default function Results() {
           <div style={eyebrow}>SCORES</div>
           {Object.entries(byPlot.values.get(selPlot) ?? {}).map(([k, v]) => {
             const d = plantDetail(selPlot, k)
+            const editing = edit?.measure === k
             return (
               <div key={k} style={{ padding: '6px 0', borderBottom: '1px solid #F2F3F2' }}>
                 <div style={{ display: 'flex', fontSize: 13, alignItems: 'center', gap: 6 }}>
@@ -510,7 +570,29 @@ export default function Results() {
                     <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.06em', color: '#8A5A00', background: '#FDF2DC', borderRadius: 4, padding: '2px 5px' }}>PROVISIONAL</span>
                   )}
                   <b style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{v}</b>
+                  <span title="Correct this value (logged)" onClick={() => setEdit(editing ? null : { measure: k, val: String(v), reason: '', busy: false })} style={{ cursor: 'pointer', color: editing ? INK : GREY, fontSize: 12 }}>
+                    ✎
+                  </span>
                 </div>
+                {editing && (
+                  <div style={{ margin: '6px 0 2px', padding: '8px 9px', borderRadius: 8, background: '#FAFBFA', border: `1px solid #EDEEED` }}>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                      <input type="number" value={edit.val} onChange={(e) => setEdit({ ...edit, val: e.target.value })} style={{ width: 70, font: 'inherit', fontSize: 12.5, padding: '5px 7px', borderRadius: 6, border: `1px solid ${HAIR}` }} />
+                      <input placeholder="why (goes in the correction log)" value={edit.reason} onChange={(e) => setEdit({ ...edit, reason: e.target.value })} style={{ flex: 1, font: 'inherit', fontSize: 12, padding: '5px 7px', borderRadius: 6, border: `1px solid ${HAIR}` }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span onClick={() => void saveEdit()} style={{ fontSize: 12, fontWeight: 700, color: edit.reason.trim() ? GREEN : '#B8BAB8', cursor: edit.reason.trim() ? 'pointer' : 'default' }}>
+                        {edit.busy ? 'Saving…' : 'Save correction'}
+                      </span>
+                      <span onClick={() => setEdit(null)} style={{ fontSize: 12, color: GREY, cursor: 'pointer' }}>
+                        Cancel
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 10, color: GREY, marginTop: 5, lineHeight: 1.4 }}>
+                      Old value, new value, who and why are written to the correction log. Measures the phone also holds (pgreen, lai) can be overwritten by its next sync.
+                    </div>
+                  </div>
+                )}
                 {d.plants && (
                   <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
                     {d.plants.map((p, i) => (

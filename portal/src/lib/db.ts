@@ -1,7 +1,7 @@
 /** Live trial data for the portal — reads/writes the real backend as the
  * signed-in user (RLS scopes everything to the org). The session is the one
  * the sidebar sign-in (or the field app, same origin) saved to localStorage. */
-import { fetchObject, refresh, remove, select, update, type Session } from '../../../shared/supa'
+import { fetchObject, insert, refresh, remove, select, update, type Session } from '../../../shared/supa'
 
 const SESSION_KEY = 'tw.supaSession'
 
@@ -97,6 +97,7 @@ export function deleteTrial(id: string, token: string): Promise<boolean> {
 // --- Results screen loaders -------------------------------------------------
 
 export interface ScoreRow {
+  id: string
   plot: number
   measure: string
   value: number
@@ -120,7 +121,7 @@ export interface PhotoRow {
 }
 
 export function loadScores(trialId: string, token: string): Promise<ScoreRow[] | null> {
-  return select<ScoreRow>('scores', `select=plot,measure,value,note,recorded_at&trial_id=eq.${trialId}&order=plot.asc`, token)
+  return select<ScoreRow>('scores', `select=id,plot,measure,value,note,recorded_at&trial_id=eq.${trialId}&order=plot.asc`, token)
 }
 
 export function loadTreatments(trialId: string, token: string): Promise<TreatmentRow[] | null> {
@@ -137,4 +138,49 @@ export async function photoObjectUrl(path: string): Promise<string | null> {
   if (!token) return null
   const blob = await fetchObject('photos', path, token)
   return blob ? URL.createObjectURL(blob) : null
+}
+
+/** auth uid baked into the JWT — used as made_by on corrections. */
+function jwtSub(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof payload.sub === 'string' ? payload.sub : null
+  } catch {
+    return null
+  }
+}
+
+/** Correct a score value: updates the row and writes an audit-trail
+ * correction (who, when, old, new, why) in the same breath. */
+export async function correctScore(
+  scoreId: string,
+  trialId: string,
+  plot: number,
+  measure: string,
+  oldValue: number,
+  newValue: number,
+  reason: string,
+  token: string
+): Promise<boolean> {
+  const ok = await update('scores', `id=eq.${scoreId}`, { value: newValue }, token)
+  if (!ok) return false
+  await insert(
+    'corrections',
+    [
+      {
+        id: crypto.randomUUID(),
+        trial_id: trialId,
+        plot,
+        kind: 'value',
+        measure,
+        old_value: oldValue,
+        new_value: newValue,
+        reason,
+        made_by: jwtSub(token),
+        made_at: new Date().toISOString(),
+      },
+    ],
+    token
+  )
+  return true
 }
