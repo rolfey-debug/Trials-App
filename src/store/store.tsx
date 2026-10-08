@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { AppState, Screen, SyncItem, TrialDoc, TrialState } from './types'
 import { idb } from './idb'
 import { FLUTRI_ID, MATONG_ID, RINGWOOD_ID, flutriDoc, flutriTrialState, matongDoc, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
-import { logout as backendLogout, pushToBackend } from '../lib/backend'
+import { logout as backendLogout, pushToBackend, uploadPendingPhotos } from '../lib/backend'
 
 interface StoreCtx {
   st: AppState
@@ -153,6 +153,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const cur = stRef.current
     if (!cur || !navigator.onLine) return
     void pushToBackend(cur).catch(() => false)
+    // photo files ride up after the rows; successful ids get flagged so the
+    // next sync only carries what's new
+    void uploadPendingPhotos(cur)
+      .then((ids) => {
+        if (!ids.length) return
+        const up = new Set(ids)
+        mut(null, (d) => {
+          for (const ts of Object.values(d.trialState))
+            for (const p of ts.photos) if (up.has(p.id)) p.uploaded = true
+        })
+      })
+      .catch(() => {})
     mut(null, (d) => {
       d.syncQueue = d.syncQueue.map((q) => ({ ...q, synced: true }))
       d.lastSyncTs = Date.now()

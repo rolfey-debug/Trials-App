@@ -123,6 +123,24 @@ export async function insert(table: string, rows: unknown[], token: string, opts
   return r.ok
 }
 
+/** Upload a blob into a storage bucket (private; read back with fetchObject). */
+export async function uploadObject(bucket: string, path: string, blob: Blob, token: string): Promise<boolean> {
+  const r = await fetch(`${SUPA_URL}/storage/v1/object/${bucket}/${path}`, {
+    method: 'POST',
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${token}`, 'Content-Type': blob.type || 'application/octet-stream', 'x-upsert': 'true' },
+    body: blob,
+  })
+  return r.ok
+}
+
+/** Fetch a private storage object; null when missing or unauthorised. */
+export async function fetchObject(bucket: string, path: string, token: string): Promise<Blob | null> {
+  const r = await fetch(`${SUPA_URL}/storage/v1/object/authenticated/${bucket}/${path}`, {
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${token}` },
+  })
+  return r.ok ? r.blob() : null
+}
+
 /** PATCH rows matching `filter` (PostgREST query string, e.g. "id=eq.<uuid>"). */
 export async function update(table: string, filter: string, patch: Record<string, unknown>, token: string): Promise<boolean> {
   try {

@@ -97,6 +97,8 @@ export interface PhotoMeta {
   flagged: boolean
   /** true when a real captured blob exists in IndexedDB under this id */
   stored: boolean
+  /** true once the blob has landed in the org's storage bucket */
+  uploaded?: boolean
   sizeKB?: number
   lat?: number
   lng?: number

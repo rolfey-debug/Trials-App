@@ -3,7 +3,8 @@
  * back to the offline demo path — the app's offline-first promise is that
  * nothing here ever blocks field work.
  */
-import { insert, refresh, signInOrUp, stableId, updatePassword, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
+import { insert, refresh, signInOrUp, stableId, updatePassword, uploadObject, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
+import { idb } from '../store/idb'
 import type { AppState, TrialState } from '../store/types'
 
 const KEY = 'tw.supaSession'
@@ -73,6 +74,32 @@ function trialUuid(localId: string): string | null {
  * are deterministic, upserts are last-write-wins — safe to call after every
  * change or after days offline. Best-effort by design.
  */
+/** Upload photo files that haven't reached the org bucket yet (F24). Returns
+ * the local photo ids that landed, so the store can mark them uploaded.
+ * Sequential and best-effort: a dropped connection just leaves the remainder
+ * for the next sync. */
+export async function uploadPendingPhotos(st: AppState): Promise<string[]> {
+  const token = await activeToken()
+  if (!token) return []
+  const done: string[] = []
+  for (const [localId, ts] of Object.entries(st.trialState)) {
+    const trial_id = trialUuid(localId)
+    if (!trial_id) continue
+    for (const p of ts.photos) {
+      if (!p.stored || p.uploaded) continue
+      try {
+        const blob = await idb.getPhoto(p.id)
+        if (!blob) continue
+        const ok = await uploadObject('photos', `${ORG_ID}/${trial_id}/${p.id}.jpg`, blob, token)
+        if (ok) done.push(p.id)
+      } catch {
+        /* next sync retries */
+      }
+    }
+  }
+  return done
+}
+
 export async function pushToBackend(st: AppState): Promise<boolean> {
   const token = await activeToken()
   if (!token) return false

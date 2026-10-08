@@ -1,7 +1,7 @@
 /** Live trial data for the portal — reads/writes the real backend as the
  * signed-in user (RLS scopes everything to the org). The session is the one
  * the sidebar sign-in (or the field app, same origin) saved to localStorage. */
-import { refresh, remove, select, update, type Session } from '../../../shared/supa'
+import { fetchObject, refresh, remove, select, update, type Session } from '../../../shared/supa'
 
 const SESSION_KEY = 'tw.supaSession'
 
@@ -92,4 +92,49 @@ export function saveTrial(id: string, patch: TrialPatch, token: string): Promise
 /** Deletes the trial; scores/photos/operations/treatments cascade with it. */
 export function deleteTrial(id: string, token: string): Promise<boolean> {
   return remove('trials', `id=eq.${id}`, token)
+}
+
+// --- Results screen loaders -------------------------------------------------
+
+export interface ScoreRow {
+  plot: number
+  measure: string
+  value: number
+  note: string | null
+  recorded_at: string
+}
+
+export interface TreatmentRow {
+  n: number
+  name: string
+  recipe: string
+  b_spray: boolean
+  components: { plots?: number[] } | null
+}
+
+export interface PhotoRow {
+  plot: number
+  storage_path: string
+  taken_at: string
+  meta: { flagged?: boolean; trt?: number; label?: string } | null
+}
+
+export function loadScores(trialId: string, token: string): Promise<ScoreRow[] | null> {
+  return select<ScoreRow>('scores', `select=plot,measure,value,note,recorded_at&trial_id=eq.${trialId}&order=plot.asc`, token)
+}
+
+export function loadTreatments(trialId: string, token: string): Promise<TreatmentRow[] | null> {
+  return select<TreatmentRow>('treatments', `select=n,name,recipe,b_spray,components&trial_id=eq.${trialId}&order=n.asc`, token)
+}
+
+export function loadTrialPhotos(trialId: string, token: string): Promise<PhotoRow[] | null> {
+  return select<PhotoRow>('photos', `select=plot,storage_path,taken_at,meta&trial_id=eq.${trialId}&order=plot.asc`, token)
+}
+
+/** Object URL for a photo in the org bucket; null = not uploaded yet. */
+export async function photoObjectUrl(path: string): Promise<string | null> {
+  const token = await portalToken()
+  if (!token) return null
+  const blob = await fetchObject('photos', path, token)
+  return blob ? URL.createObjectURL(blob) : null
 }

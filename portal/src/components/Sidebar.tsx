@@ -28,6 +28,13 @@ function BackendChip() {
 }
 
 const icons = {
+  results: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="20" x2="5" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="19" y1="20" x2="19" y2="14" />
+    </svg>
+  ),
   trials: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
@@ -241,6 +248,9 @@ export default function Sidebar() {
       </NavItem>
       <NavItem active={s.screen === 'wizard' && !s.picker} onClick={() => nav('wizard', { step: 'treatments' })} icon={icons.new}>
         New trial
+      </NavItem>
+      <NavItem active={s.screen === 'results'} onClick={() => nav('results')} icon={icons.results}>
+        Results
       </NavItem>
       <NavItem active={s.screen === 'map'} onClick={() => nav('map')} icon={icons.map}>
         Map
