@@ -21,6 +21,8 @@ const MEASURE_LABEL: Record<string, string> = {
   lrust: 'Leaf rust %',
   sept: 'Septoria %',
   phy: 'Phytotox %',
+  sept_a1: 'Septoria LAI % · A1 3 Sep',
+  rust_a1: 'Rust % · A1 3 Sep',
 }
 const label = (k: string) => MEASURE_LABEL[k] ?? k
 
@@ -413,7 +415,21 @@ export default function Results() {
                           {t.b_spray ? 'A + B' : 'A ONLY'}
                         </span>
                       )}
-                      <div style={{ fontSize: 10.5, color: GREY, whiteSpace: 'normal', maxWidth: 250, lineHeight: 1.35 }}>{t.recipe}</div>
+                      <div style={{ fontSize: 10.5, color: GREY, whiteSpace: 'normal', maxWidth: 250, lineHeight: 1.35 }}>
+                        {t.components?.aTiming ? (
+                          <>
+                            <b style={{ color: '#5a6b5f' }}>A</b> {t.components.aTiming}
+                            {t.components.bTiming && (
+                              <>
+                                {' · '}
+                                <b style={{ color: '#5a6b5f' }}>B</b> {t.components.bTiming}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          t.recipe
+                        )}
+                      </div>
                     </td>
                     {measures.map((m) => (
                       <td key={m} style={{ textAlign: 'right', padding: '5px 12px', fontVariantNumeric: 'tabular-nums', color: INK, borderTop: `1px solid #F0F1F0`, whiteSpace: 'nowrap' }}>
@@ -661,7 +677,14 @@ export default function Results() {
                   {trtOf.get(selPlot)!.b_spray ? 'A + B' : 'A ONLY'}
                 </span>
               )}
-              <div style={{ fontSize: 11.5, color: GREY }}>{trtOf.get(selPlot)!.recipe}</div>
+              {trtOf.get(selPlot)!.components?.aTiming ? (
+                <div style={{ fontSize: 11.5, color: GREY }}>
+                  A: {trtOf.get(selPlot)!.components!.aTiming}
+                  {trtOf.get(selPlot)!.components!.bTiming && <> · B: {trtOf.get(selPlot)!.components!.bTiming}</>}
+                </div>
+              ) : (
+                <div style={{ fontSize: 11.5, color: GREY }}>{trtOf.get(selPlot)!.recipe}</div>
+              )}
               {ops
                 .filter((o) => o.kind === 'spray')
                 .map((o, i) => {

@@ -126,7 +126,7 @@ export interface TreatmentRow {
   name: string
   recipe: string
   b_spray: boolean
-  components: { plots?: number[] } | null
+  components: { plots?: number[]; aTiming?: string | null; bTiming?: string | null } | null
 }
 
 export interface PhotoRow {
