@@ -6,17 +6,30 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { loadLiveTrials, portalToken, type LiveTrial } from '../lib/db'
+import { loadLiveTrials, loadScores, loadTreatments, loadTrialPhotos, portalToken, type LiveTrial } from '../lib/db'
+import { fitGrid, type GridFit } from '../lib/geofit'
+import { rampColor } from './Results'
 import { useApp } from '../state'
 
 const GREEN = '#007749'
+
+interface TrialGrid {
+  trial: LiveTrial
+  fit: GridFit
+  values: Map<number, Record<string, number>>
+  trtName: Map<number, string>
+  measures: string[]
+}
 
 export default function LiveMap() {
   const { nav } = useApp()
   const divRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
+  const gridLayerRef = useRef<L.LayerGroup | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'signedout'>('loading')
   const [trials, setTrials] = useState<LiveTrial[]>([])
+  const [grids, setGrids] = useState<TrialGrid[]>([])
+  const [gMeasure, setGMeasure] = useState<string | null>(null)
 
   useEffect(() => {
     void (async () => {
@@ -28,6 +41,31 @@ export default function LiveMap() {
       const t = await loadLiveTrials(token)
       setTrials(t ?? [])
       setState('ready')
+
+      // fit each trial's plot grid from its GPS-tagged photos
+      const found: TrialGrid[] = []
+      for (const trial of t ?? []) {
+        if (!trial.scores) continue
+        const photos = await loadTrialPhotos(trial.id, token)
+        const pts = (photos ?? [])
+          .filter((p) => p.meta?.lat != null && p.meta?.lng != null)
+          .map((p) => ({ lat: p.meta!.lat!, lng: p.meta!.lng!, row: Math.floor(p.plot / 100), pos: p.plot % 100 }))
+        const fit = fitGrid(pts)
+        if (!fit) continue
+        const [sc, trts] = await Promise.all([loadScores(trial.id, token), loadTreatments(trial.id, token)])
+        const values = new Map<number, Record<string, number>>()
+        for (const s of sc ?? []) {
+          const v = values.get(s.plot) ?? {}
+          v[s.measure] = Number(s.value)
+          values.set(s.plot, v)
+        }
+        const trtName = new Map<number, string>()
+        for (const tr of trts ?? []) for (const pl of tr.components?.plots ?? []) trtName.set(pl, `T${tr.n} ${tr.name}`)
+        const measures = [...new Set((sc ?? []).map((s) => s.measure))].sort()
+        found.push({ trial, fit, values, trtName, measures })
+      }
+      setGrids(found)
+      if (found.length) setGMeasure(found[0].measures.includes('dmg_f1') ? 'dmg_f1' : found[0].measures[0] ?? null)
     })()
   }, [])
 
@@ -82,11 +120,40 @@ export default function LiveMap() {
     if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.4))
     else map.setView([-35.2, 146.7], 8)
 
+    gridLayerRef.current = L.layerGroup().addTo(map)
+
     return () => {
       map.remove()
       mapRef.current = null
+      gridLayerRef.current = null
     }
   }, [state, trials])
+
+  // plot-grid overlay, redrawn when the fits land or the measure changes
+  useEffect(() => {
+    const layer = gridLayerRef.current
+    if (!layer || !mapRef.current) return
+    layer.clearLayers()
+    if (!gMeasure) return
+    for (const g of grids) {
+      const vals = [...g.values.values()].map((v) => v[gMeasure]).filter((v) => v !== undefined)
+      if (!vals.length) continue
+      const min = Math.min(...vals)
+      const max = Math.max(...vals)
+      for (const [plot, v] of g.values) {
+        const val = v[gMeasure]
+        const row = Math.floor(plot / 100)
+        const pos = plot % 100
+        const poly = L.polygon(g.fit.cell(row, pos), {
+          color: '#ffffff',
+          weight: 1,
+          fillColor: val === undefined ? '#9aa09a' : rampColor(gMeasure, max === min ? 0.5 : (val - min) / (max - min)),
+          fillOpacity: val === undefined ? 0.25 : 0.78,
+        }).addTo(layer)
+        poly.bindTooltip(`Plot ${plot}${g.trtName.get(plot) ? ` · ${g.trtName.get(plot)}` : ''}${val !== undefined ? ` · ${val}` : ''}`)
+      }
+    }
+  }, [grids, gMeasure])
 
   if (state === 'signedout')
     return (
@@ -106,6 +173,19 @@ export default function LiveMap() {
           Plot layout (schematic) →
         </span>
       </div>
+      {grids.length > 0 && (
+        <div style={{ padding: '0 22px 10px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.1em', color: '#8A8C8A' }}>PLOT GRID FROM PHOTO GPS</span>
+          {[...new Set(grids.flatMap((g) => g.measures))].sort().map((m) => (
+            <span key={m} onClick={() => setGMeasure(m)} style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 99, cursor: 'pointer', border: `1.5px solid ${gMeasure === m ? GREEN : '#E4E4E6'}`, color: gMeasure === m ? GREEN : '#3E403E', background: gMeasure === m ? '#E3F1EA' : '#fff' }}>
+              {m}
+            </span>
+          ))}
+          <span style={{ fontSize: 11, color: '#8A8C8A' }}>
+            {grids.map((g) => `${g.trial.name.split('—')[0].trim()}: ${g.fit.points} photos, ±${g.fit.rmsM.toFixed(1)} m`).join(' · ')}
+          </span>
+        </div>
+      )}
       <div ref={divRef} data-testid="live-map" style={{ flex: 1, minHeight: 0 }} />
     </div>
   )

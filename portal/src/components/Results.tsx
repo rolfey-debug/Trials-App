@@ -26,7 +26,7 @@ const label = (k: string) => MEASURE_LABEL[k] ?? k
 
 /** Sequential single-hue ramps (light→dark, lightness-monotonic). Damage
  * reads in the burnt hue, canopy/greenness in the field green. */
-function rampColor(key: string, t: number): string {
+export function rampColor(key: string, t: number): string {
   const stops: [number, number, number][] = /pgreen|lai|bio/.test(key)
     ? [[227, 241, 234], [0, 81, 47]]
     : [[251, 234, 227], [126, 36, 6]]

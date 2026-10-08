@@ -193,7 +193,7 @@ async function pushTrial(
     // first segment, so blobs can only ever be read within their own org.
     storage_path: `${ORG_ID}/${trial_id}/${p.id}.jpg`,
     taken_at: new Date().toISOString(),
-    meta: { flagged: p.flagged, trt: p.trt, sizeKB: p.sizeKB ?? null, label: p.date },
+    meta: { flagged: p.flagged, trt: p.trt, sizeKB: p.sizeKB ?? null, label: p.date, lat: p.lat ?? null, lng: p.lng ?? null },
   }))
 
   // Spray-day record: one operations row per timing, upserted on every push —

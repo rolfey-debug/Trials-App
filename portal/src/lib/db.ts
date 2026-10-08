@@ -117,7 +117,7 @@ export interface PhotoRow {
   plot: number
   storage_path: string
   taken_at: string
-  meta: { flagged?: boolean; trt?: number; label?: string } | null
+  meta: { flagged?: boolean; trt?: number; label?: string; lat?: number | null; lng?: number | null } | null
 }
 
 export function loadScores(trialId: string, token: string): Promise<ScoreRow[] | null> {
