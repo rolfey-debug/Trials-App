@@ -1,7 +1,8 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { C, MONO, SANS } from '../theme'
 import { useApp } from '../store/store'
 import { useGps } from '../gps/useGps'
+import { fetchRecheckList, type RecheckItem } from '../lib/backend'
 import { assessmentOrder, capFor, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf } from '../lib/trial'
 import { analyzeCanopyPhoto, laiBackspace, laiKeyDigit, type CanopyAnalysis } from '../lib/lai'
 import { gridFromCorners, locate } from '../gps/geo'
@@ -21,7 +22,19 @@ export function Assess() {
   const laiFileRef = useRef<HTMLInputElement>(null)
   const [laiRes, setLaiRes] = useState<(CanopyAnalysis & { file: File }) | null>(null)
   const [pickOpen, setPickOpen] = useState(false)
+  const [recheck, setRecheck] = useState<RecheckItem[] | null>(null)
+  const [rcOpen, setRcOpen] = useState(false)
   const voiceTimer = useRef<number | undefined>(undefined)
+
+  // server-flagged recheck list (provisional / marginal / plot damage) —
+  // online-only, silently absent in the paddock with no signal
+  useEffect(() => {
+    let live = true
+    void fetchRecheckList(st.activeTrialId).then((r) => live && setRecheck(r))
+    return () => {
+      live = false
+    }
+  }, [st.activeTrialId])
 
   const order = useMemo(() => assessmentOrder(doc), [doc])
   const flat = useMemo(() => measureFlat(doc.measures), [doc])
@@ -287,6 +300,14 @@ export function Assess() {
         <div style={{ font: `500 10.5px ${MONO}`, color: C.grey }}>
           {scored}/{order.length} · Assess 1
         </div>
+        {recheck !== null && recheck.length > 0 && (
+          <div
+            onClick={() => setRcOpen(true)}
+            style={{ font: `700 10.5px ${MONO}`, color: C.burntDark, background: C.burntTint, padding: '4px 9px', borderRadius: 99, cursor: 'pointer' }}
+          >
+            Recheck {new Set(recheck.map((r) => r.plot)).size}
+          </div>
+        )}
       </div>
 
       {/* measure header */}
@@ -515,6 +536,54 @@ export function Assess() {
             Done — back to scoring
           </div>
         </>
+      )}
+
+      {/* recheck walk list — server-flagged provisional/marginal values */}
+      {rcOpen && recheck && (
+        <div
+          onClick={() => setRcOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,.45)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: '14px 14px 12px', maxHeight: '82%', overflow: 'auto', width: '100%', maxWidth: 400 }}>
+            <div style={{ font: `600 10px ${MONO}`, color: C.grey, letterSpacing: '.08em', marginBottom: 2 }}>RECHECK LIST</div>
+            <div style={{ fontSize: 11.5, color: C.grey, marginBottom: 10 }}>
+              Values flagged provisional on the tape, marginal plots and plot damage. Tap a plot to walk to it — fix numbers via the office portal or tell Claude.
+            </div>
+            {[...new Set(recheck.map((r) => r.plot))]
+              .sort((a, b) => a - b)
+              .map((plot) => {
+                const items = recheck.filter((r) => r.plot === plot)
+                const tag = /PLOT DAMAGE/i.test(items.map((i) => i.note).join()) ? 'PLOT DAMAGE' : /MARGINAL/i.test(items.map((i) => i.note).join()) ? 'MARGINAL' : 'PROVISIONAL'
+                return (
+                  <div
+                    key={plot}
+                    onClick={() => {
+                      const at = order.indexOf(plot)
+                      if (at >= 0) {
+                        mutTrial(null, (t) => void (t.assessIdx = at))
+                        setRcOpen(false)
+                      }
+                    }}
+                    style={{ border: `1px solid ${C.hairline}`, borderRadius: 10, padding: '9px 11px', marginBottom: 7, cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ font: `700 14px ${MONO}` }}>{plot}</span>
+                      <span style={{ font: `700 8.5px ${MONO}`, letterSpacing: '.07em', color: C.burntDark, background: C.burntTint, padding: '2px 7px', borderRadius: 99 }}>{tag}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: C.green }}>Walk to →</span>
+                    </div>
+                    {items.map((it) => (
+                      <div key={it.measure} style={{ marginTop: 5 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700 }}>
+                          {flat[it.measure]?.[1] ?? it.measure} · {it.value}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.grey, lineHeight: 1.4 }}>{it.note.replace(/\s*\[voice transcript[^\]]*\]\s*$/i, '')}</div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+          </div>
+        </div>
       )}
 
       {/* jump-to-plot picker — tap the plot number to open */}

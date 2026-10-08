@@ -3,7 +3,7 @@
  * back to the offline demo path — the app's offline-first promise is that
  * nothing here ever blocks field work.
  */
-import { insert, refresh, signInOrUp, stableId, updatePassword, uploadObject, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
+import { insert, refresh, select, signInOrUp, stableId, updatePassword, uploadObject, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
 import { idb } from '../store/idb'
 import type { AppState, TrialState } from '../store/types'
 
@@ -78,6 +78,28 @@ function trialUuid(localId: string): string | null {
  * the local photo ids that landed, so the store can mark them uploaded.
  * Sequential and best-effort: a dropped connection just leaves the remainder
  * for the next sync. */
+export interface RecheckItem {
+  plot: number
+  measure: string
+  value: number
+  note: string
+}
+
+/** Scores flagged for a field recheck — provisional values, marginal plots
+ * and plot-damage notes live in the score notes on the server (transcript
+ * parsing writes them there). Online-only; null means offline or signed out,
+ * and the Assess screen just hides the pill. */
+export async function fetchRecheckList(localId: string): Promise<RecheckItem[] | null> {
+  const token = await activeToken()
+  const trial_id = trialUuid(localId)
+  if (!token || !trial_id) return null
+  return select<RecheckItem>(
+    'scores',
+    `select=plot,measure,value,note&trial_id=eq.${trial_id}&or=(note.ilike.*PROVISIONAL*,note.ilike.*MARGINAL*,note.ilike.*PLOT%20DAMAGE*)&order=plot.asc`,
+    token
+  )
+}
+
 export async function uploadPendingPhotos(st: AppState): Promise<string[]> {
   const token = await activeToken()
   if (!token) return []
