@@ -53,6 +53,23 @@ function upgrade(saved: AppState): AppState {
     changed = true
   }
 
+  // One-off field correction (8 Oct 2026): the first flutriafol walk went up
+  // the Scepter strip, so the scores saved against 201/202 belong on 102/103.
+  // Guarded to that morning's entry window and an empty target, so it is a
+  // no-op on every other install and never clobbers real Beckom scores.
+  const flutriFix = next.trialState[FLUTRI_ID]
+  if (flutriFix) {
+    const inWindow = (t: number) => t >= Date.parse('2026-10-08T00:30:00Z') && t <= Date.parse('2026-10-08T00:50:00Z')
+    for (const [from, to] of [[201, 102], [202, 103]] as const) {
+      const sc = flutriFix.scores[from]
+      if (sc && inWindow(sc.ts) && !flutriFix.scores[to]) {
+        flutriFix.scores[to] = sc
+        delete flutriFix.scores[from]
+        changed = true
+      }
+    }
+  }
+
   const freshDocs: Array<[string, TrialDoc]> = [
     [MATONG_ID, matongDoc()],
     [RINGWOOD_ID, ringwoodDoc()],
