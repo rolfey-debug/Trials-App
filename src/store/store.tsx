@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppState, Screen, SyncItem, TrialDoc, TrialState } from './types'
 import { idb } from './idb'
-import { MATONG_ID, RINGWOOD_ID, matongDoc, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
+import { FLUTRI_ID, MATONG_ID, RINGWOOD_ID, flutriDoc, flutriTrialState, matongDoc, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
 import { logout as backendLogout, pushToBackend } from '../lib/backend'
 
 interface StoreCtx {
@@ -47,9 +47,16 @@ function upgrade(saved: AppState): AppState {
     changed = true
   }
 
+  if (!next.trials[FLUTRI_ID]) {
+    next.trials[FLUTRI_ID] = flutriDoc()
+    next.trialState[FLUTRI_ID] = flutriTrialState()
+    changed = true
+  }
+
   const freshDocs: Array<[string, TrialDoc]> = [
     [MATONG_ID, matongDoc()],
     [RINGWOOD_ID, ringwoodDoc()],
+    [FLUTRI_ID, flutriDoc()],
   ]
   const groups = ['disease', 'weeds', 'crop'] as const
   for (const [id, fresh] of freshDocs) {

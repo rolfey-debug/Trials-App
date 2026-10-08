@@ -1,3 +1,4 @@
+import { FLUTRI_BASE } from '../data/flutriafol'
 import { MATONG_BASE } from '../data/matong'
 import { RINGWOOD_BASE } from '../data/ringwood'
 import type { AppState, Issue, PhotoMeta, Score, SyncItem, TrialDoc, TrialState } from './types'
@@ -5,6 +6,7 @@ import { assessmentOrder } from '../lib/trial'
 
 export const MATONG_ID = 'matong-wheat-fungicide-2026'
 export const RINGWOOD_ID = 'ringwood-wheat-fungicide-2026'
+export const FLUTRI_ID = 'ringwood-flutriafol-breakdown-2026'
 
 export function matongDoc(): TrialDoc {
   return structuredClone({ id: MATONG_ID, ...MATONG_BASE })
@@ -12,6 +14,34 @@ export function matongDoc(): TrialDoc {
 
 export function ringwoodDoc(): TrialDoc {
   return structuredClone({ id: RINGWOOD_ID, ...RINGWOOD_BASE })
+}
+
+export function flutriDoc(): TrialDoc {
+  return structuredClone({ id: FLUTRI_ID, ...FLUTRI_BASE })
+}
+
+/** Flutriafol breakdown block ships clean — scores come from the paddock. */
+export function flutriTrialState(): TrialState {
+  const ts = freshTrialState(flutriDoc())
+  ts.site = {
+    cooperator: [
+      ['Grower', '—'],
+      ['Property', '‘Ringwood’, Corowa NSW'],
+      ['Phone', '—'],
+      ['Agronomist', 'A. Rolfe — IK Caldwell'],
+    ],
+    paddock: [
+      ['Crop / variety', 'Wheat — Scepter (strip 1), Beckom (strip 2)'],
+      ['Sown', '—'],
+      ['Previous crop', '—'],
+      ['Soil', '—'],
+    ],
+    fert: [],
+    notes:
+      'Rate strips west of fungicide-trial row 1: 0, 100, 200, 300, 400, 500, 600, 800 ml/ha flutriafol along positions 1–8. 31 Aug: rust at 300, clean at 400.',
+    pinned: false,
+  }
+  return ts
 }
 
 /** Demo seed matching the design prototype: first 12 walk plots scored, T1–8 mixed,
@@ -144,8 +174,8 @@ export function seedState(): AppState {
     sprayTab: 'mix',
     session: { email: null, name: 'A. Rolfe', role: 'admin' },
     activeTrialId: MATONG_ID,
-    trials: { [MATONG_ID]: doc, [RINGWOOD_ID]: ringwood },
-    trialState: { [MATONG_ID]: trialState, [RINGWOOD_ID]: ringwoodTrialState() },
+    trials: { [MATONG_ID]: doc, [RINGWOOD_ID]: ringwood, [FLUTRI_ID]: flutriDoc() },
+    trialState: { [MATONG_ID]: trialState, [RINGWOOD_ID]: ringwoodTrialState(), [FLUTRI_ID]: flutriTrialState() },
     otherTrials: [
       { name: 'Junee Reefs — Knockdown', sub: '28 trts · Assessment 2 done', chip: 'REPORT', chipKind: 'green' },
       { name: 'Junee — Pre-em Wheat + Canola', sub: '192 plots · Count 2 in progress', chip: '42–56 DAB', chipKind: 'grey' },

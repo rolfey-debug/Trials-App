@@ -1,0 +1,318 @@
+{
+ "trial": {
+  "name": "Ringwood — Flutriafol Breakdown Block",
+  "org": "AGnVET Services — IK Caldwell",
+  "season": 2026,
+  "design": "Rate strips × 2 varieties",
+  "reps": 2,
+  "blocking": "row",
+  "grid": {
+   "rows": 2,
+   "positions": 8
+  },
+  "repBands": {
+   "1": [
+    1
+   ],
+   "2": [
+    2
+   ]
+  },
+  "plot": {
+   "widthM": 2,
+   "lengthM": 12,
+   "areaM2": 24
+  },
+  "waterRateLPerHa": 100,
+  "sprayVolumePerPlotMl": 240,
+  "batchVolumeL": 1.26,
+  "timings": {
+   "A": {
+    "due": "Applied — rate strips, see site sheet"
+   },
+   "B": {
+    "due": "No B application"
+   }
+  },
+  "sourceDocument": "Ringwood_Fungicide_Map_and_Trial_Info_2026.pdf"
+ },
+ "treatments": [
+  {
+   "n": 1,
+   "name": "Flutriafol 0 ml/ha (untreated)",
+   "recipe": "Untreated — 0 ml/ha",
+   "bSpray": false,
+   "plots": [
+    101,
+    201
+   ]
+  },
+  {
+   "n": 2,
+   "name": "Flutriafol 100 ml/ha",
+   "recipe": "Flutriafol 100 ml/ha",
+   "bSpray": false,
+   "plots": [
+    102,
+    202
+   ]
+  },
+  {
+   "n": 3,
+   "name": "Flutriafol 200 ml/ha",
+   "recipe": "Flutriafol 200 ml/ha",
+   "bSpray": false,
+   "plots": [
+    103,
+    203
+   ]
+  },
+  {
+   "n": 4,
+   "name": "Flutriafol 300 ml/ha",
+   "recipe": "Flutriafol 300 ml/ha",
+   "bSpray": false,
+   "plots": [
+    104,
+    204
+   ]
+  },
+  {
+   "n": 5,
+   "name": "Flutriafol 400 ml/ha",
+   "recipe": "Flutriafol 400 ml/ha",
+   "bSpray": false,
+   "plots": [
+    105,
+    205
+   ]
+  },
+  {
+   "n": 6,
+   "name": "Flutriafol 500 ml/ha",
+   "recipe": "Flutriafol 500 ml/ha",
+   "bSpray": false,
+   "plots": [
+    106,
+    206
+   ]
+  },
+  {
+   "n": 7,
+   "name": "Flutriafol 600 ml/ha",
+   "recipe": "Flutriafol 600 ml/ha",
+   "bSpray": false,
+   "plots": [
+    107,
+    207
+   ]
+  },
+  {
+   "n": 8,
+   "name": "Flutriafol 800 ml/ha",
+   "recipe": "Flutriafol 800 ml/ha",
+   "bSpray": false,
+   "plots": [
+    108,
+    208
+   ]
+  }
+ ],
+ "cells": {
+  "101": 1,
+  "102": 2,
+  "103": 3,
+  "104": 4,
+  "105": 5,
+  "106": 6,
+  "107": 7,
+  "108": 8,
+  "201": 1,
+  "202": 2,
+  "203": 3,
+  "204": 4,
+  "205": 5,
+  "206": 6,
+  "207": 7,
+  "208": 8
+ },
+ "marginalPlots": [],
+ "reserveRule": "No reserves — 16 strip plots, all carry a rate.",
+ "plotIdRule": "plotId = strip*100 + position. Strip 1 = Scepter, strip 2 = Beckom; positions 1-8 carry 0, 100, 200, 300, 400, 500, 600, 800 ml/ha.",
+ "walkOrders": {
+  "assessment": "By rate: both varieties at each position, pos 1 (0 ml) through pos 8 (800 ml) — 16 stops.",
+  "fieldDay": "Walk Scepter strip 0→800, back along Beckom 800→0."
+ },
+ "measures": {
+  "disease": [
+   [
+    "rust",
+    "Stripe rust",
+    "%"
+   ],
+   [
+    "rust_f",
+    "Stripe rust F",
+    "%"
+   ],
+   [
+    "rust_f1",
+    "Stripe rust F-1",
+    "%"
+   ],
+   [
+    "lrust",
+    "Leaf rust",
+    "%"
+   ],
+   [
+    "lrust_f",
+    "Leaf rust F",
+    "%"
+   ],
+   [
+    "lrust_f1",
+    "Leaf rust F-1",
+    "%"
+   ],
+   [
+    "sept",
+    "Septoria tritici",
+    "%"
+   ],
+   [
+    "sept_f",
+    "Septoria F",
+    "%"
+   ],
+   [
+    "sept_f1",
+    "Septoria F-1",
+    "%"
+   ],
+   [
+    "yls",
+    "Yellow leaf spot",
+    "%"
+   ],
+   [
+    "yls_f",
+    "YLS F",
+    "%"
+   ],
+   [
+    "yls_f1",
+    "YLS F-1",
+    "%"
+   ],
+   [
+    "mild",
+    "Powdery mildew",
+    "%"
+   ],
+   [
+    "mild_f",
+    "Mildew F",
+    "%"
+   ],
+   [
+    "mild_f1",
+    "Mildew F-1",
+    "%"
+   ],
+   [
+    "netb",
+    "Net blotch",
+    "%"
+   ],
+   [
+    "scald",
+    "Scald",
+    "%"
+   ]
+  ],
+  "weeds": [
+   [
+    "arg",
+    "Annual ryegrass",
+    "/m2"
+   ],
+   [
+    "wo",
+    "Wild oats",
+    "/m2"
+   ],
+   [
+    "brome",
+    "Brome grass",
+    "/m2"
+   ],
+   [
+    "bgrass",
+    "Barley grass",
+    "/m2"
+   ],
+   [
+    "wrad",
+    "Wild radish",
+    "/m2"
+   ],
+   [
+    "cape",
+    "Capeweed",
+    "/m2"
+   ],
+   [
+    "sow",
+    "Sowthistle",
+    "/m2"
+   ],
+   [
+    "flea",
+    "Fleabane",
+    "/m2"
+   ]
+  ],
+  "crop": [
+   [
+    "phy",
+    "Phytotox",
+    "%"
+   ],
+   [
+    "gs",
+    "Growth stage",
+    "GS"
+   ],
+   [
+    "plants",
+    "Plants",
+    "/m"
+   ],
+   [
+    "bio",
+    "Biomass",
+    "%"
+   ],
+   [
+    "lodg",
+    "Lodging",
+    "%"
+   ],
+   [
+    "lai",
+    "Leaf area index",
+    "LAI"
+   ]
+  ],
+  "defaultActive": [
+   "rust",
+   "phy"
+  ]
+ },
+ "notes": [
+  "Western edge of the site, immediately beside fungicide-trial row 1 — outside the trial, no confound.",
+  "Rep 1 = Scepter strip, rep 2 = Beckom strip (varieties, not true reps).",
+  "31 Aug 2026: rust present at 300 ml but not at 400 ml — breakdown point sits between those two rates."
+ ]
+}

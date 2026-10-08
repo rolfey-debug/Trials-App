@@ -63,6 +63,7 @@ export async function activeToken(): Promise<string | null> {
 function trialUuid(localId: string): string | null {
   const k = localId.toLowerCase()
   if (k.includes('matong')) return TRIAL_IDS.matong
+  if (k.includes('flutriafol')) return TRIAL_IDS.flutriafol
   if (k.includes('ringwood')) return TRIAL_IDS.ringwood
   return null
 }
