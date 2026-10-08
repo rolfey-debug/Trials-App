@@ -142,6 +142,14 @@ async function pushTrial(
   // round 1. assessIdx is the WALK POSITION, not the round — using it here
   // re-identified every row on each sync from a new position (duplicates).
   const assessment = 1
+  // assessor = the signed-in auth uid (same id as the people row) from the JWT
+  const assessor = (() => {
+    try {
+      return (JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))) as { sub?: string }).sub ?? null
+    } catch {
+      return null
+    }
+  })()
   const scoreRows: unknown[] = []
   for (const [pid, sc] of Object.entries(ts.scores)) {
     for (const [measure, value] of Object.entries(sc.v)) {
@@ -153,6 +161,7 @@ async function pushTrial(
         measure,
         value,
         note: sc.note ?? null,
+        assessor,
         recorded_at: new Date(sc.ts).toISOString(),
       })
     }

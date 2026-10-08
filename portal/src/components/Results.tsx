@@ -3,6 +3,7 @@
  * the real backend under RLS; everything renders from scores + treatments. */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { correctScore, loadLiveTrials, loadScores, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, type LiveTrial, type PhotoRow, type ScoreRow, type TreatmentRow } from '../lib/db'
+import { exportResults } from '../lib/exportXlsx'
 import { rcbdAnova, type Anova } from '../lib/stats'
 
 const GREEN = '#007749'
@@ -281,6 +282,29 @@ export default function Results() {
             ))}
           </select>
           {state === 'loading' && <span style={{ fontSize: 12, color: GREY }}>Loading…</span>}
+          {scores.length > 0 && (
+            <span
+              onClick={() =>
+                exportResults(
+                  trial?.name ?? 'trial',
+                  measures,
+                  label,
+                  meansRows.map((r) => ({ n: r.t.n, name: r.t.name, recipe: r.t.recipe, plots: r.plots, cells: r.cells })),
+                  Object.fromEntries(measures.map((m) => [m, anovas[m]?.letters ?? {}])),
+                  Object.fromEntries(measures.map((m) => [m, anovas[m] ? { lsd05: anovas[m].lsd05, cv: anovas[m].cv } : undefined])),
+                  [...byPlot.values.entries()].sort((a, b) => a[0] - b[0]).map(([plot, values]) => ({
+                    plot,
+                    trt: trtOf.get(plot) ? `T${trtOf.get(plot)!.n} ${trtOf.get(plot)!.name}` : '',
+                    values,
+                    note: (byPlot.notes.get(plot) ?? []).join(' | '),
+                  }))
+                )
+              }
+              style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: GREEN, cursor: 'pointer', border: `1.5px solid #9CC7B2`, borderRadius: 8, padding: '6px 12px', background: '#E3F1EA' }}
+            >
+              Export results (.xlsx)
+            </span>
+          )}
         </div>
         <div style={{ fontSize: 12, color: GREY, marginBottom: 16 }}>
           {scores.length} synced scores · {new Set(scores.map((s) => s.plot)).size} plots · {photos.length} photo records — tap a plot anywhere for detail and photos

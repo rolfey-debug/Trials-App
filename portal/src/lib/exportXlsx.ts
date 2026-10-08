@@ -78,3 +78,44 @@ export async function exportTrialData(trial: LiveTrial, token: string): Promise<
   downloadBlob(writeXlsx(sheets), `${safe} — synced field data.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   return 'ok'
 }
+
+/** Export the Results view: treatment means with letters, plot values, and
+ * the plant-level notes — the table AgLink gets. */
+export function exportResults(
+  trialName: string,
+  measures: string[],
+  labelOf: (m: string) => string,
+  rows: Array<{ n: number; name: string; recipe: string; plots: number[]; cells: Record<string, { mean: number; sd: number | null } | null> }>,
+  letters: Record<string, Record<string, string>>,
+  lsdLine: Record<string, { lsd05: number; cv: number } | undefined>,
+  plotRows: Array<{ plot: number; trt: string; values: Record<string, number>; note: string }>
+) {
+  const meanSheet: SheetSpec = {
+    name: 'Treatment means',
+    colWidths: [6, 30, ...measures.flatMap(() => [10, 6, 8])],
+    rows: [
+      ['Trt', 'Treatment', ...measures.flatMap((m) => [labelOf(m), 'sig', '±SD'])],
+      ...rows.map((r) => [
+        `T${r.n}`,
+        r.name,
+        ...measures.flatMap((m) => {
+          const c = r.cells[m]
+          return c ? [Number(c.mean.toFixed(2)), letters[m]?.[`T${r.n}`] ?? '', c.sd === null ? '' : Number(c.sd.toFixed(2))] : ['', '', '']
+        }),
+      ]),
+      [],
+      ['RCBD ANOVA, LSD 5%. Treatments sharing a letter do not differ.'],
+      ...measures.filter((m) => lsdLine[m]).map((m) => [`${labelOf(m)}: LSD ${lsdLine[m]!.lsd05.toFixed(2)} · CV ${lsdLine[m]!.cv.toFixed(0)}%`]),
+    ],
+  }
+  const plotSheet: SheetSpec = {
+    name: 'Plots',
+    colWidths: [8, 26, ...measures.map(() => 12), 70],
+    rows: [
+      ['Plot', 'Treatment', ...measures.map(labelOf), 'Field notes'],
+      ...plotRows.map((p) => [p.plot, p.trt, ...measures.map((m) => p.values[m] ?? ''), p.note]),
+    ],
+  }
+  const safe = trialName.replace(/[\\/:*?"<>|]/g, '·')
+  downloadBlob(writeXlsx([meanSheet, plotSheet]), `${safe} — results.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+}
