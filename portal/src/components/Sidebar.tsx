@@ -77,6 +77,12 @@ const icons = {
       <line x1="6" y1="20" x2="6" y2="14" />
     </svg>
   ),
+  audit: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <polyline points="9 12 11 14 15 10" />
+    </svg>
+  ),
   team: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -260,6 +266,9 @@ export default function Sidebar() {
       </NavItem>
       <NavItem active={s.screen === 'docs'} onClick={() => nav('docs')} icon={icons.docs}>
         Documents
+      </NavItem>
+      <NavItem active={s.screen === 'audit'} onClick={() => nav('audit')} icon={icons.audit}>
+        Audit log
       </NavItem>
       <div title="Not in this mockup" style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 10px', padding: '9px 10px', borderRadius: 8, fontSize: 13.5, fontWeight: 700, color: '#B8BAB8' }}>
         {icons.reports}Reports

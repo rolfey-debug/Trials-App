@@ -7,6 +7,7 @@ import Review from './components/Review'
 import LiveMap from './components/LiveMap'
 import MapScreen from './components/MapScreen'
 import Results from './components/Results'
+import AuditLog from './components/AuditLog'
 import { useApp } from './state'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
         {s.screen === 'map' && <LiveMap />}
         {s.screen === 'plotmap' && <MapScreen />}
         {s.screen === 'results' && <Results />}
+        {s.screen === 'audit' && <AuditLog />}
       </div>
       <Picker />
     </div>

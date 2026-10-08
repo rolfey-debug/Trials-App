@@ -140,6 +140,33 @@ export async function photoObjectUrl(path: string): Promise<string | null> {
   return blob ? URL.createObjectURL(blob) : null
 }
 
+// --- Audit log --------------------------------------------------------------
+
+export interface CorrectionRow {
+  id: string
+  plot: number
+  kind: 'relabel' | 'exclude' | 'value'
+  original_t: number | null
+  effective_t: number | null
+  measure: string | null
+  old_value: number | null
+  new_value: number | null
+  reason: string | null
+  made_at: string
+  made_by: { name: string | null } | null
+  trial_id: { name: string } | null
+}
+
+/** Every correction in the org, newest first, with who and which trial
+ * embedded via the FK columns. */
+export function loadCorrections(token: string): Promise<CorrectionRow[] | null> {
+  return select<CorrectionRow>(
+    'corrections',
+    'select=id,plot,kind,original_t,effective_t,measure,old_value,new_value,reason,made_at,made_by(name),trial_id(name)&order=made_at.desc',
+    token
+  )
+}
+
 /** auth uid baked into the JWT — used as made_by on corrections. */
 function jwtSub(token: string): string | null {
   try {
