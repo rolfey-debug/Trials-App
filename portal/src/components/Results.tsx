@@ -33,6 +33,23 @@ const MEASURE_LABEL: Record<string, string> = {
   lai_f1: 'Disease LAI % · F-1',
   lai_f2: 'Disease LAI % · F-2',
   lai_plot: 'Disease LAI % · plot',
+  sept_lai: 'Septoria LAI %',
+  sept_plot: 'Septoria % plot',
+  yls_lai: 'Yellow leaf spot LAI %',
+  yls_plot: 'Yellow leaf spot % plot',
+  rust_lai: 'Stripe rust LAI %',
+  rust_plot: 'Stripe rust % plot',
+  scald_lai: 'Scald LAI %',
+  scald_plot: 'Scald % plot',
+  nfnb_lai: 'Net form net blotch LAI %',
+  nfnb_plot: 'Net form net blotch % plot',
+  sfnb_lai: 'Spot form net blotch LAI %',
+  sfnb_plot: 'Spot form net blotch % plot',
+  pm_lai: 'Powdery mildew LAI %',
+  pm_plot: 'Powdery mildew % plot',
+  other_lai: 'Other disease LAI %',
+  other_plot: 'Other disease % plot',
+  cropsafe: 'Crop safety 0–10',
 }
 const label = (k: string) => MEASURE_LABEL[k] ?? k
 
