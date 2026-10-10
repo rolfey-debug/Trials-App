@@ -116,6 +116,7 @@ export function deleteTrial(id: string, token: string): Promise<boolean> {
 
 export interface ScoreRow {
   id: string
+  assessment: number
   plot: number
   measure: string
   value: number
@@ -139,7 +140,7 @@ export interface PhotoRow {
 }
 
 export function loadScores(trialId: string, token: string): Promise<ScoreRow[] | null> {
-  return select<ScoreRow>('scores', `select=id,plot,measure,value,note,recorded_at&trial_id=eq.${trialId}&order=plot.asc`, token)
+  return select<ScoreRow>('scores', `select=id,assessment,plot,measure,value,note,recorded_at&trial_id=eq.${trialId}&order=assessment.asc,plot.asc`, token)
 }
 
 export function loadTreatments(trialId: string, token: string): Promise<TreatmentRow[] | null> {

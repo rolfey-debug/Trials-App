@@ -139,7 +139,8 @@ interface Tip {
 export default function Results() {
   const [trials, setTrials] = useState<LiveTrial[] | null>(null)
   const [trialId, setTrialId] = useState<string | null>(null)
-  const [scores, setScores] = useState<ScoreRow[]>([])
+  const [allScores, setScores] = useState<ScoreRow[]>([])
+  const [round, setRound] = useState<number | null>(null)
   const [trts, setTrts] = useState<TreatmentRow[]>([])
   const [photos, setPhotos] = useState<PhotoRow[]>([])
   const [ops, setOps] = useState<OperationRow[]>([])
@@ -163,6 +164,16 @@ export default function Results() {
   const [edit, setEdit] = useState<{ measure: string; val: string; reason: string; busy: boolean } | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'signedout'>('loading')
   const urlsRef = useRef<string[]>([])
+  /** Assessment rounds present for this trial; the screen shows one round at a
+   * time (latest by default) so a measure scored twice never mixes rounds. */
+  const rounds = useMemo(() => [...new Set(allScores.map((s) => s.assessment))].sort((a, b) => a - b), [allScores])
+  const curRound = round !== null && rounds.includes(round) ? round : rounds[rounds.length - 1] ?? null
+  const scores = useMemo(() => allScores.filter((s) => s.assessment === curRound), [allScores, curRound])
+  const roundDates = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const s of allScores) if (!m.has(s.assessment) || s.recorded_at < m.get(s.assessment)!) m.set(s.assessment, s.recorded_at)
+    return m
+  }, [allScores])
 
   useEffect(() => {
     void (async () => {
@@ -184,6 +195,7 @@ export default function Results() {
     if (!trialId) return
     setSelPlot(null)
     setSelTrt(null)
+    setRound(null)
     setThumbs({})
     urlsRef.current.forEach((u) => URL.revokeObjectURL(u))
     urlsRef.current = []
@@ -447,6 +459,16 @@ export default function Results() {
         </div>
         <div style={{ fontSize: 12, color: GREY, marginBottom: 16 }}>
           {scores.length} synced scores · {new Set(scores.map((s) => s.plot)).size} plots · {photos.length} photo records — tap a plot anywhere for detail and photos
+          {rounds.length > 1 && (
+            <span style={{ marginLeft: 12, display: 'inline-flex', gap: 5, verticalAlign: 'middle' }}>
+              {rounds.map((r) => (
+                <span key={r} onClick={() => setRound(r)} title={roundDates.get(r) ? `first scored ${new Date(roundDates.get(r)!).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}` : undefined} style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99, cursor: 'pointer', border: `1.5px solid ${curRound === r ? GREEN : HAIR}`, color: curRound === r ? GREEN : '#3E403E', background: curRound === r ? '#E3F1EA' : '#fff' }}>
+                  Assessment {r}
+                  {roundDates.get(r) ? <span style={{ fontWeight: 600, color: curRound === r ? GREEN : GREY }}> · {new Date(roundDates.get(r)!).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}</span> : null}
+                </span>
+              ))}
+            </span>
+          )}
           <span onClick={() => setDetOpen(!detOpen)} style={{ marginLeft: 10, fontWeight: 700, color: GREEN, cursor: 'pointer' }}>
             {detOpen ? 'Hide trial details ▴' : 'Trial details ▾'}
           </span>
