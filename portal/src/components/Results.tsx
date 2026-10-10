@@ -28,6 +28,8 @@ const MEASURE_LABEL: Record<string, string> = {
   vigour: 'Vigour 0–10',
   phytotox: 'Phytotox %',
   ryegrass_m2: 'Ryegrass /m²',
+  ryegrass_q1: 'Ryegrass quadrat 1 (0.1 m²)',
+  ryegrass_q2: 'Ryegrass quadrat 2 (0.1 m²)',
   plants_m2: 'Crop plants /m²',
   lai_flag: 'Disease LAI % · flag',
   lai_f1: 'Disease LAI % · F-1',
@@ -68,6 +70,7 @@ const MEASURE_LABEL: Record<string, string> = {
   plants_m_row: 'Plants /m row',
   vigour_1_5: 'Vigour 1–5',
   dm_kg_ha: 'Dry matter kg/ha',
+  dm_probe_kg_ha: 'Probe dry matter kg/ha',
   dm_pct: 'Dry matter %',
   dm_grazed_kg_ha: 'DM kg/ha · grazed',
   dm_ungrazed_kg_ha: 'DM kg/ha · ungrazed',
@@ -85,7 +88,7 @@ const HIGH_BETTER = new Set([
   'control_pct', 'ctrl_hairy_panic', 'ctrl_red_grass', 'ctrl_broadleaf', 'ctrl_clover',
   'ctrl_erodium', 'ctrl_sln', 'ctrl_windmill', 'biomass_pct', 'weed_ctrl_pct',
   'plant_count', 'plants_q1', 'plants_q2', 'plants_m_row',
-  'dm_kg_ha', 'dm_grazed_kg_ha', 'dm_ungrazed_kg_ha', 'dm_graze1_kg_ha', 'dm_graze2_kg_ha',
+  'dm_kg_ha', 'dm_probe_kg_ha', 'dm_grazed_kg_ha', 'dm_ungrazed_kg_ha', 'dm_graze1_kg_ha', 'dm_graze2_kg_ha',
   'pod_count',
 ])
 
