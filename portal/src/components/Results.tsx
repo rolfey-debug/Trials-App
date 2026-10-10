@@ -28,6 +28,9 @@ const MEASURE_LABEL: Record<string, string> = {
 }
 const label = (k: string) => MEASURE_LABEL[k] ?? k
 
+/** Measures where a higher value is the better result. */
+const HIGH_BETTER = new Set(['pgreen', 'ndvi'])
+
 /** One-line hover summary of a spray rig's stored details. */
 function equipSummary(d: { boomWidthM?: number; waterRateLPerHa?: number; nozzles?: string; pressureBar?: number | null; notes?: string } | null): string {
   if (!d) return ''
@@ -86,6 +89,7 @@ export default function Results() {
   const [wxBusy, setWxBusy] = useState(false)
   const [detOpen, setDetOpen] = useState(false)
   const [measure, setMeasure] = useState('dmg_f1')
+  const [sort, setSort] = useState<{ m: string; rev: boolean } | null>(null)
   const [xM, setXM] = useState('pgreen')
   const [yM, setYM] = useState('dmg_f1')
   const [selPlot, setSelPlot] = useState<number | null>(null)
@@ -210,6 +214,26 @@ export default function Results() {
       })
       .sort((a, b) => a.t.n - b.t.n)
   }, [trts, measures, byPlot])
+
+  /** Rows in display order: by Trt by default; best-first on the sorted
+   * measure (lower wins for damage, higher for green cover), with ranks. */
+  const sortedMeans = useMemo(() => {
+    if (!sort) return { rows: meansRows, rank: null as Map<number, number> | null }
+    const m = sort.m
+    const dir = HIGH_BETTER.has(m) ? -1 : 1
+    const val = (r: (typeof meansRows)[number]) => r.cells[m]?.mean
+    const rows = [...meansRows].sort((a, b) => {
+      const av = val(a)
+      const bv = val(b)
+      if (av == null && bv == null) return a.t.n - b.t.n
+      if (av == null) return 1
+      if (bv == null) return -1
+      return (av - bv) * dir || a.t.n - b.t.n
+    })
+    const rank = new Map(rows.filter((r) => val(r) != null).map((r, i) => [r.t.n, i + 1]))
+    if (sort.rev) rows.reverse()
+    return { rows, rank }
+  }, [meansRows, sort])
 
   /** RCBD ANOVA per measure, when every treatment carries the same complete
    * block count (block = position in the treatment's plot list). */
@@ -508,17 +532,32 @@ export default function Results() {
           <table style={{ borderCollapse: 'collapse', fontSize: 12.5, minWidth: 560 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '5px 10px 5px 2px', color: GREY, fontWeight: 700 }}>Trt</th>
+                {sort && <th style={{ textAlign: 'right', padding: '5px 8px 5px 2px', color: GREY, fontWeight: 700 }}>#</th>}
+                <th style={{ textAlign: 'left', padding: '5px 10px 5px 2px', color: sort ? GREY : GREEN, fontWeight: 700, cursor: 'pointer' }} onClick={() => setSort(null)} title="Order by treatment number">
+                  Trt
+                </th>
                 <th style={{ textAlign: 'left', padding: '5px 14px 5px 2px', color: GREY, fontWeight: 700 }}>Treatment</th>
                 {measures.map((m) => (
-                  <th key={m} style={{ textAlign: 'right', padding: '5px 12px', color: measure === m ? GREEN : GREY, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => setMeasure(m)} title="Colour the plot map by this measure">
+                  <th
+                    key={m}
+                    style={{ textAlign: 'right', padding: '5px 12px', color: measure === m ? GREEN : GREY, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    onClick={() => {
+                      if (sort?.m === m) setSort({ m, rev: !sort.rev })
+                      else {
+                        setMeasure(m)
+                        setSort({ m, rev: false })
+                      }
+                    }}
+                    title="Click to rank best-first (again to reverse); also colours the plot map"
+                  >
                     {label(m)}
+                    {sort?.m === m && <span style={{ fontSize: 9 }}> {sort.rev ? '▲' : '▼'}</span>}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {meansRows.map(({ t, cells }) => {
+              {sortedMeans.rows.map(({ t, cells }) => {
                 const sel = selTrt === t.n
                 return (
                   <tr
@@ -528,6 +567,11 @@ export default function Results() {
                     onMouseEnter={(e) => showTip(e, [t.name, t.recipe, `plots ${(t.components?.plots ?? []).join(' · ')}`])}
                     onMouseLeave={() => setTip(null)}
                   >
+                    {sort && (
+                      <td style={{ textAlign: 'right', padding: '5px 8px 5px 2px', fontWeight: 800, color: (sortedMeans.rank?.get(t.n) ?? 99) <= 3 ? GREEN : GREY, borderTop: `1px solid #F0F1F0`, verticalAlign: 'top', fontVariantNumeric: 'tabular-nums' }}>
+                        {sortedMeans.rank?.get(t.n) ?? '—'}
+                      </td>
+                    )}
                     <td style={{ padding: '5px 10px 5px 2px', fontWeight: 700, color: INK, borderTop: `1px solid #F0F1F0`, verticalAlign: 'top' }}>T{t.n}</td>
                     <td style={{ padding: '5px 14px 5px 2px', color: INK, borderTop: `1px solid #F0F1F0`, whiteSpace: 'nowrap' }}>
                       {t.name}
@@ -577,7 +621,7 @@ export default function Results() {
                 {' '}For {label(measure)}: LSD <b style={{ color: '#3E403E' }}>{anovas[measure].lsd05.toFixed(1)}</b> · CV {anovas[measure].cv.toFixed(0)}% · F {Number.isFinite(anovas[measure].fTrt) ? anovas[measure].fTrt.toFixed(1) : '∞'} on {anovas[measure].dfTrt},{anovas[measure].dfError} df.
               </>
             )}{' '}
-            Click a column header to map it; click a row for the rep breakdown.
+            Click a column header to rank best-first (again to reverse, Trt to reset); click a row for the rep breakdown.
           </div>
 
           {/* rep breakdown for the selected treatment */}
@@ -629,6 +673,79 @@ export default function Results() {
               )
             })()}
         </div>
+
+        {/* treatment ranking chart: means best-first for the active measure */}
+        {(() => {
+          const data = meansRows.filter((r) => r.cells[measure] != null).map((r) => ({ t: r.t, c: r.cells[measure]! }))
+          if (data.length < 2) return null
+          const dir = HIGH_BETTER.has(measure) ? -1 : 1
+          data.sort((a, b) => (a.c.mean - b.c.mean) * dir || a.t.n - b.t.n)
+          const maxV = Math.max(...data.map((d) => d.c.mean + (d.c.sd ?? 0))) * 1.08
+          const GUT = 195
+          const W = 900
+          const ROW = 26
+          const H = data.length * ROW + 34
+          const x = (v: number) => GUT + (v / maxV) * (W - GUT - 72)
+          const step = maxV > 40 ? 20 : maxV > 16 ? 10 : 5
+          const ticks: number[] = []
+          for (let v = 0; v <= maxV && ticks.length < 12; v += step) ticks.push(v)
+          const letters = anovas[measure]?.letters ?? {}
+          return (
+            <div style={{ ...card, marginBottom: 16, overflow: 'auto' }}>
+              <div style={eyebrow}>TREATMENT RANKING — {label(measure).toUpperCase()} · BEST FIRST</div>
+              <svg width={W} height={H} style={{ display: 'block' }}>
+                {ticks.map((v) => (
+                  <g key={v}>
+                    <line x1={x(v)} y1={12} x2={x(v)} y2={H - 18} stroke="#EFF0EF" strokeWidth={1} />
+                    <text x={x(v)} y={H - 5} textAnchor="middle" fontSize={10} fill="#8A8C8A">
+                      {v}
+                    </text>
+                  </g>
+                ))}
+                {data.map((d, i) => {
+                  const y = 22 + i * ROW
+                  const w = Math.max(x(d.c.mean) - x(0), 3)
+                  const sd = d.c.sd
+                  const letter = letters[`T${d.t.n}`] ?? ''
+                  return (
+                    <g
+                      key={d.t.n}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setSelTrt(selTrt === d.t.n ? null : d.t.n)}
+                      onMouseEnter={(e) =>
+                        showTip(e, [
+                          `#${i + 1} · T${d.t.n} ${d.t.name}`,
+                          `${label(measure)}: ${d.c.mean.toFixed(1)}${sd != null ? ` ±${sd.toFixed(1)}` : ''}${letter ? ` · ${letter}` : ''}`,
+                          `plots ${d.c.vals.map(([p]) => p).join(' · ')} → ${d.c.vals.map(([, v]) => v).join(' / ')}`,
+                        ])
+                      }
+                      onMouseLeave={() => setTip(null)}
+                    >
+                      <text x={GUT - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#3E403E" fontWeight={d.t.n === 1 ? 800 : 600}>
+                        T{d.t.n} {d.t.name.length > 22 ? d.t.name.slice(0, 21) + '…' : d.t.name}
+                      </text>
+                      <path d={`M ${x(0)} ${y - 7} H ${x(0) + w - 4} a 4 4 0 0 1 4 4 v 6 a 4 4 0 0 1 -4 4 H ${x(0)} Z`} fill={d.t.n === 1 ? '#58585B' : GREEN} />
+                      {sd != null && (
+                        <g stroke="#9a9c9a" strokeWidth={1.5}>
+                          <line x1={x(Math.max(d.c.mean - sd, 0))} y1={y} x2={x(d.c.mean + sd)} y2={y} />
+                          <line x1={x(Math.max(d.c.mean - sd, 0))} y1={y - 4} x2={x(Math.max(d.c.mean - sd, 0))} y2={y + 4} />
+                          <line x1={x(d.c.mean + sd)} y1={y - 4} x2={x(d.c.mean + sd)} y2={y + 4} />
+                        </g>
+                      )}
+                      <text x={x(sd != null ? d.c.mean + sd : d.c.mean) + 6} y={y + 4} fontSize={10.5} fill="#3E403E" fontWeight={700}>
+                        {d.c.mean.toFixed(1)}
+                        {letter ? ` ${letter}` : ''}
+                      </text>
+                    </g>
+                  )
+                })}
+              </svg>
+              <div style={{ fontSize: 11, color: GREY, marginTop: 6 }}>
+                Treatment means, best first ({HIGH_BETTER.has(measure) ? 'higher' : 'lower'} is better) · whiskers ±SD · treatments sharing a letter are not separated at LSD 5% · untreated in grey. Hover a bar for the rep values; click it for the full breakdown. Pick the measure in the table above.
+              </div>
+            </div>
+          )
+        })()}
 
         {/* plot heat map */}
         <div style={{ ...card, marginBottom: 16 }}>
