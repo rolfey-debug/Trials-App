@@ -2,7 +2,9 @@
  * map, a measure-vs-measure scatter, and per-plot detail with photos. Reads
  * the real backend under RLS; everything renders from scores + treatments. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { correctScore, loadLiveTrials, loadOperations, loadScores, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, type LiveTrial, type OperationRow, type PhotoRow, type ScoreRow, type TreatmentRow } from '../lib/db'
+import { correctScore, loadCalibrations, loadLiveTrials, loadOperations, loadScores, loadSiteWeather, loadSoilTests, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, refreshWeather, type Calibration, type LiveTrial, type OperationRow, type PhotoRow, type ScoreRow, type SoilTestRow, type TreatmentRow, type WeatherDay } from '../lib/db'
+import { applyCalibrations, loadFixture, seasonSummary } from '../lib/pheno'
+import type { SiteWeather } from '../../../shared/phenology/engine'
 import { exportResults } from '../lib/exportXlsx'
 import { rcbdAnova, type Anova } from '../lib/stats'
 
@@ -25,6 +27,14 @@ const MEASURE_LABEL: Record<string, string> = {
   rust_a1: 'Rust % · A1 3 Sep',
 }
 const label = (k: string) => MEASURE_LABEL[k] ?? k
+
+/** One-line hover summary of a spray rig's stored details. */
+function equipSummary(d: { boomWidthM?: number; waterRateLPerHa?: number; nozzles?: string; pressureBar?: number | null; notes?: string } | null): string {
+  if (!d) return ''
+  return [d.boomWidthM && `${d.boomWidthM} m boom`, d.waterRateLPerHa && `${d.waterRateLPerHa} L/ha`, d.nozzles && `nozzles: ${d.nozzles}`, d.pressureBar && `${d.pressureBar} bar`, d.notes]
+    .filter(Boolean)
+    .join(' · ')
+}
 
 /** Sequential single-hue ramps (light→dark, lightness-monotonic). Damage
  * reads in the burnt hue, canopy/greenness in the field green. */
@@ -69,6 +79,11 @@ export default function Results() {
   const [trts, setTrts] = useState<TreatmentRow[]>([])
   const [photos, setPhotos] = useState<PhotoRow[]>([])
   const [ops, setOps] = useState<OperationRow[]>([])
+  const [weather, setWeather] = useState<WeatherDay[]>([])
+  const [fixture, setFixture] = useState<SiteWeather | null>(null)
+  const [soil, setSoil] = useState<SoilTestRow[]>([])
+  const [cals, setCals] = useState<Calibration[]>([])
+  const [wxBusy, setWxBusy] = useState(false)
   const [detOpen, setDetOpen] = useState(false)
   const [measure, setMeasure] = useState('dmg_f1')
   const [xM, setXM] = useState('pgreen')
@@ -120,6 +135,27 @@ export default function Results() {
       setState('ready')
     })()
   }, [trialId])
+
+  // site weather + soil + calibrations follow the selected trial's site
+  useEffect(() => {
+    const t = trials?.find((x) => x.id === trialId)
+    if (!t?.site_id) {
+      setWeather([])
+      setSoil([])
+      return
+    }
+    const siteId = t.site_id
+    void (async () => {
+      const token = await portalToken()
+      if (!token) return
+      const [w, s, c, fx] = await Promise.all([loadSiteWeather(siteId, token), loadSoilTests(siteId, token), loadCalibrations(token), loadFixture(siteId)])
+      setWeather(w ?? [])
+      setSoil(s ?? [])
+      setCals(c ?? [])
+      setFixture(fx)
+      if (c) applyCalibrations(c)
+    })()
+  }, [trialId, trials])
 
   // ---- derived shape ------------------------------------------------------
   const measures = useMemo(() => [...new Set(scores.map((s) => s.measure))].sort(), [scores])
@@ -271,6 +307,15 @@ export default function Results() {
     )
 
   const trial = trials?.find((t) => t.id === trialId)
+  const model = useMemo(() => {
+    if (!trial?.sown_date || !fixture) return null
+    return seasonSummary(fixture, weather, trial.sown_date, trial.crop, trial.variety)
+  }, [trial, weather, fixture, cals])
+  const wxSource = useMemo(() => {
+    const src = new Set(weather.map((w) => w.source))
+    if (!src.size) return ''
+    return src.has('station') ? (src.size > 1 ? 'station + SILO grid' : 'weather station') : 'SILO 5 km grid'
+  }, [weather])
   const selPhotos = selPlot !== null ? photos.filter((p) => p.plot === selPlot) : []
   const cell = 46
 
@@ -343,6 +388,60 @@ export default function Results() {
                 </div>
               ))}
             </div>
+            {model && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={eyebrow}>SEASON &amp; STAGE — THERMAL-TIME MODEL</div>
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'baseline', margin: '4px 0 8px' }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: GREEN }} data-testid="stage-now">
+                    ~{model.currentGS} <span style={{ fontWeight: 600, color: INK }}>{model.currentLabel}</span>
+                  </div>
+                  <span style={{ fontSize: 12, color: GREY }}>
+                    {model.ttNow} °Cd since sowing · {model.rainSinceSowing} mm rain · to {model.asOf} · {wxSource}
+                  </span>
+                  <span
+                    onClick={() => {
+                      if (wxBusy) return
+                      setWxBusy(true)
+                      void (async () => {
+                        const token = await portalToken()
+                        if (token) {
+                          await refreshWeather(token)
+                          const t = trials?.find((x) => x.id === trialId)
+                          if (t?.site_id) setWeather((await loadSiteWeather(t.site_id, token)) ?? [])
+                        }
+                        setWxBusy(false)
+                      })()
+                    }}
+                    style={{ fontSize: 11, fontWeight: 700, color: GREEN, cursor: 'pointer', border: '1.5px solid #9CC7B2', borderRadius: 7, padding: '3px 9px', background: '#E3F1EA', opacity: wxBusy ? 0.5 : 1 }}
+                  >
+                    {wxBusy ? 'Updating…' : 'Refresh weather'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {model.stages.map((s) => (
+                    <span
+                      key={s.code}
+                      title={`${s.tt} °Cd · window ${s.window[0]} → ${s.window[1]}`}
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        borderRadius: 7,
+                        padding: '3px 8px',
+                        background: s.status === 'predicted' ? '#F2F3F2' : '#E3F1EA',
+                        color: s.status === 'predicted' ? GREY : GREEN,
+                        border: `1px solid ${s.status === 'predicted' ? '#E0E1E0' : '#9CC7B2'}`,
+                      }}
+                    >
+                      {s.code} {s.label} · {s.status === 'predicted' ? '~' : ''}
+                      {new Date(s.date + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10.5, color: GREY, marginTop: 6 }}>
+                  Model estimate: degree-days (base 0 °C) from sowing on {wxSource} actuals, projected forward on 10-year day-of-year normals (±7% window — hover a stage for its range). Green = reached, grey ~ = projected. Confirm in paddock before acting.
+                </div>
+              </div>
+            )}
             <div style={eyebrow}>SPRAY HISTORY</div>
             {ops.filter((o) => o.kind === 'spray').length === 0 && <div style={{ fontSize: 12, color: GREY }}>No spray operations recorded yet.</div>}
             {ops
@@ -359,9 +458,31 @@ export default function Results() {
                         {k} <b style={{ color: '#3E403E' }}>{v}</b>
                       </span>
                     ))}
+                  {o.equipment_id && (
+                    <span style={{ fontSize: 11, color: GREY }} title={equipSummary(o.equipment_id.detail)}>
+                      rig <b style={{ color: '#3E403E' }}>{o.equipment_id.name}</b>
+                    </span>
+                  )}
                   {o.detail?.note && <span style={{ fontSize: 11, color: GREY, width: '100%' }}>{o.detail.note}</span>}
                 </div>
               ))}
+            <div style={{ ...eyebrow, marginTop: 12 }}>SOIL TESTS</div>
+            {soil.length === 0 && <div style={{ fontSize: 12, color: GREY }}>No soil tests recorded for this site yet — send the lab reports in and they'll live here.</div>}
+            {soil.map((s) => (
+              <div key={s.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', padding: '5px 0', borderBottom: '1px solid #F2F3F2', fontSize: 12.5 }}>
+                <b style={{ color: GREEN }}>
+                  {s.depth_from_cm}–{s.depth_to_cm} cm
+                </b>
+                <span style={{ fontWeight: 700 }}>{new Date(s.sampled_on + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                {s.lab && <span style={{ color: GREY }}>{s.lab}</span>}
+                {Object.entries(s.results).map(([k, v]) => (
+                  <span key={k} style={{ fontSize: 11, color: GREY }}>
+                    {k} <b style={{ color: '#3E403E' }}>{String(v)}</b>
+                  </span>
+                ))}
+                {s.note && <span style={{ fontSize: 11, color: GREY, width: '100%' }}>{s.note}</span>}
+              </div>
+            ))}
             {(trial.design?.notes?.length ?? 0) > 0 && (
               <>
                 <div style={{ ...eyebrow, marginTop: 12 }}>DESIGN NOTES</div>

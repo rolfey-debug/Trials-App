@@ -1,7 +1,7 @@
 /** Live trial data for the portal — reads/writes the real backend as the
  * signed-in user (RLS scopes everything to the org). The session is the one
  * the sidebar sign-in (or the field app, same origin) saved to localStorage. */
-import { fetchObject, insert, refresh, remove, select, stableId, update, type Session } from '../../../shared/supa'
+import { fetchObject, insert, refresh, remove, select, stableId, update, SUPA_URL, type Session } from '../../../shared/supa'
 
 const SESSION_KEY = 'tw.supaSession'
 
@@ -33,6 +33,7 @@ export async function portalToken(): Promise<string | null> {
 
 export interface LiveTrial {
   id: string
+  site_id: string | null
   name: string
   season: number | null
   status: string
@@ -64,6 +65,7 @@ export interface LiveTrial {
 
 interface TrialRow {
   id: string
+  site_id: string | null
   name: string
   season: number | null
   status: string
@@ -79,7 +81,7 @@ interface TrialRow {
 
 export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null> {
   const [trials, scores, ops] = await Promise.all([
-    select<TrialRow>('trials', 'select=id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,sites(property,town,lat,lng)&order=season.desc,name.asc', token),
+    select<TrialRow>('trials', 'select=id,site_id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,sites(property,town,lat,lng)&order=season.desc,name.asc', token),
     select<{ trial_id: string; plot: number; recorded_at: string }>('scores', 'select=trial_id,plot,recorded_at', token),
     select<{ trial_id: string; detail: { sprayed?: number[] } | null; performed_at: string }>('operations', 'select=trial_id,detail,performed_at', token),
   ])
@@ -150,10 +152,85 @@ export interface OperationRow {
   performed_at: string
   detail: { sprayed?: number[]; mixed?: number[]; note?: string } | null
   conditions: Record<string, string> | null
+  equipment_id: { name: string; detail: EquipmentDetail | null } | null
 }
 
 export function loadOperations(trialId: string, token: string): Promise<OperationRow[] | null> {
-  return select<OperationRow>('operations', `select=kind,timing,performed_at,detail,conditions&trial_id=eq.${trialId}&order=performed_at.asc`, token)
+  return select<OperationRow>(
+    'operations',
+    `select=kind,timing,performed_at,detail,conditions,equipment_id(name,detail)&trial_id=eq.${trialId}&order=performed_at.asc`,
+    token
+  )
+}
+
+// --- Site planning: weather, phenology, soil, equipment ---------------------
+
+export interface WeatherDay {
+  date: string
+  min_temp: number | null
+  max_temp: number | null
+  rain: number | null
+  source: string
+}
+
+/** Daily weather for a site, oldest first — SILO grid rows and any station
+ * rows side by side (one row per day; station wins where both exist). */
+export function loadSiteWeather(siteId: string, token: string): Promise<WeatherDay[] | null> {
+  return select<WeatherDay>('site_weather', `select=date,min_temp,max_temp,rain,source&site_id=eq.${siteId}&order=date.asc`, token)
+}
+
+export interface Calibration {
+  crop: string
+  variety: string
+  factor: number
+  stage_tt: Record<string, number>
+  source: string | null
+}
+
+export function loadCalibrations(token: string): Promise<Calibration[] | null> {
+  return select<Calibration>('phenology_calibrations', 'select=crop,variety,factor,stage_tt,source', token)
+}
+
+export interface SoilTestRow {
+  id: string
+  sampled_on: string
+  depth_from_cm: number
+  depth_to_cm: number
+  lab: string | null
+  results: Record<string, number | string>
+  note: string | null
+}
+
+export function loadSoilTests(siteId: string, token: string): Promise<SoilTestRow[] | null> {
+  return select<SoilTestRow>(
+    'soil_tests',
+    `select=id,sampled_on,depth_from_cm,depth_to_cm,lab,results,note&site_id=eq.${siteId}&order=sampled_on.desc,depth_from_cm.asc`,
+    token
+  )
+}
+
+export interface EquipmentDetail {
+  boomWidthM?: number
+  waterRateLPerHa?: number
+  sprayVolumePerPlotMl?: number
+  batchVolumeL?: number
+  nozzles?: string
+  pressureBar?: number | null
+  notes?: string
+}
+
+/** Ask the weather-sync edge function to refresh SILO grid weather. */
+export async function refreshWeather(token: string): Promise<string | null> {
+  try {
+    const r = await fetch(`${SUPA_URL}/functions/v1/weather-sync`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!r.ok) return `sync failed (${r.status})`
+    return null
+  } catch {
+    return 'sync failed (offline?)'
+  }
 }
 
 export function loadTrialPhotos(trialId: string, token: string): Promise<PhotoRow[] | null> {
