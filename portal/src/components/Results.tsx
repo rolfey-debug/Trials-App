@@ -25,11 +25,19 @@ const MEASURE_LABEL: Record<string, string> = {
   phy: 'Phytotox %',
   sept_a1: 'Septoria LAI % · A1 3 Sep',
   rust_a1: 'Rust % · A1 3 Sep',
+  vigour: 'Vigour 0–10',
+  phytotox: 'Phytotox %',
+  ryegrass_m2: 'Ryegrass /m²',
+  plants_m2: 'Crop plants /m²',
+  lai_flag: 'Disease LAI % · flag',
+  lai_f1: 'Disease LAI % · F-1',
+  lai_f2: 'Disease LAI % · F-2',
+  lai_plot: 'Disease LAI % · plot',
 }
 const label = (k: string) => MEASURE_LABEL[k] ?? k
 
 /** Measures where a higher value is the better result. */
-const HIGH_BETTER = new Set(['pgreen', 'ndvi'])
+const HIGH_BETTER = new Set(['pgreen', 'ndvi', 'vigour', 'plants_m2'])
 
 /** One-line hover summary of a spray rig's stored details. */
 function equipSummary(d: { boomWidthM?: number; waterRateLPerHa?: number; nozzles?: string; pressureBar?: number | null; notes?: string } | null): string {
