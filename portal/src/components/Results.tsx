@@ -2,7 +2,7 @@
  * map, a measure-vs-measure scatter, and per-plot detail with photos. Reads
  * the real backend under RLS; everything renders from scores + treatments. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { correctScore, loadCalibrations, loadLiveTrials, loadOperations, loadScores, loadSiteWeather, loadSoilTests, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, refreshWeather, type Calibration, type LiveTrial, type OperationRow, type PhotoRow, type ScoreRow, type SoilTestRow, type TreatmentRow, type WeatherDay } from '../lib/db'
+import { correctScore, documentUrl, loadCalibrations, loadDocuments, loadLiveTrials, loadOperations, loadScores, loadSiteWeather, loadSoilTests, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, refreshWeather, type Calibration, type DocumentRow, type LiveTrial, type OperationRow, type PhotoRow, type ScoreRow, type SoilTestRow, type TreatmentRow, type WeatherDay } from '../lib/db'
 import { applyCalibrations, loadFixture, seasonSummary } from '../lib/pheno'
 import type { SiteWeather } from '../../../shared/phenology/engine'
 import { exportResults } from '../lib/exportXlsx'
@@ -143,6 +143,8 @@ export default function Results() {
   const [trts, setTrts] = useState<TreatmentRow[]>([])
   const [photos, setPhotos] = useState<PhotoRow[]>([])
   const [ops, setOps] = useState<OperationRow[]>([])
+  const [docs, setDocs] = useState<DocumentRow[]>([])
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({})
   const [weather, setWeather] = useState<WeatherDay[]>([])
   const [fixture, setFixture] = useState<SiteWeather | null>(null)
   const [soil, setSoil] = useState<SoilTestRow[]>([])
@@ -192,11 +194,13 @@ export default function Results() {
         setState('signedout')
         return
       }
-      const [sc, tr, ph, op] = await Promise.all([loadScores(trialId, token), loadTreatments(trialId, token), loadTrialPhotos(trialId, token), loadOperations(trialId, token)])
+      const [sc, tr, ph, op, dc] = await Promise.all([loadScores(trialId, token), loadTreatments(trialId, token), loadTrialPhotos(trialId, token), loadOperations(trialId, token), loadDocuments(trialId, token)])
       setScores(sc ?? [])
       setTrts(tr ?? [])
       setPhotos(ph ?? [])
       setOps(op ?? [])
+      setDocs(dc ?? [])
+      setOpenFolders({})
       setState('ready')
     })()
   }, [trialId])
@@ -586,6 +590,87 @@ export default function Results() {
             )}
           </div>
         )}
+
+        {/* files on Drive and uploaded documents for this trial */}
+        {docs.length > 0 && (() => {
+          const folderOf = (d: DocumentRow) => (d.parsed?.folder ?? 'Uploaded').replace(/^Trials 2026\/?/, '') || 'Trials 2026'
+          const groups = new Map<string, DocumentRow[]>()
+          for (const d of docs) groups.set(folderOf(d), [...(groups.get(folderOf(d)) ?? []), d])
+          const tag = (d: DocumentRow) => {
+            const p = d.parsed ?? {}
+            const bits: string[] = []
+            if (p.plot != null) bits.push(`plot ${p.plot}`)
+            if (p.timing) bits.push(p.timing)
+            if (p.leaf) bits.push(p.leaf)
+            if (p.flight?.flightDate) bits.push(`flown ${new Date(p.flight.flightDate + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}${p.flight.maxAltM != null ? ` · ${Math.round(p.flight.maxAltM)} m` : ''}`)
+            else if (p.takenAt) bits.push(new Date(p.takenAt.replace(' ', 'T')).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }))
+            if (p.camera) bits.push(p.camera)
+            return bits.join(' · ')
+          }
+          const statusColor = (st?: string) => (st?.startsWith('imported') ? GREEN : st === 'photo' || st === 'folder' || st?.startsWith('read') ? GREY : '#9C6212')
+          return (
+            <div style={{ ...card, marginBottom: 16 }}>
+              <div style={eyebrow}>
+                FILES · {docs.length} on Drive — {[...groups.keys()].length} folder{groups.size === 1 ? '' : 's'}
+              </div>
+              {[...groups.entries()]
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([folder, items]) => {
+                  const photos = items.filter((d) => d.parsed?.status === 'photo' || d.parsed?.status === 'drone subtitle/telemetry')
+                  const files = items.filter((d) => !photos.includes(d))
+                  const open = openFolders[folder] ?? photos.length <= 6
+                  return (
+                    <div key={folder} style={{ padding: '6px 0', borderBottom: '1px solid #F2F3F2' }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', fontSize: 12 }}>
+                        <b style={{ color: INK }}>{folder}</b>
+                        <span style={{ color: GREY, fontSize: 11 }}>
+                          {files.length ? `${files.length} file${files.length === 1 ? '' : 's'}` : ''}
+                          {files.length && photos.length ? ' · ' : ''}
+                          {photos.length ? `${photos.length} photo${photos.length === 1 ? '' : 's'}` : ''}
+                        </span>
+                        {photos.length > 6 && (
+                          <span onClick={() => setOpenFolders({ ...openFolders, [folder]: !open })} style={{ fontSize: 11, fontWeight: 700, color: GREEN, cursor: 'pointer' }}>
+                            {open ? 'Hide photos ▴' : 'Show photos ▾'}
+                          </span>
+                        )}
+                      </div>
+                      {files.map((d) => {
+                        const url = documentUrl(d)
+                        return (
+                          <div key={d.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap', padding: '3px 0 3px 12px', fontSize: 12 }}>
+                            {url ? (
+                              <a href={url} target="_blank" rel="noreferrer" style={{ color: GREEN, fontWeight: 700, textDecoration: 'none' }}>
+                                {d.filename} ↗
+                              </a>
+                            ) : (
+                              <span style={{ fontWeight: 700, color: INK }}>{d.filename}</span>
+                            )}
+                            {d.parsed?.status && <span style={{ fontSize: 10.5, fontWeight: 700, color: statusColor(d.parsed.status) }}>{d.parsed.status}</span>}
+                            {d.parsed?.note && <span style={{ fontSize: 11, color: GREY }}>{d.parsed.note}</span>}
+                          </div>
+                        )
+                      })}
+                      {open && photos.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '4px 0 2px 12px' }}>
+                          {photos.map((d) => {
+                            const url = documentUrl(d)
+                            const t = tag(d)
+                            return (
+                              <a key={d.id} href={url ?? undefined} target="_blank" rel="noreferrer" title={d.filename + (t ? ` — ${t}` : '')} style={{ fontSize: 10.5, fontWeight: 700, color: GREEN, background: '#E3F1EA', border: '1px solid #9CC7B2', borderRadius: 6, padding: '2px 7px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                {d.parsed?.plot != null ? `${d.parsed.plot}${d.parsed.leaf ? ' ' + d.parsed.leaf : ''}` : d.filename.replace(/\.[A-Za-z0-9]+$/, '')}
+                                {d.parsed?.timing ? <span style={{ color: GREY, fontWeight: 600 }}> {d.parsed.timing}</span> : null}
+                              </a>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              <div style={{ fontSize: 10.5, color: GREY, marginTop: 8 }}>Links open the original in Google Drive. Status shows what has been read into the database from each file.</div>
+            </div>
+          )
+        })()}
 
         {/* treatment means */}
         <div style={{ ...card, marginBottom: 16, overflow: 'auto' }}>

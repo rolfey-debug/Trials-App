@@ -344,3 +344,39 @@ export async function correctScore(
   )
   return true
 }
+
+// --- Documents index (Drive files, uploaded sheets, reports) ------------------
+
+export interface DocumentRow {
+  id: string
+  kind: string
+  filename: string
+  storage_path: string
+  created_at: string
+  parsed: {
+    folder?: string
+    status?: string
+    note?: string
+    plot?: number
+    timing?: string
+    leaf?: string
+    drone?: boolean
+    takenAt?: string
+    camera?: string
+    flight?: { flightDate?: string; flightStart?: string; maxAltM?: number; site?: string }
+  } | null
+}
+
+export function loadDocuments(trialId: string, token: string): Promise<DocumentRow[] | null> {
+  return select<DocumentRow>('documents', `select=id,kind,filename,storage_path,created_at,parsed&trial_id=eq.${trialId}&order=filename.asc`, token)
+}
+
+/** Where a document lives: Drive files open in Drive, anything else has no
+ * public link yet. storage_path for Drive is `gdrive:<file id>`. */
+export function documentUrl(d: Pick<DocumentRow, 'storage_path' | 'filename'>): string | null {
+  if (d.storage_path.startsWith('gdrive:')) {
+    const id = d.storage_path.slice(7)
+    return d.filename.endsWith('(folder)') ? `https://drive.google.com/drive/folders/${id}` : `https://drive.google.com/file/d/${id}/view`
+  }
+  return null
+}
