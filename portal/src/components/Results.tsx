@@ -50,11 +50,44 @@ const MEASURE_LABEL: Record<string, string> = {
   other_lai: 'Other disease LAI %',
   other_plot: 'Other disease % plot',
   cropsafe: 'Crop safety 0–10',
+  control_pct: 'Weed control %',
+  ctrl_hairy_panic: 'Control % · hairy panic',
+  ctrl_red_grass: 'Control % · red grass',
+  ctrl_broadleaf: 'Control % · broadleaf',
+  ctrl_clover: 'Control % · clover',
+  ctrl_erodium: 'Control % · erodium',
+  ctrl_sln: 'Control % · silverleaf nightshade',
+  ctrl_windmill: 'Control % · windmill grass',
+  biomass_pct: 'Crop biomass % of untreated',
+  weed_ctrl_pct: 'Weed control %',
+  weeds_m2: 'Weeds /m²',
+  plant_count: 'Plants /m row',
+  plants_q1: 'Plants · quadrat 1',
+  plants_q2: 'Plants · quadrat 2',
+  plant_count_col: 'Plant count · column',
+  plants_m_row: 'Plants /m row',
+  vigour_1_5: 'Vigour 1–5',
+  dm_kg_ha: 'Dry matter kg/ha',
+  dm_pct: 'Dry matter %',
+  dm_grazed_kg_ha: 'DM kg/ha · grazed',
+  dm_ungrazed_kg_ha: 'DM kg/ha · ungrazed',
+  dm_graze1_kg_ha: 'DM kg/ha · 1st graze',
+  dm_graze2_kg_ha: 'DM kg/ha · 2nd graze',
+  pod_count: 'Pods per plant',
+  blackleg_uci_plants: 'Blackleg UCI · plants affected',
+  blackleg_uci_pct: 'Blackleg UCI %',
 }
 const label = (k: string) => MEASURE_LABEL[k] ?? k
 
 /** Measures where a higher value is the better result. */
-const HIGH_BETTER = new Set(['pgreen', 'ndvi', 'vigour', 'plants_m2'])
+const HIGH_BETTER = new Set([
+  'pgreen', 'ndvi', 'vigour', 'plants_m2', 'vigour_1_5', 'cropsafe',
+  'control_pct', 'ctrl_hairy_panic', 'ctrl_red_grass', 'ctrl_broadleaf', 'ctrl_clover',
+  'ctrl_erodium', 'ctrl_sln', 'ctrl_windmill', 'biomass_pct', 'weed_ctrl_pct',
+  'plant_count', 'plants_q1', 'plants_q2', 'plants_m_row',
+  'dm_kg_ha', 'dm_grazed_kg_ha', 'dm_ungrazed_kg_ha', 'dm_graze1_kg_ha', 'dm_graze2_kg_ha',
+  'pod_count',
+])
 
 /** One-line hover summary of a spray rig's stored details. */
 function equipSummary(d: { boomWidthM?: number; waterRateLPerHa?: number; nozzles?: string; pressureBar?: number | null; notes?: string } | null): string {
