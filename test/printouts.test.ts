@@ -1,6 +1,6 @@
 /** Printouts: treatment-line parsing across record shapes, mixing maths,
  * serpentine walk order and the HTML carrying the right facts. */
-import { assessmentSheetHtml, batchFor, normaliseUnit, plotSignsHtml, productInBatch, serpentine, sprayPlanHtml, timingsOf, treatmentLines, trialPlanHtml, type PlanData } from '../portal/src/lib/printouts'
+import { agreementHtml, assessmentSheetHtml, batchFor, growerInfoHtml, whsPackHtml, normaliseUnit, plotSignsHtml, productInBatch, serpentine, sprayPlanHtml, timingsOf, treatmentLines, trialPlanHtml, type PlanData } from '../portal/src/lib/printouts'
 import type { LiveTrial, MeasureDef, TreatmentRow } from '../portal/src/lib/db'
 
 let passed = 0
@@ -79,4 +79,20 @@ check('rep 1 only, blind: 3 signs without names', (rep1.match(/class="sign"/g) ?
 const sheet = assessmentSheetHtml(d, d.assessments[0])
 check('sheet has a row per plot in walk order and blank trt when blind', (sheet.match(/<tr><td class="mono"><b>\d+<\/b><\/td><td class="mono"><\/td>/g) ?? []).length === 8 && sheet.includes('Stripe rust % whole plot'))
 
+
+// --- draft grower documents and WHS pack -------------------------------------
+const expTrt: TreatmentRow = { n: 4, name: 'AGV-X31', recipe: 'B: AGV-X31 1.5 L/ha (EXP)', b_spray: true, components: { plots: [104], lines: [{ timing: 'B', product: 'AGV-X31', rate: 1.5, unit: 'L/ha', exp: true }] } }
+const dd = { ...d, treatments: [untreated, builder, expTrt], features: [{ kind: 'power_line', name: 'SWER line' }, { kind: 'gate', name: 'Front gate' }, { kind: 'hazard', name: 'Old well' }], applicators: [{ name: 'A. Rolfe', role: 'admin' }] }
+const ag = agreementHtml(dd)
+check('agreement is marked draft and names the parties', ag.includes('DRAFT WORDING') && ag.includes('G. Hamilton') && ag.includes('AGnVET Services'))
+check('agreement carries the unregistered product clause', ag.includes('AGV-X31') && ag.includes('must not enter the food or feed chain') && ag.includes('research permit'))
+check('agreement without EXP products says so', agreementHtml({ ...dd, treatments: [untreated, builder] }).includes('No unregistered or experimental products'))
+const gi = growerInfoHtml(dd)
+check('grower sheet lists timings and the EXP warning', gi.includes('Application A') && gi.includes('Application B') && gi.includes('cannot be sold or fed'))
+const whs = whsPackHtml(dd)
+check('WHS pack has five pages', (whs.match(/class="page"/g) ?? []).length === 5)
+check('WHS pack lists the drawn power line, gate and hazard', whs.includes('SWER line') && whs.includes('Front gate') && whs.includes('Hazard area: Old well'))
+check('WHS register lists products with EXP status', whs.includes('Prosaro 420 SC') && whs.includes('unregistered, research permit'))
+check('WHS accreditation lists applicators', whs.includes('A. Rolfe'))
+check('WHS emergency plan has 000 and the poisons line', whs.includes('000') && whs.includes('13 11 26'))
 console.log(`printouts: ${passed} checks passed`)

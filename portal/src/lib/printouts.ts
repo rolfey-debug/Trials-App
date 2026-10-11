@@ -35,8 +35,9 @@ const BASE_CSS = `
   .cell b { font-size: 11.5px; }
   .tick { width: 22px; height: 16px; border: 1.5px solid #B9BBB9; border-radius: 3px; display: inline-block; }
   .exp { color: #cf4520; border: 1px solid #cf4520; border-radius: 3px; padding: 0 4px; font-weight: 800; font-size: 9px; letter-spacing: .08em; }
-  .foot { position: fixed; bottom: 8mm; left: 36px; right: 36px; font-size: 9px; color: #8A8C8A; display: flex; justify-content: space-between; }
-  @media print { body { padding: 14mm 14mm 18mm; } .page { page-break-after: always; } }
+  .foot { margin-top: 28px; padding-top: 8px; border-top: 1px solid #E4E4E6; font-size: 9px; color: #8A8C8A; display: flex; justify-content: space-between; }
+  .page + .page { margin-top: 36px; padding-top: 24px; border-top: 3px dashed #D8DAD8; }
+  @media print { body { padding: 14mm 14mm 18mm; } .page { page-break-after: always; } .page + .page { margin-top: 0; padding-top: 0; border-top: 0; } .foot { position: fixed; bottom: 8mm; left: 14mm; right: 14mm; margin: 0; border: 0; } }
 `
 
 export function printHtml(title: string, body: string, extraCss = ''): HTMLIFrameElement | null {
@@ -415,4 +416,216 @@ export function assessmentSheetHtml(d: PlanData, a: AssessmentRow): string {
   <p class="muted" style="margin:8px 0">Walk order is serpentine by position. ${a.measures.map((k) => measures.get(k)?.sample).filter(Boolean).map((s) => esc(s)).join(' · ')}</p>
   <table><thead><tr><th>Plot</th><th>Trt</th>${cols.map((c) => `<th>${c}</th>`).join('')}<th style="width:28%">Notes</th></tr></thead><tbody>${rows}</tbody></table>
   ${footer(trial, `Assessment ${a.n}`)}`
+}
+
+// --- 5. Draft grower documents and WHS pack ----------------------------------
+// Wording below is a working draft for review: every page carries a DRAFT
+// band and the agreement says it is not for signing until reviewed. The
+// facts (parties, site, products, hazards) come from the record so the
+// reviewer marks up language, not blanks.
+
+const DRAFT_BAND = `<div style="margin:0 0 16px;padding:8px 14px;border-radius:6px;background:#FBEDE8;border-bottom:2px solid #cf4520;color:#A93414;font-size:11px;font-weight:800;letter-spacing:.08em">DRAFT WORDING · NOT YET REVIEWED · NOT FOR SIGNING</div>`
+const blank = (w = 180) => `<span style="display:inline-block;min-width:${w}px;border-bottom:1px solid #141414">&nbsp;</span>`
+const gap = (v: string | null | undefined, w = 160) => (v ? esc(v) : blank(w))
+
+function dms(v: number, pos: string, neg: string): string {
+  const a = Math.abs(v)
+  const d = Math.floor(a)
+  const m = Math.floor((a - d) * 60)
+  const s = Math.round(((a - d) * 60 - m) * 60)
+  return `${d}° ${m}′ ${s}″ ${v >= 0 ? pos : neg}`
+}
+
+export interface SiteFeatureLite {
+  kind: string
+  name: string | null
+}
+
+export interface DocsData extends PlanData {
+  features?: SiteFeatureLite[]
+  /** People who may apply product, from the people table, for the accreditation record. */
+  applicators?: Array<{ name: string; role: string }>
+}
+
+const productList = (trts: TreatmentRow[]) => {
+  const seen = new Map<string, { exp: boolean; rates: Set<string> }>()
+  for (const t of trts) for (const l of treatmentLines(t)) {
+    const e = seen.get(l.product) ?? { exp: false, rates: new Set<string>() }
+    e.exp = e.exp || !!l.exp
+    if (l.rate != null) e.rates.add(`${fmt(l.rate, 2)} ${l.unit}`)
+    seen.set(l.product, e)
+  }
+  return [...seen.entries()].map(([product, e]) => ({ product, exp: e.exp, rates: [...e.rates] }))
+}
+
+export function agreementHtml(d: DocsData): string {
+  const { trial, treatments } = d
+  const products = productList(treatments)
+  const exp = products.filter((p) => p.exp)
+  const site = trial.site ? [trial.site.property, trial.site.town].filter(Boolean).join(', ') : ''
+  const area = trial.design?.plot && trial.design.grid ? `${((trial.design.plot.areaM2 * trial.design.grid.rows * trial.design.grid.positions) / 10000).toFixed(2)} ha of plots plus access and buffer` : null
+  return `${DRAFT_BAND}${header(trial, 'Trial site agreement')}
+  <h2>1. Parties</h2>
+  <p><b>AGnVET Services</b> (the Agronomy Provider), by its agronomist Andrew Rolfe, and <b>${gap(trial.client?.name, 220)}</b> (the Grower), owner or occupier of ${gap(site, 260)}.</p>
+  <h2>2. Site and area</h2>
+  <p>The Grower allows the trial known as <b>${esc(trial.name)}</b> on the paddock at ${gap(site, 220)} for the ${esc(String(trial.season ?? ''))} season. The trial area is ${gap(area, 220)}, as marked on the attached site plan. The trial plots are the Grower's crop${trial.crop ? ` (${esc([trial.crop, trial.variety].filter(Boolean).join(' '))})` : ''}, sown and managed by the Grower except as set out below.</p>
+  <h2>3. Duration</h2>
+  <p>From sowing or the first application, whichever is earlier, until harvest of the trial area and removal of signs and pegs, expected ${gap(null, 120)}. Either party may end the agreement earlier under clause 11.</p>
+  <h2>4. Access</h2>
+  <p>The Agronomy Provider and people working with it may enter the paddock on reasonable notice (a phone call or text on the day is enough) to apply treatments, assess, photograph, fly a drone over the trial area, host a field walk and harvest the plots. Vehicles keep to ${gap(null, 180)} and gates are left as found.</p>
+  <h2>5. What the Agronomy Provider will do</h2>
+  <ul>
+    <li>Lay out, peg and sign the plots and keep the plan and the application records.</li>
+    <li>Apply the treatments listed in the schedule, by accredited operators, according to product labels or the research permit.</li>
+    <li>Assess the plots and provide the Grower with the results at the end of the season, including anything found that affects the Grower's own management of the paddock.</li>
+    <li>Remove pegs, signs and any trial material at the end.</li>
+  </ul>
+  <h2>6. What the Grower agrees to</h2>
+  <ul>
+    <li>Manage the paddock around the trial area as normal, but <b>not spray, spread, graze, cultivate or harvest the trial plots</b> without first speaking to the Agronomy Provider, and tell any contractor the same.</li>
+    <li>Tell the Agronomy Provider of any product applied to the paddock, with date, product and rate, so the record is complete.</li>
+    <li>Allow the plots to be harvested separately where the plan says so, and the plot grain to be kept out of the Grower's delivery.</li>
+  </ul>
+  <h2>7. Unregistered or experimental products</h2>
+  ${exp.length ? `<p>The following products are not registered for this use: ${exp.map((p) => `<b>${esc(p.product)}</b>`).join(', ')}. They are applied under APVMA research permit number ${blank(140)}. <b>Produce from plots treated with these products must not enter the food or feed chain.</b> The Agronomy Provider will destroy or dispose of that produce and tell the Grower when it is done.</p>` : '<p>No unregistered or experimental products are listed for this trial. If one is added, the Agronomy Provider will tell the Grower in writing and the produce from those plots will not enter the food or feed chain.</p>'}
+  <h2>8. Crop damage and compensation</h2>
+  <p>Where a treatment, the trial layout or trial activity causes a loss of yield or quality in the trial area beyond what the Grower would otherwise have had, the Agronomy Provider will compensate the Grower on the following basis: ${blank(300)} (for example, the untreated plot yield times the area affected at the delivered price for the Grower's grade). Normal seasonal loss, and loss outside the trial area, are not covered.</p>
+  <h2>9. Data, results and publication</h2>
+  <p>The trial data belongs to the Agronomy Provider and, where a product company sponsors the trial, to that company under its own agreement with AGnVET. The Grower receives the full results for this site. Results may be presented and published with the paddock identified by district only, unless the Grower agrees in writing to be named. The Grower's own farm records are not disclosed.</p>
+  <h2>10. Insurance and responsibility</h2>
+  <p>Each party keeps its own public liability insurance. The Agronomy Provider is responsible for the safety of its own people and visitors it brings to the site and will give the Grower the site safety sheet. The Grower will point out known hazards on the property (overhead lines, dams, chemical storage, stock) before work starts.</p>
+  <h2>11. Ending the agreement</h2>
+  <p>Either party may end the agreement with two weeks' notice. If the Grower ends it after treatments are applied, the Agronomy Provider may still complete the assessments and harvest already planned, and clause 7 continues to apply to treated produce.</p>
+  <h2>12. Signatures</h2>
+  <table style="margin-top:8px"><tbody>
+    <tr><td style="width:50%;height:70px;vertical-align:bottom">Grower ${blank(200)}<br><span class="muted">name, signature, date</span></td><td style="vertical-align:bottom">AGnVET Services ${blank(200)}<br><span class="muted">name, signature, date</span></td></tr>
+  </tbody></table>
+  <h2>Schedule: treatments</h2>
+  <table><thead><tr><th>#</th><th>Treatment</th><th>Products and rates by timing</th></tr></thead><tbody>${treatments.map((t) => `<tr><td class="mono">T${t.n}</td><td>${esc(t.name)}</td><td>${recipeByTiming(treatmentLines(t), t)}</td></tr>`).join('')}</tbody></table>
+  ${footer(trial, 'Draft site agreement')}`
+}
+
+export function growerInfoHtml(d: DocsData): string {
+  const { trial, treatments } = d
+  const timings = timingsOf(treatments)
+  const exp = productList(treatments).filter((p) => p.exp)
+  return `${DRAFT_BAND}${header(trial, 'Grower information sheet')}
+  <p style="font-size:13px">A plain-language summary of what is in your paddock and what it needs from you. Keep it with your spray records and give a copy to anyone who sprays or spreads for you.</p>
+  <h2>What is out there</h2>
+  <p>${esc(trial.aim ?? 'A replicated field trial comparing the treatments below.')}</p>
+  <p>${treatments.length} treatments${trial.design?.reps ? ` × ${trial.design.reps} replicates` : ''}${trial.design?.plot ? `, plots ${trial.design.plot.widthM} × ${trial.design.plot.lengthM} m` : ''}, pegged and signed. The untreated plots are part of the trial: please leave them alone too.</p>
+  <table><thead><tr><th>#</th><th>Treatment</th><th>Products and rates</th></tr></thead><tbody>${treatments.map((t) => `<tr><td class="mono">T${t.n}</td><td>${esc(t.name)}</td><td>${recipeByTiming(treatmentLines(t), t)}</td></tr>`).join('')}</tbody></table>
+  <h2>When we will be in the paddock</h2>
+  <ul>${timings.map((tm) => `<li>Application ${tm}: ${esc(trial.spraying?.timings?.[tm]?.due ?? 'timing to be confirmed')}${trial.spraying?.timings?.[tm]?.applied ? ` (applied ${esc(trial.spraying.timings[tm].applied)})` : ''}</li>`).join('')}
+    <li>Assessments: ${d.assessments.length ? d.assessments.map((a) => esc(a.timing ?? '')).filter(Boolean).join(', ') : 'through the season'}</li>
+    <li>Harvest of the plots: we will ring before.</li></ul>
+  <h2>What we need from you</h2>
+  <ul>
+    <li>Please do not spray, spread, graze or cultivate over the plots. Tell your contractor the plots are there and where the buffer runs.</li>
+    <li>Let us know what you put on the rest of the paddock (product, rate, date); it goes in the trial record.</li>
+    <li>Ring if you see anything odd in the trial area: damage, stock in, a sign down.</li>
+  </ul>
+  ${exp.length ? `<h2>Experimental products</h2><p>${exp.map((p) => `<b>${esc(p.product)}</b>`).join(', ')} ${exp.length === 1 ? 'is' : 'are'} not registered for this use. Grain or hay from those plots cannot be sold or fed and we will remove it. Plots are signed EXPERIMENTAL.</p>` : ''}
+  <h2>Who to call</h2>
+  <p>Andrew Rolfe, AGnVET Services: ${blank(160)}. Office: ${blank(160)}.</p>
+  ${footer(trial, 'Grower information sheet')}`
+}
+
+const HAZARD_ROWS: Array<[string, string, string]> = [
+  ['Agricultural chemicals', 'Skin and eye contact, inhalation during mixing and spraying', 'Read the label and SDS; PPE by product (gloves, overalls, eye protection, respirator where required); mix in the open, upwind; wash facilities and clean water on the ute; triple rinse'],
+  ['Vehicles and machinery', 'Ute and plot boom on uneven ground, reversing, moving parts', 'Walk the site first; spotter when reversing near people; machinery guards in place; no loose clothing'],
+  ['Heat, sun and dehydration', 'Heat stress, sunburn', 'Water on hand, hat and sunscreen, shade breaks; reschedule heavy work above 35 °C'],
+  ['Remote and lone work', 'Delayed help after an injury', 'Tell the office the plan and expected return; phone or UHF checked for coverage at the gate; first aid kit in the ute'],
+  ['Fatigue and driving', 'Long days and early starts', 'Share driving on long runs; no spraying after a full day of travel'],
+  ['Uneven ground, holes, stubble', 'Trips, ankle injuries', 'Boots; walk, do not run, between plots; mark holes found'],
+  ['Livestock and dogs', 'Charging stock, bites', 'Check with the grower; keep vehicles between you and stock; gates closed'],
+  ['Fire danger', 'Hot exhausts in dry stubble, total fire ban days', 'Check the fire danger rating; no vehicles in long dry grass on high days; extinguisher on the ute'],
+  ['Snakes and insects', 'Bites and stings', 'Boots and long trousers; pressure bandage in the kit; know the nearest hospital'],
+]
+
+export function whsPackHtml(d: DocsData): string {
+  const { trial, treatments } = d
+  const features = d.features ?? []
+  const site = trial.site
+  const coords = site?.lat != null && site?.lng != null ? `${site.lat.toFixed(5)}, ${site.lng.toFixed(5)} · ${dms(site.lat, 'N', 'S')} ${dms(site.lng, 'E', 'W')}` : null
+  const siteHazards: Array<[string, string, string]> = []
+  if (features.some((f) => f.kind === 'power_line')) siteHazards.push(['Overhead power lines', `On this site: ${features.filter((f) => f.kind === 'power_line').map((f) => f.name || 'marked on the plan').join('; ')}`, 'No drone flights near the lines; boom and loader arms down when passing under; marked on the site plan'])
+  if (features.some((f) => f.kind === 'water')) siteHazards.push(['Dams, channels and troughs', `On this site: ${features.filter((f) => f.kind === 'water').map((f) => f.name || 'marked on the plan').join('; ')}`, 'No vehicles on dam banks; children kept away at field days'])
+  for (const f of features.filter((x) => x.kind === 'hazard')) siteHazards.push([`Hazard area: ${f.name || 'unnamed'}`, 'Marked on the site plan', 'Keep out; fenced or flagged for field days'])
+  const products = productList(treatments)
+  const applicators = d.applicators ?? []
+  const pubcris = 'https://portal.apvma.gov.au/pubcris'
+  const page = (title: string, body: string) => `<div class="page">${DRAFT_BAND}${header(trial, title)}${body}${footer(trial, 'WHS site pack')}</div>`
+  return [
+    page('WHS site pack · 1 Site risk assessment', `
+      <div class="kv"><b>Site</b><span>${esc(site ? [site.property, site.town].filter(Boolean).join(', ') : '')}</span><b>Assessed by</b><span>${blank(160)}</span><b>Date</b><span>${blank(120)}</span><b>Reviewed</b><span>before each spray day and the field day</span></div>
+      <h2>Site-specific hazards${siteHazards.length ? '' : ' (none drawn on the site plan yet)'}</h2>
+      ${siteHazards.length ? `<table><thead><tr><th>Hazard</th><th>Where</th><th>Controls</th></tr></thead><tbody>${siteHazards.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '<p class="muted">Draw power lines, water and hazard areas on the site planner and they list here.</p>'}
+      <h2>General hazards for small-plot trial work</h2>
+      <table><thead><tr><th style="width:22%">Hazard</th><th style="width:28%">Risk</th><th>Controls</th></tr></thead><tbody>${HAZARD_ROWS.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`),
+    page('WHS site pack · 2 Emergency plan', `
+      <h2>Where you are</h2>
+      <div class="kv">
+        <b>Property</b><span>${esc(site?.property ?? '')}</span>
+        <b>Nearest town</b><span>${esc(site?.town ?? '')}</span>
+        <b>Coordinates</b><span class="mono">${coords ? esc(coords) : blank(260)}</span>
+        <b>Road access</b><span>${blank(300)}</span>
+        <b>Gate</b><span>${features.some((f) => f.kind === 'gate') ? esc(features.filter((f) => f.kind === 'gate').map((f) => f.name || 'marked on the plan').join('; ')) : blank(260)}</span>
+        <b>Phone coverage</b><span>${blank(120)} &nbsp; <b>UHF channel</b> ${blank(60)}</span>
+        <b>Nearest hospital</b><span>${blank(300)}</span>
+        <b>First aid kit</b><span>In the ute, driver's side rear</span>
+        <b>Nearest water</b><span>${features.some((f) => f.kind === 'water') ? esc(features.filter((f) => f.kind === 'water').map((f) => f.name || 'marked on the plan').join('; ')) : 'Ute water drum'}</span>
+      </div>
+      <h2>If someone is hurt</h2>
+      <ol style="margin:0;padding-left:18px;line-height:1.6">
+        <li>Make the area safe; stop spraying, engines off.</li>
+        <li>Call <b>000</b> (or <b>112</b> from a mobile with no coverage on your network). Give the coordinates above and the property name. Stay on the line.</li>
+        <li>Chemical exposure: remove contaminated clothing, flush skin or eyes with clean water for 15 minutes, keep the product label for the ambulance. Poisons Information Centre <b>13 11 26</b>.</li>
+        <li>Send someone to the gate to guide the ambulance in.</li>
+        <li>Tell the office and the grower.</li>
+      </ol>
+      <h2>Contacts</h2>
+      <table><thead><tr><th>Who</th><th>Phone</th></tr></thead><tbody>
+        <tr><td>Andrew Rolfe, AGnVET Services</td><td>${blank(160)}</td></tr>
+        <tr><td>Grower: ${esc(trial.client?.name ?? '')}</td><td>${gap(trial.client?.contact?.phone, 160)}</td></tr>
+        <tr><td>AGnVET office</td><td>${blank(160)}</td></tr>
+        <tr><td>Poisons Information Centre</td><td>13 11 26</td></tr>
+        <tr><td>Emergency</td><td>000</td></tr>
+      </tbody></table>`),
+    page('WHS site pack · 3 Hazardous chemical register', `
+      <p>Every product used on the trial. Safety data sheets travel in the ute and are linked from the APVMA product record.</p>
+      <table><thead><tr><th>Product</th><th>Rates used</th><th>Status</th><th>SDS</th><th>Quantity on site</th><th>Storage</th></tr></thead><tbody>
+        ${products.length ? products.map((p) => `<tr><td><b>${esc(p.product)}</b></td><td>${esc(p.rates.join(', '))}</td><td>${p.exp ? '<span class="exp">EXP</span> unregistered, research permit' : 'registered'}</td><td>${p.exp ? 'from the supplier' : `<a href="${pubcris}">APVMA PubCRIS</a> (search the product name)`}</td><td>${blank(70)}</td><td>${blank(90)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">No products on the treatment list.</td></tr>'}
+      </tbody></table>
+      <h2>Safe work method: mixing and spraying small plots</h2>
+      <table><thead><tr><th style="width:26%">Step</th><th style="width:30%">Hazards</th><th>Controls</th></tr></thead><tbody>
+        <tr><td>Check the plan and the weather</td><td>Drift, wrong product on a plot</td><td>Wind under 15 km/h and away from sensitive areas; Delta T in range; spray plan on the ute with plots and treatments; conditions written on the record before starting</td></tr>
+        <tr><td>Set up and calibrate</td><td>Pressurised lines, nozzle checks at eye level</td><td>Calibrate with water first; check nozzles with the boom down; gloves and eye protection on from here</td></tr>
+        <tr><td>Measure and mix each batch</td><td>Concentrate contact, splashes, inhalation</td><td>PPE per label (minimum: chemical gloves, overalls, eye protection; respirator where the label says); measure over a tray; water first, products in order, adjuvant last; label the bottle T-number</td></tr>
+        <tr><td>Spray the plots</td><td>Walking into spray, tripping with the boom, bystanders</td><td>Walk upwind; one person sprays, one records; nobody else inside the trial area; tick each plot as sprayed</td></tr>
+        <tr><td>Rinse and dispose</td><td>Contaminated rinsate and containers</td><td>Triple rinse between treatments, rinsate sprayed on the buffer or a spare plot, never to a drain or dam; empty containers to drumMUSTER or as the label says</td></tr>
+        <tr><td>Finish</td><td>Residues on hands and clothing</td><td>Wash hands and face before eating or driving; overalls bagged for washing separately; record completed within 24 hours</td></tr>
+      </tbody></table>`),
+    page('WHS site pack · 4 Field day induction and sign-on', `
+      <h2>Visitor induction (read out at the gate)</h2>
+      <ul style="line-height:1.6">
+        <li>This is a working paddock. Keep to the pathways between plots; do not enter the plots.</li>
+        <li>${siteHazards.length ? `Keep-out areas today: ${esc(siteHazards.map((h) => h[0]).join('; '))}.` : 'Keep-out areas today: as flagged.'}</li>
+        <li>Products marked EXPERIMENTAL are unregistered: do not handle plants or grain from those plots.</li>
+        <li>Vehicles park where directed; no vehicles in long dry grass.</li>
+        <li>Water, shade and the first aid kit are at the ute. In an emergency the meeting point is the gate.</li>
+        <li>Children stay with an adult and away from water.</li>
+      </ul>
+      <h2>Sign-on</h2>
+      <table><thead><tr><th>Name</th><th>Organisation</th><th>Phone</th><th>Time in</th><th>Time out</th><th>Inducted</th></tr></thead><tbody>
+        ${Array.from({ length: 18 }, () => `<tr>${'<td style="height:24px"></td>'.repeat(6)}</tr>`).join('')}
+      </tbody></table>`),
+    page('WHS site pack · 5 Applicator accreditation record', `
+      <p>Who applied what on this trial, and the chemical accreditation they hold. Fill in as each application is made.</p>
+      <table><thead><tr><th>Name</th><th>Role</th><th>Accreditation (e.g. AQF3 chemical application, ChemCert)</th><th>Number</th><th>Expires</th><th>Applications (timing, date)</th></tr></thead><tbody>
+        ${applicators.map((a) => `<tr><td>${esc(a.name)}</td><td>${esc(a.role)}</td><td style="height:26px"></td><td></td><td></td><td></td></tr>`).join('')}
+        ${Array.from({ length: Math.max(0, 6 - applicators.length) }, () => `<tr>${'<td style="height:26px"></td>'.repeat(6)}</tr>`).join('')}
+      </tbody></table>
+      <p class="muted" style="margin-top:10px">Sources to check when this wording is reviewed: SafeWork NSW guidance on agricultural chemicals and farm safety; the NSW Pesticides Regulation record-keeping requirements (record within 24 hours, kept three years).</p>`),
+  ].join('')
 }

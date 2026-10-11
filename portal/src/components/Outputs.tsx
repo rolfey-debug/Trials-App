@@ -3,9 +3,9 @@
  * blank assessment sheets. Preview on the right, print (or save as PDF)
  * from the browser's dialog. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOrgSettings, loadTreatments, markDocumentDrive, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OrgSettings, type PrintKind, type TreatmentRow } from '../lib/db'
+import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOrgSettings, loadPeople, loadSiteFeatures, loadTreatments, markDocumentDrive, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OrgSettings, type PersonRow, type PrintKind, type SiteFeatureRow, type TreatmentRow } from '../lib/db'
 import { forgetDriveToken, pushPrintoutToDrive } from '../lib/gdrive'
-import { assessmentSheetHtml, documentHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, type PlanData } from '../lib/printouts'
+import { agreementHtml, assessmentSheetHtml, documentHtml, growerInfoHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, whsPackHtml, type DocsData } from '../lib/printouts'
 import { MONO, useApp } from '../state'
 
 const GREEN = '#007749'
@@ -13,13 +13,16 @@ const GREY = '#8A8C8A'
 const INK = '#141414'
 const HAIR = '#E4E4E6'
 
-type Kind = 'plan' | 'spray' | 'signs' | 'site' | 'sheet'
+type Kind = 'plan' | 'spray' | 'signs' | 'site' | 'sheet' | 'agreement' | 'grower' | 'whs'
 const KINDS: Array<{ id: Kind; label: string; blurb: string }> = [
   { id: 'plan', label: 'Trial plan', blurb: 'aim, site, treatments, plot plan, assessment schedule' },
   { id: 'spray', label: 'Spray and mixing plan', blurb: 'batch volumes and product amounts per treatment, tick boxes, application record' },
   { id: 'signs', label: 'Plot signs', blurb: 'one per plot or rep 1 only, 2 or 4 per A4 sheet' },
   { id: 'site', label: 'Site sign', blurb: 'A4 or A3 board at the gate: aim, treatments, LSD note' },
   { id: 'sheet', label: 'Assessment sheet', blurb: 'pen-and-paper scoring sheet in walk order, per timing' },
+  { id: 'agreement', label: 'Trial site agreement (draft)', blurb: 'parties, access, obligations, unregistered products, compensation, data, signatures' },
+  { id: 'grower', label: 'Grower information sheet (draft)', blurb: 'plain-language summary for the grower and their contractor' },
+  { id: 'whs', label: 'WHS site pack (draft)', blurb: 'risk assessment, emergency plan, chemical register, SWMS, sign-on, accreditation' },
 ]
 
 const sectionLabel: React.CSSProperties = { fontSize: 10.5, fontWeight: 800, letterSpacing: '.11em', color: GREY, marginBottom: 6 }
@@ -34,6 +37,8 @@ export default function Outputs() {
   const [trts, setTrts] = useState<TreatmentRow[]>([])
   const [assess, setAssess] = useState<AssessmentRow[]>([])
   const [measures, setMeasures] = useState<Map<string, MeasureDef>>(new Map())
+  const [features, setFeatures] = useState<SiteFeatureRow[]>([])
+  const [people, setPeople] = useState<PersonRow[]>([])
   const [kind, setKind] = useState<Kind>('plan')
   const [timing, setTiming] = useState('A')
   const [water, setWater] = useState(100)
@@ -62,8 +67,9 @@ export default function Outputs() {
         setAuth('signedout')
         return
       }
-      const [t, lib, settings] = await Promise.all([loadLiveTrials(token), loadMeasureLibrary(token), loadOrgSettings(token)])
+      const [t, lib, settings, ppl] = await Promise.all([loadLiveTrials(token), loadMeasureLibrary(token), loadOrgSettings(token), loadPeople(token)])
       setOrg(settings)
+      setPeople(ppl ?? [])
       setTrials(t ?? [])
       setMeasures(new Map((lib ?? []).map((m) => [m.key, m])))
       const first = (t ?? []).find((x) => x.status === 'draft' || x.status === 'approved') ?? (t ?? [])[0]
@@ -77,12 +83,14 @@ export default function Outputs() {
     void (async () => {
       const token = await portalToken()
       if (!token) return
-      const [tr, as] = await Promise.all([loadTreatments(trialId, token), loadAssessments(trialId, token)])
+      const siteId = trials.find((x) => x.id === trialId)?.site_id ?? null
+      const [tr, as, fe] = await Promise.all([loadTreatments(trialId, token), loadAssessments(trialId, token), siteId ? loadSiteFeatures(siteId, token) : Promise.resolve([])])
       setTrts(tr ?? [])
       setAssess(as ?? [])
+      setFeatures(fe ?? [])
       setSheetN(as?.[0]?.n ?? 1)
     })()
-  }, [trialId])
+  }, [trialId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const trial = trials.find((t) => t.id === trialId) ?? null
   useEffect(() => {
@@ -95,7 +103,7 @@ export default function Outputs() {
 
   const html = useMemo(() => {
     if (!trial) return ''
-    const d: PlanData = { trial, treatments: trts, assessments: assess, measures }
+    const d: DocsData = { trial, treatments: trts, assessments: assess, measures, features, applicators: people.filter((p) => ['admin', 'agronomist', 'team'].includes(p.role)).map((p) => ({ name: p.name, role: p.role })) }
     switch (kind) {
       case 'plan':
         return documentHtml(`${trial.name} — trial plan`, trialPlanHtml(d))
@@ -105,12 +113,18 @@ export default function Outputs() {
         return documentHtml(`${trial.name} — plot signs`, plotSignsHtml(d, { size: signSize, repOneOnly: repOne, blind }), signCss)
       case 'site':
         return documentHtml(`${trial.name} — site sign`, siteSignHtml(d))
+      case 'agreement':
+        return documentHtml(`${trial.name} — draft site agreement`, agreementHtml(d))
+      case 'grower':
+        return documentHtml(`${trial.name} — grower information`, growerInfoHtml(d))
+      case 'whs':
+        return documentHtml(`${trial.name} — WHS site pack`, whsPackHtml(d))
       case 'sheet': {
         const a = assess.find((x) => x.n === sheetN) ?? assess[0]
         return a ? documentHtml(`${trial.name} — assessment ${a.n}`, assessmentSheetHtml(d, a)) : documentHtml(trial.name, '<p class="muted">No assessment timings on this trial yet. Add them in the builder or the trial editor.</p>')
       }
     }
-  }, [trial, trts, assess, measures, kind, timing, water, overage, signSize, repOne, blind, sheetN])
+  }, [trial, trts, assess, measures, features, people, kind, timing, water, overage, signSize, repOne, blind, sheetN])
 
   useEffect(() => {
     setSaveState('idle')
@@ -124,7 +138,7 @@ export default function Outputs() {
       setSaveState('failed')
       return
     }
-    const kindOf: Record<Kind, PrintKind> = { plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet' }
+    const kindOf: Record<Kind, PrintKind> = { plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet', agreement: 'agreement', grower: 'grower-info', whs: 'whs' }
     const label = kind === 'spray' ? `Spray plan ${timing}` : kind === 'sheet' ? `Assessment sheet A${sheetN}` : KINDS.find((k) => k.id === kind)?.label ?? kind
     const options = kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'sheet' ? { assessment: sheetN } : {}
     const filename = `${label} · ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.html`
@@ -299,7 +313,7 @@ export default function Outputs() {
           )}
         </div>
         <div style={{ fontSize: 11, color: GREY, lineHeight: 1.45 }}>
-          A saved copy is the exact page that went to the printer, listed under the trial in Results and, when Drive is connected, in Drive. Grower agreement and WHS site sheet are not here yet: their wording needs your sign-off before they print. <span onClick={() => nav('builder', { editTrialId: null })} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>New trial</span> builds the record these documents come from.
+          A saved copy is the exact page that went to the printer, listed under the trial in Results and, when Drive is connected, in Drive. The agreement, grower sheet and WHS pack are drafts: every page says so until you have reviewed the wording. <span onClick={() => nav('builder', { editTrialId: null })} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>New trial</span> builds the record these documents come from.
         </div>
       </div>
       <div style={{ flex: 1, minWidth: 0, background: '#E9EBE9', padding: 18, overflow: 'hidden' }}>

@@ -892,7 +892,7 @@ export function removeSiteFeature(id: string, token: string): Promise<boolean> {
 
 // --- Saved printouts -----------------------------------------------------------
 
-export type PrintKind = 'trial-plan' | 'spray-plan' | 'plot-signs' | 'site-sign' | 'assessment-sheet' | 'report'
+export type PrintKind = 'trial-plan' | 'spray-plan' | 'plot-signs' | 'site-sign' | 'assessment-sheet' | 'report' | 'agreement' | 'grower-info' | 'whs'
 
 /** Keep the exact page that went to the printer beside the trial: the HTML
  * lands in the private documents bucket and a documents row indexes it. */
@@ -942,4 +942,14 @@ export function markDocumentDrive(docId: string, drive: { id: string; url: strin
   return select<{ parsed: Record<string, unknown> | null }>('documents', `select=parsed&id=eq.${docId}`, token).then((rows) =>
     update('documents', `id=eq.${docId}`, { parsed: { ...(rows?.[0]?.parsed ?? {}), drive } }, token)
   )
+}
+
+export interface PersonRow {
+  id: string
+  name: string
+  role: string
+}
+
+export function loadPeople(token: string): Promise<PersonRow[] | null> {
+  return select<PersonRow>('people', 'select=id,name,role&order=name.asc', token)
 }
