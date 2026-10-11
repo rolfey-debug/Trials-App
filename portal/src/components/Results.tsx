@@ -2,7 +2,7 @@
  * map, a measure-vs-measure scatter, and per-plot detail with photos. Reads
  * the real backend under RLS; everything renders from scores + treatments. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { correctScore, documentUrl, loadCalibrations, loadDocuments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadScores, loadSiteWeather, loadSoilTests, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, refreshWeather, type Calibration, type DocumentRow, type LiveTrial, type MeasureDef, type OperationRow, type PhotoRow, type ScoreRow, type SoilTestRow, type TreatmentRow, type WeatherDay } from '../lib/db'
+import { correctScore, documentUrl, openStoredDocument, loadCalibrations, loadDocuments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadScores, loadSiteWeather, loadSoilTests, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, refreshWeather, type Calibration, type DocumentRow, type LiveTrial, type MeasureDef, type OperationRow, type PhotoRow, type ScoreRow, type SoilTestRow, type TreatmentRow, type WeatherDay } from '../lib/db'
 import { applyCalibrations, loadFixture, seasonSummary } from '../lib/pheno'
 import type { SiteWeather } from '../../../shared/phenology/engine'
 import { exportResults } from '../lib/exportXlsx'
@@ -645,7 +645,7 @@ export default function Results() {
           return (
             <div style={{ ...card, marginBottom: 16 }}>
               <div style={eyebrow}>
-                FILES · {docs.length} on Drive — {[...groups.keys()].length} folder{groups.size === 1 ? '' : 's'}
+                FILES · {docs.length} — {[...groups.keys()].length} folder{groups.size === 1 ? '' : 's'}
               </div>
               {[...groups.entries()]
                 .sort((a, b) => a[0].localeCompare(b[0]))
@@ -676,6 +676,10 @@ export default function Results() {
                               <a href={url} target="_blank" rel="noreferrer" style={{ color: GREEN, fontWeight: 700, textDecoration: 'none' }}>
                                 {d.filename} ↗
                               </a>
+                            ) : d.storage_path.startsWith('supa:') ? (
+                              <span onClick={async () => { const token = await portalToken(); if (token && !(await openStoredDocument(d, token))) alert('Could not open that file.') }} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>
+                                {d.filename} ↗
+                              </span>
                             ) : (
                               <span style={{ fontWeight: 700, color: INK }}>{d.filename}</span>
                             )}

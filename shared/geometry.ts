@@ -198,3 +198,20 @@ export function ringFromGeoJson(g: { type: string; coordinates: number[][][] } |
 export function polygonGeoJson(poly: LatLng[]): { type: 'Polygon'; coordinates: number[][][] } {
   return { type: 'Polygon', coordinates: [[...poly, poly[0]].map((p) => [p.lng, p.lat])] }
 }
+
+/** EWKT line for a PostGIS geometry column (tracks, fences, power lines). */
+export function lineWkt(pts: LatLng[]): string {
+  return `SRID=4326;LINESTRING(${pts.map((p) => `${p.lng.toFixed(8)} ${p.lat.toFixed(8)}`).join(', ')})`
+}
+
+/** Any GeoJSON Point / LineString / Polygon → its lat/lng points (outer ring for polygons). */
+export function pointsFromGeoJson(g: { type: string; coordinates: unknown } | null | undefined): LatLng[] {
+  if (!g) return []
+  if (g.type === 'Point') {
+    const [lng, lat] = g.coordinates as number[]
+    return [{ lat, lng }]
+  }
+  if (g.type === 'LineString') return (g.coordinates as number[][]).map(([lng, lat]) => ({ lat, lng }))
+  if (g.type === 'Polygon') return ringFromGeoJson(g as { type: string; coordinates: number[][][] })
+  return []
+}

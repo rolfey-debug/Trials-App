@@ -7,8 +7,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { areaM2, bearingDeg, blockOutline, blockPlots, haversineM, ringFromGeoJson, type BlockCell, type BlockSpec, type LatLng } from '../../../shared/geometry'
-import { cellsFromTreatments, clearPlacement, loadLiveTrials, loadSitePlots, loadTreatments, portalToken, savePlacement, saveSiteOutline, type LiveTrial, type PlotRow } from '../lib/db'
+import { areaM2, bearingDeg, blockOutline, blockPlots, haversineM, ringFromGeoJson, type BlockCell, type BlockSpec, type LatLng, pointsFromGeoJson } from '../../../shared/geometry'
+import { addSiteFeature, cellsFromTreatments, clearPlacement, loadLiveTrials, loadSiteFeatures, loadSitePlots, loadTreatments, portalToken, removeSiteFeature, savePlacement, saveSiteOutline, type FeatureKind, type LiveTrial, type PlotRow, type SiteFeatureRow } from '../lib/db'
 import { MONO } from '../state'
 
 const GREEN = '#007749'
@@ -36,7 +36,31 @@ interface Placing {
   dirty: boolean
 }
 
-type Mode = 'idle' | 'origin' | 'direction' | 'outline'
+type Mode = 'idle' | 'origin' | 'direction' | 'outline' | 'feature'
+
+/** What can be drawn on a site besides plots. Shapes: a point is one click,
+ * a line or polygon is clicked out and finished. Hazards and power lines feed
+ * the WHS site sheet; tracks, gates and water help the field-day plan. */
+const FEATURE_KINDS: Array<{ kind: FeatureKind; label: string; shape: 'point' | 'line' | 'polygon'; colour: string }> = [
+  { kind: 'gate', label: 'Gate', shape: 'point', colour: '#F2A900' },
+  { kind: 'track', label: 'Track / access', shape: 'line', colour: '#F4F4F4' },
+  { kind: 'fence', label: 'Fence', shape: 'line', colour: '#D0605A' },
+  { kind: 'power_line', label: 'Power line', shape: 'line', colour: '#9A6BB0' },
+  { kind: 'water', label: 'Water (dam, trough, tap)', shape: 'point', colour: '#5B8DB8' },
+  { kind: 'hazard', label: 'Hazard area', shape: 'polygon', colour: '#B8372E' },
+  { kind: 'buffer', label: 'Buffer / no-spray zone', shape: 'polygon', colour: '#4C9A6B' },
+  { kind: 'photo_point', label: 'Photo point', shape: 'point', colour: '#2E7D7D' },
+  { kind: 'weather_station', label: 'Weather station', shape: 'point', colour: '#2C6E8F' },
+  { kind: 'soil_sample', label: 'Soil sample point', shape: 'point', colour: '#9C6212' },
+  { kind: 'note', label: 'Note', shape: 'point', colour: '#8A8C8A' },
+]
+const featureDef = (k: string) => FEATURE_KINDS.find((f) => f.kind === k) ?? FEATURE_KINDS[FEATURE_KINDS.length - 1]
+
+interface DraftFeature {
+  kind: FeatureKind
+  name: string
+  pts: LatLng[]
+}
 
 const inputStyle: React.CSSProperties = { width: '100%', padding: '6px 8px', fontSize: 12.5, fontWeight: 600, border: `1px solid ${HAIR}`, borderRadius: 7, outline: 'none', color: INK, background: '#fff', font: 'inherit' }
 const btn = (primary = false, danger = false): React.CSSProperties => ({
@@ -76,9 +100,11 @@ export default function SitePlanner() {
   const storedRef = useRef<L.LayerGroup | null>(null)
   const draftRef = useRef<L.LayerGroup | null>(null)
   const outlineRef = useRef<L.LayerGroup | null>(null)
+  const featuresRef = useRef<L.LayerGroup | null>(null)
   const modeRef = useRef<Mode>('idle')
   const placingRef = useRef<Placing | null>(null)
   const draftOutlineRef = useRef<LatLng[]>([])
+  const draftFeatureRef = useRef<DraftFeature | null>(null)
 
   const [state, setState] = useState<'loading' | 'ready' | 'signedout'>('loading')
   const [trials, setTrials] = useState<LiveTrial[]>([])
@@ -87,11 +113,16 @@ export default function SitePlanner() {
   const [placing, setPlacing] = useState<Placing | null>(null)
   const [mode, setMode] = useState<Mode>('idle')
   const [draftOutline, setDraftOutline] = useState<LatLng[]>([])
+  const [features, setFeatures] = useState<SiteFeatureRow[]>([])
+  const [draftFeature, setDraftFeature] = useState<DraftFeature | null>(null)
+  const [newKind, setNewKind] = useState<FeatureKind>('gate')
+  const [selFeature, setSelFeature] = useState<string | null>(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   modeRef.current = mode
   placingRef.current = placing
   draftOutlineRef.current = draftOutline
+  draftFeatureRef.current = draftFeature
 
   const sites = useMemo<SiteGroup[]>(() => {
     const m = new Map<string, SiteGroup>()
@@ -146,6 +177,21 @@ export default function SitePlanner() {
     })()
   }, [selSite, trials])
 
+  // features (tracks, gates, hazards) for the selected site
+  const reloadFeatures = async () => {
+    if (!site) {
+      setFeatures([])
+      return
+    }
+    const token = await portalToken()
+    if (!token) return
+    setFeatures((await loadSiteFeatures(site.id, token)) ?? [])
+  }
+  useEffect(() => {
+    setSelFeature(null)
+    void reloadFeatures()
+  }, [selSite]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // the map
   useEffect(() => {
     if (state !== 'ready' || !divRef.current || mapRef.current) return
@@ -157,6 +203,7 @@ export default function SitePlanner() {
     L.control.scale({ imperial: false }).addTo(map)
     pinsRef.current = L.layerGroup().addTo(map)
     outlineRef.current = L.layerGroup().addTo(map)
+    featuresRef.current = L.layerGroup().addTo(map)
     storedRef.current = L.layerGroup().addTo(map)
     draftRef.current = L.layerGroup().addTo(map)
 
@@ -174,6 +221,9 @@ export default function SitePlanner() {
         setMsg('')
       } else if (m === 'outline') {
         setDraftOutline([...draftOutlineRef.current, at])
+      } else if (m === 'feature') {
+        const d = draftFeatureRef.current
+        if (d) setDraftFeature({ ...d, pts: featureDef(d.kind).shape === 'point' ? [at] : [...d.pts, at] })
       }
     })
     return () => {
@@ -230,6 +280,38 @@ export default function SitePlanner() {
       if (draftOutline.length >= 3) L.polygon(draftOutline.map((p) => [p.lat, p.lng] as L.LatLngExpression), { color: '#F2A900', weight: 1, fillOpacity: 0.08 }).addTo(layer)
     }
   }, [site, draftOutline])
+
+  // site features, saved and the one being drawn
+  useEffect(() => {
+    const layer = featuresRef.current
+    if (!layer) return
+    layer.clearLayers()
+    const toLL = (pts: LatLng[]) => pts.map((p) => [p.lat, p.lng] as L.LatLngExpression)
+    const draw = (kind: string, pts: LatLng[], label: string, opts: { selected?: boolean; draft?: boolean; id?: string }) => {
+      const def = featureDef(kind)
+      const weight = opts.selected ? 4 : 2
+      const dash = opts.draft ? '4 4' : def.kind === 'track' ? '8 6' : def.kind === 'power_line' ? '2 6' : undefined
+      let shape: L.Layer
+      if (def.shape === 'point' || pts.length === 1) {
+        shape = L.circleMarker([pts[0].lat, pts[0].lng], { radius: opts.selected ? 9 : 7, color: '#fff', weight: 2, fillColor: def.colour, fillOpacity: 0.95 })
+      } else if (def.shape === 'line' || pts.length === 2) {
+        shape = L.polyline(toLL(pts), { color: def.colour, weight, dashArray: dash, opacity: 0.95 })
+      } else {
+        shape = L.polygon(toLL(pts), { color: def.colour, weight, dashArray: dash, fillColor: def.colour, fillOpacity: 0.18 })
+      }
+      shape.addTo(layer).bindTooltip(label)
+      if (opts.id) shape.on('click', () => setSelFeature(opts.id!))
+    }
+    for (const f of features) {
+      const pts = pointsFromGeoJson(f.geojson)
+      if (!pts.length) continue
+      draw(f.kind, pts, `${featureDef(f.kind).label}${f.name ? ` · ${f.name}` : ''}`, { selected: f.id === selFeature, id: f.id })
+    }
+    if (draftFeature?.pts.length) {
+      for (const p of draftFeature.pts) L.circleMarker([p.lat, p.lng], { radius: 4, color: featureDef(draftFeature.kind).colour, fillColor: '#fff', fillOpacity: 1, weight: 2 }).addTo(layer)
+      if (draftFeature.pts.length >= 2 || featureDef(draftFeature.kind).shape === 'point') draw(draftFeature.kind, draftFeature.pts, `${featureDef(draftFeature.kind).label} (drawing)`, { draft: true })
+    }
+  }, [features, draftFeature, selFeature])
 
   // stored plots for the site, one colour per trial
   useEffect(() => {
@@ -380,6 +462,41 @@ export default function SitePlanner() {
     await reload()
   }
 
+  const startFeature = (kind: FeatureKind) => {
+    const def = featureDef(kind)
+    setDraftFeature({ kind, name: '', pts: [] })
+    setMode('feature')
+    setSelFeature(null)
+    setMsg(def.shape === 'point' ? `Click the map where the ${def.label.toLowerCase()} is.` : def.shape === 'line' ? `Click along the ${def.label.toLowerCase()}, then Save.` : `Click around the ${def.label.toLowerCase()}, then Save.`)
+  }
+
+  const saveFeature = async () => {
+    if (!site || !draftFeature) return
+    const def = featureDef(draftFeature.kind)
+    const need = def.shape === 'point' ? 1 : def.shape === 'line' ? 2 : 3
+    if (draftFeature.pts.length < need) return
+    setBusy(true)
+    const token = await portalToken()
+    const id = token ? await addSiteFeature(site.id, draftFeature.kind, draftFeature.name.trim() || null, def.shape, draftFeature.pts, {}, token) : null
+    setBusy(false)
+    if (!id) {
+      setMsg('Could not save the feature.')
+      return
+    }
+    setDraftFeature(null)
+    setMode('idle')
+    setMsg(`${def.label} saved.`)
+    await reloadFeatures()
+  }
+
+  const deleteFeature = async (f: SiteFeatureRow) => {
+    if (!window.confirm(`Remove ${featureDef(f.kind).label.toLowerCase()}${f.name ? ` “${f.name}”` : ''}?`)) return
+    const token = await portalToken()
+    if (token) await removeSiteFeature(f.id, token)
+    setSelFeature(null)
+    await reloadFeatures()
+  }
+
   const shapes = placing ? blockPlots(placing.spec, placing.cells) : []
   const outline = placing ? blockOutline(placing.spec) : []
   const blockW = outline.length ? haversineM(outline[0], outline[1]) : 0
@@ -447,6 +564,42 @@ export default function SitePlanner() {
                 <span onClick={() => finishOutline(false)} style={btn()}>Cancel</span>
               </div>
             )}
+
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.12em', color: GREY, margin: '16px 0 6px' }}>SITE FEATURES · {features.length}</div>
+            {mode === 'feature' && draftFeature ? (
+              <div style={{ padding: '8px 10px', borderRadius: 8, border: `1.5px solid ${featureDef(draftFeature.kind).colour}`, background: '#FBFCFB' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: INK }}>{featureDef(draftFeature.kind).label} · {draftFeature.pts.length} point{draftFeature.pts.length === 1 ? '' : 's'}</div>
+                <input value={draftFeature.name} onChange={(e) => setDraftFeature({ ...draftFeature, name: e.target.value })} placeholder="Name or note (optional)" style={{ ...inputStyle, marginTop: 6 }} />
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                  {featureDef(draftFeature.kind).shape !== 'point' && <span onClick={() => setDraftFeature({ ...draftFeature, pts: draftFeature.pts.slice(0, -1) })} style={btn()}>Undo point</span>}
+                  <span onClick={busy ? undefined : saveFeature} style={{ ...btn(true), opacity: draftFeature.pts.length >= (featureDef(draftFeature.kind).shape === 'point' ? 1 : featureDef(draftFeature.kind).shape === 'line' ? 2 : 3) && !busy ? 1 : 0.5 }}>Save</span>
+                  <span onClick={() => { setDraftFeature(null); setMode('idle'); setMsg('') }} style={btn()}>Cancel</span>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <select value={newKind} onChange={(e) => setNewKind(e.target.value as FeatureKind)} style={inputStyle}>
+                  {FEATURE_KINDS.map((f) => (
+                    <option key={f.kind} value={f.kind}>{f.label}</option>
+                  ))}
+                </select>
+                <span onClick={() => startFeature(newKind)} style={btn()}>+ Add</span>
+              </div>
+            )}
+            {features.map((f) => {
+              const def = featureDef(f.kind)
+              const on = f.id === selFeature
+              return (
+                <div key={f.id} onClick={() => setSelFeature(on ? null : f.id)} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '5px 8px', marginTop: 4, borderRadius: 7, border: `1px solid ${on ? def.colour : HAIR}`, cursor: 'pointer', background: on ? '#FBFCFB' : '#fff' }}>
+                  <span style={{ width: 10, height: 10, flex: 'none', borderRadius: def.shape === 'point' ? '50%' : 2, background: def.colour, border: '1px solid rgba(0,0,0,.15)' }} />
+                  <span style={{ fontSize: 12, color: INK, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <b>{def.label}</b>{f.name ? ` · ${f.name}` : ''}
+                  </span>
+                  <span onClick={(e) => { e.stopPropagation(); void deleteFeature(f) }} title="Remove" style={{ fontSize: 13, color: '#A93414', cursor: 'pointer', padding: '0 2px' }}>×</span>
+                </div>
+              )
+            })}
+            {!features.length && mode !== 'feature' && <div style={{ fontSize: 11, color: GREY, marginTop: 4, lineHeight: 1.4 }}>Gates, tracks, fences, power lines, water, hazards and buffers. Hazards and power lines feed the WHS site sheet.</div>}
 
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.12em', color: GREY, margin: '16px 0 6px' }}>TRIALS AT THIS SITE · {site.trials.length}</div>
             {site.trials.map((t, i) => {

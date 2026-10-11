@@ -3,7 +3,7 @@
  * blank assessment sheets. Preview on the right, print (or save as PDF)
  * from the browser's dialog. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadTreatments, portalToken, type AssessmentRow, type LiveTrial, type MeasureDef, type TreatmentRow } from '../lib/db'
+import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadTreatments, portalToken, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type PrintKind, type TreatmentRow } from '../lib/db'
 import { assessmentSheetHtml, documentHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, type PlanData } from '../lib/printouts'
 import { MONO, useApp } from '../state'
 
@@ -41,6 +41,7 @@ export default function Outputs() {
   const [repOne, setRepOne] = useState(false)
   const [blind, setBlind] = useState(false)
   const [sheetN, setSheetN] = useState(1)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
   const frame = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
@@ -98,6 +99,25 @@ export default function Outputs() {
       }
     }
   }, [trial, trts, assess, measures, kind, timing, water, overage, signSize, repOne, blind, sheetN])
+
+  useEffect(() => {
+    setSaveState('idle')
+  }, [html])
+
+  const saveToDocuments = async () => {
+    if (!trial || !html || saveState === 'saving') return
+    setSaveState('saving')
+    const token = await portalToken()
+    if (!token) {
+      setSaveState('failed')
+      return
+    }
+    const kindOf: Record<Kind, PrintKind> = { plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet' }
+    const label = kind === 'spray' ? `Spray plan ${timing}` : kind === 'sheet' ? `Assessment sheet A${sheetN}` : KINDS.find((k) => k.id === kind)?.label ?? kind
+    const options = kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'sheet' ? { assessment: sheetN } : {}
+    const ok = await savePrintout(trial.id, kindOf[kind], `${label} · ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.html`, html, options, token)
+    setSaveState(ok ? 'saved' : 'failed')
+  }
 
   const print = () => {
     const w = frame.current?.contentWindow
@@ -197,8 +217,11 @@ export default function Outputs() {
           </div>
         )}
         <div onClick={print} className="hv-primary" style={{ padding: '11px 14px', background: GREEN, color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', textAlign: 'center' }}>Print / save as PDF</div>
+        <div onClick={saveToDocuments} style={{ padding: '9px 14px', background: '#fff', color: saveState === 'failed' ? '#A93414' : '#3E403E', fontSize: 12.5, fontWeight: 700, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: `1px solid ${saveState === 'saved' ? GREEN : '#D8DAD8'}`, opacity: saveState === 'saving' ? 0.6 : 1 }}>
+          {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved to the trial’s documents ✓' : saveState === 'failed' ? 'Could not save — try again' : 'Save a copy to the trial’s documents'}
+        </div>
         <div style={{ fontSize: 11, color: GREY, lineHeight: 1.45 }}>
-          Grower agreement and WHS site sheet are not here yet: their wording needs your sign-off before they print. <span onClick={() => nav('builder')} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>New trial</span> builds the record these documents come from.
+          A saved copy is the exact page that went to the printer, listed under the trial in Results. Grower agreement and WHS site sheet are not here yet: their wording needs your sign-off before they print. <span onClick={() => nav('builder')} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>New trial</span> builds the record these documents come from.
         </div>
       </div>
       <div style={{ flex: 1, minWidth: 0, background: '#E9EBE9', padding: 18, overflow: 'hidden' }}>
