@@ -514,8 +514,28 @@
     "%"
    ],
    [
+    "rust_f",
+    "Stripe rust F",
+    "%"
+   ],
+   [
+    "rust_f1",
+    "Stripe rust F-1",
+    "%"
+   ],
+   [
     "lrust",
     "Leaf rust",
+    "%"
+   ],
+   [
+    "lrust_f",
+    "Leaf rust F",
+    "%"
+   ],
+   [
+    "lrust_f1",
+    "Leaf rust F-1",
     "%"
    ],
    [
@@ -524,13 +544,43 @@
     "%"
    ],
    [
+    "sept_f",
+    "Septoria F",
+    "%"
+   ],
+   [
+    "sept_f1",
+    "Septoria F-1",
+    "%"
+   ],
+   [
     "yls",
     "Yellow leaf spot",
     "%"
    ],
    [
+    "yls_f",
+    "YLS F",
+    "%"
+   ],
+   [
+    "yls_f1",
+    "YLS F-1",
+    "%"
+   ],
+   [
     "mild",
     "Powdery mildew",
+    "%"
+   ],
+   [
+    "mild_f",
+    "Mildew F",
+    "%"
+   ],
+   [
+    "mild_f1",
+    "Mildew F-1",
     "%"
    ],
    [
@@ -610,6 +660,16 @@
    [
     "lodg",
     "Lodging",
+    "%"
+   ],
+   [
+    "lai",
+    "Leaf area index",
+    "LAI"
+   ],
+   [
+    "pgreen",
+    "Photo green cover",
     "%"
    ]
   ],

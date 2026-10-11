@@ -20,7 +20,7 @@ const CHIP_STYLES: Record<string, { av: [string, string]; chip: [string, string]
 
 /** Team & access (design screen 3f). */
 export function Team() {
-  const { st, mut } = useApp()
+  const { st, mut, signOut } = useApp()
   const [role, setRole] = useState<Role>('rep')
   const [email, setEmail] = useState('')
   const [flash, setFlash] = useState('')
@@ -118,6 +118,32 @@ export function Team() {
           Send invite link
         </div>
         {flash && <Flash style={{ marginTop: 8 }}>{flash}</Flash>}
+      </div>
+
+      {/* signed-in account */}
+      <div style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 14, padding: '14px 16px', marginTop: 12 }}>
+        <Eyebrow>THIS PHONE</Eyebrow>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ font: `500 13px ${MONO}`, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {st.session.email ?? 'not signed in'}
+            </div>
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+              Name, password and sign-out live in Account (Today › Account).
+            </div>
+          </div>
+          <div
+            onClick={() => {
+              if (window.confirm('Sign out of this phone? Trial data stays; syncing stops until someone signs in.')) signOut()
+            }}
+            style={{
+              flex: 'none', padding: '9px 16px', borderRadius: 10, border: `1.5px solid ${C.ghostBorder}`,
+              fontSize: 12.5, fontWeight: 700, color: C.burntDark, background: '#fff', cursor: 'pointer',
+            }}
+          >
+            Sign out
+          </div>
+        </div>
       </div>
     </div>
   )

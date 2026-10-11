@@ -1,8 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { C, MONO, SANS } from '../theme'
 import { useApp } from '../store/store'
 import { useGps } from '../gps/useGps'
-import { assessmentOrder, capFor, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf } from '../lib/trial'
+import { fetchRecheckList, type RecheckItem } from '../lib/backend'
+import { assessmentOrder, capFor, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf } from '../lib/trial'
+import { analyzeCanopyPhoto, laiBackspace, laiKeyDigit, type CanopyAnalysis } from '../lib/lai'
 import { gridFromCorners, locate } from '../gps/geo'
 import { compressAndStore } from '../lib/photo'
 import { PulseDot } from '../components/bits'
@@ -17,7 +19,22 @@ export function Assess() {
   const [flash, setFlash] = useState('')
   const [noteOpen, setNoteOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const laiFileRef = useRef<HTMLInputElement>(null)
+  const [laiRes, setLaiRes] = useState<(CanopyAnalysis & { file: File }) | null>(null)
+  const [pickOpen, setPickOpen] = useState(false)
+  const [recheck, setRecheck] = useState<RecheckItem[] | null>(null)
+  const [rcOpen, setRcOpen] = useState(false)
   const voiceTimer = useRef<number | undefined>(undefined)
+
+  // server-flagged recheck list (provisional / marginal / plot damage) —
+  // online-only, silently absent in the paddock with no signal
+  useEffect(() => {
+    let live = true
+    void fetchRecheckList(st.activeTrialId).then((r) => live && setRecheck(r))
+    return () => {
+      live = false
+    }
+  }, [st.activeTrialId])
 
   const order = useMemo(() => assessmentOrder(doc), [doc])
   const flat = useMemo(() => measureFlat(doc.measures), [doc])
@@ -57,20 +74,59 @@ export function Assess() {
       : `GPS · Row ${row} Pos ${pos} — on walk order`
 
   // --- score mutation helpers -------------------------------------------
-  const setScore = (label: string | null, fn: (v: Record<string, number>, s: { note?: string; photoIds: string[] }) => void) =>
+  const setScore = (label: string | null, fn: (v: Record<string, number>, s: { note?: string; photoIds: string[]; plants?: Record<string, number[]> }) => void) =>
     mutTrial(label ? { kind: 'assessment', label } : null, (t) => {
       const cur = t.scores[pid] ?? { v: {}, photoIds: [], ts: Date.now(), by: st.session.name }
-      const shell = { note: cur.note, photoIds: cur.photoIds }
+      const shell = { note: cur.note, photoIds: cur.photoIds, plants: cur.plants }
       fn(cur.v, shell)
       cur.note = shell.note
       cur.photoIds = shell.photoIds
+      cur.plants = shell.plants
       cur.ts = Date.now()
       t.scores[pid] = cur
     })
 
+  // --- plant-level entry: type a reading, add it, mean folds in on save --
+  const fieldPlants = sc?.plants?.[field] ?? []
+  const addPlant = () =>
+    setScore(null, (v, s) => {
+      if (v[field] === undefined) return
+      s.plants = { ...(s.plants ?? {}), [field]: [...(s.plants?.[field] ?? []), v[field]] }
+      delete v[field] // keypad clears for the next plant
+    })
+  const removePlant = (i: number) =>
+    setScore(null, (v, s) => {
+      const list = [...(s.plants?.[field] ?? [])]
+      list.splice(i, 1)
+      s.plants = { ...(s.plants ?? {}), [field]: list }
+      if (!list.length && s.plants) delete s.plants[field]
+    })
+  /** Fold any typed-but-not-added reading into the plant list and write the
+   * mean as the plot value for every measure with plant readings. A typed
+   * value equal to the current mean is treated as the already-saved mean
+   * (re-opening a saved plot), not a new reading — tap "+ Plant" to add a
+   * reading that happens to equal the mean. */
+  const foldPlants = (t: { scores: Record<number, { v: Record<string, number>; plants?: Record<string, number[]> }> }) => {
+    const cur = t.scores[pid]
+    if (!cur?.plants) return
+    for (const [m, list] of Object.entries(cur.plants)) {
+      if (!list.length) continue
+      const mean = Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10
+      const all = cur.v[m] !== undefined && cur.v[m] !== mean ? [...list, cur.v[m]] : [...list]
+      cur.plants[m] = all
+      cur.v[m] = Math.round((all.reduce((a, b) => a + b, 0) / all.length) * 10) / 10
+    }
+  }
+
+  const isLai = flat[field][2] === 'LAI'
   const keyDigit = (d: string) => {
     setFlash('')
     setScore(null, (v) => {
+      if (isLai) {
+        // one-decimal fixed point: "3" then "4" reads 3.4 (see lib/lai.ts)
+        v[field] = laiKeyDigit(v[field], Number(d))
+        return
+      }
       const curStr = String(v[field] ?? '')
       const next = Number(curStr + d)
       v[field] = Math.min(capFor(flat[field]), next)
@@ -78,10 +134,38 @@ export function Assess() {
   }
   const backspace = () =>
     setScore(null, (v) => {
+      if (isLai) {
+        const next = laiBackspace(v[field])
+        if (next === undefined) delete v[field]
+        else v[field] = next
+        return
+      }
       const s = String(v[field] ?? '')
       if (s.length > 1) v[field] = Number(s.slice(0, -1))
       else delete v[field]
     })
+
+  // --- LAI from a downward canopy photo ---------------------------------
+  const onLaiFile = async (f: File | undefined) => {
+    if (!f) return
+    setFlash('')
+    try {
+      const res = await analyzeCanopyPhoto(f)
+      setLaiRes({ ...res, file: f })
+    } catch {
+      setFlash('Could not read that photo — try again')
+    }
+  }
+  const acceptLai = async () => {
+    if (!laiRes) return
+    const { lai, fraction, file } = laiRes
+    setScore(`LAI ${lai.toFixed(1)} from photo · plot ${pid}`, (v) => {
+      v[field] = lai
+    })
+    setLaiRes(null)
+    setFlash(`LAI ${lai.toFixed(1)} · canopy ${Math.round(fraction * 100)}% — photo attached`)
+    await onPhotoFile(file)
+  }
 
   const fi = measures.indexOf(field)
   const nextMeasure = measures[(fi + 1) % measures.length]
@@ -98,6 +182,7 @@ export function Assess() {
   const onSave = () =>
     mutTrial({ kind: 'assessment', label: `Assessment 1 · plot ${pid}` }, (t) => {
       if (!t.scores[pid]) t.scores[pid] = { v: {}, photoIds: [], ts: Date.now(), by: st.session.name }
+      foldPlants(t)
       t.assessIdx = Math.min(idx + 1, order.length - 1)
       t.assessField = measures[0]
     })
@@ -205,7 +290,10 @@ export function Assess() {
       {/* plot card */}
       <div style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 14, padding: '12px 14px 11px', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ font: `700 32px ${MONO}`, letterSpacing: -1 }}>{pid}</div>
+          <div onClick={() => setPickOpen(true)} style={{ font: `700 32px ${MONO}`, letterSpacing: -1, cursor: 'pointer' }}>
+            {pid}
+            <span style={{ fontSize: 14, color: C.grey, marginLeft: 6, verticalAlign: 'middle' }}>▾</span>
+          </div>
           <div
             onClick={() => mutTrial(null, (t) => void (t.blind = !t.blind))}
             style={{
@@ -234,6 +322,16 @@ export function Assess() {
               {ts.relabel[pid] !== undefined && <span style={{ color: C.burntDark, fontSize: 11 }}> · relabelled</span>}
             </div>
             <div style={{ fontSize: 11.5, color: C.grey, marginTop: 1 }}>{tinfo?.recipe}</div>
+            {tinfo && trtN !== 1 && (
+              <span
+                style={{
+                  display: 'inline-block', marginTop: 4, font: `700 9px ${MONO}`, letterSpacing: '.06em', padding: '2px 8px', borderRadius: 99,
+                  background: tinfo.bSpray ? C.greenTint : C.burntTint, color: tinfo.bSpray ? C.greenDark : C.burntDark,
+                }}
+              >
+                {tinfo.bSpray ? 'A + B PROGRAM' : 'A ONLY — NO B PASS'}
+              </span>
+            )}
           </>
         )}
       </div>
@@ -246,6 +344,14 @@ export function Assess() {
         <div style={{ font: `500 10.5px ${MONO}`, color: C.grey }}>
           {scored}/{order.length} · Assess 1
         </div>
+        {recheck !== null && recheck.length > 0 && (
+          <div
+            onClick={() => setRcOpen(true)}
+            style={{ font: `700 10.5px ${MONO}`, color: C.burntDark, background: C.burntTint, padding: '4px 9px', borderRadius: 99, cursor: 'pointer' }}
+          >
+            Recheck {new Set(recheck.map((r) => r.plot)).size}
+          </div>
+        )}
       </div>
 
       {/* measure header */}
@@ -276,7 +382,7 @@ export function Assess() {
             >
               <div style={{ fontSize: 11, fontWeight: 700, color: active ? C.greenDark : C.grey, whiteSpace: 'nowrap' }}>{m[1]}</div>
               <div style={{ font: `600 24px ${MONO}`, marginTop: 1 }}>
-                {sc?.v[k] ?? '–'}
+                {fmtVal(m, sc?.v[k])}
                 <span style={{ fontSize: 12, color: C.muted }}> {unitOf(m)}</span>
               </div>
             </div>
@@ -286,6 +392,35 @@ export function Assess() {
 
       {!msOpen ? (
         <>
+          {/* plant-level readings for the active measure — type, + Plant, repeat;
+              Save writes the mean and syncs the readings in the note */}
+          {!isLai && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', margin: '0 2px 6px' }}>
+              <span style={{ font: `600 9.5px ${MONO}`, color: C.muted, letterSpacing: '.06em' }}>PLANTS</span>
+              {fieldPlants.map((p, i) => (
+                <span key={i} onClick={() => removePlant(i)} title="Tap to remove" style={{ font: `600 11px ${MONO}`, background: C.chipBg, padding: '4px 9px', borderRadius: 7, cursor: 'pointer' }}>
+                  {p} ✕
+                </span>
+              ))}
+              <span
+                onClick={addPlant}
+                style={{
+                  fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 99, cursor: 'pointer',
+                  color: sc?.v[field] !== undefined ? C.greenDark : C.muted,
+                  border: `1.5px solid ${sc?.v[field] !== undefined ? '#9CC7B2' : C.hairline}`,
+                  background: sc?.v[field] !== undefined ? C.greenTint : '#fff',
+                }}
+              >
+                + Plant
+              </span>
+              {fieldPlants.length > 0 && (
+                <span style={{ fontSize: 11, color: C.grey }}>
+                  mean {Math.round((fieldPlants.reduce((a, b) => a + b, 0) / fieldPlants.length) * 10) / 10}
+                  {sc?.v[field] !== undefined ? ' + typed' : ''}
+                </span>
+              )}
+            </div>
+          )}
           {/* aux row */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
             <div style={auxSt(!!sc?.photoIds.length)} onClick={() => fileRef.current?.click()}>
@@ -302,6 +437,24 @@ export function Assess() {
                 e.target.value = ''
               }}
             />
+            {isLai && (
+              <>
+                <div style={{ ...auxSt(false), color: C.greenDark, borderColor: '#9CC7B2', background: C.greenTint }} onClick={() => laiFileRef.current?.click()}>
+                  LAI camera
+                </div>
+                <input
+                  ref={laiFileRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    onLaiFile(e.target.files?.[0])
+                    e.target.value = ''
+                  }}
+                />
+              </>
+            )}
             <div
               style={{ ...auxSt(listening), color: listening ? C.greenDark : C.body, animation: listening ? 'gpsPulse 1.1s infinite' : undefined }}
               onClick={onVoice}
@@ -327,6 +480,38 @@ export function Assess() {
                 fontFamily: SANS, marginBottom: 6, resize: 'none', height: 44, outline: 'none',
               }}
             />
+          )}
+          {laiRes && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: '#fff', border: `1.5px solid ${C.green}`, borderRadius: 12, padding: 8, marginBottom: 6 }}>
+              <img src={laiRes.thumb} alt="canopy classification" style={{ width: 74, height: 74, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ font: `600 17px ${MONO}` }}>
+                  LAI {laiRes.lai.toFixed(1)}
+                  <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}> · canopy {Math.round(laiRes.fraction * 100)}% · k 0.5</span>
+                </div>
+                <div style={{ fontSize: 10.5, color: laiRes.saturated ? C.burntDark : C.muted, marginTop: 2, lineHeight: 1.35 }}>
+                  {laiRes.saturated
+                    ? 'Canopy closed — cover saturates, treat as ≥ this value'
+                    : 'Green = counted as canopy. Check the tint looks right.'}
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <div onClick={acceptLai} style={{ flex: 1, textAlign: 'center', padding: '7px 0', borderRadius: 8, background: C.green, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    Use {laiRes.lai.toFixed(1)}
+                  </div>
+                  <div onClick={() => laiFileRef.current?.click()} style={{ flex: 1, textAlign: 'center', padding: '7px 0', borderRadius: 8, border: `1.5px solid ${C.ghostBorder}`, fontSize: 12, fontWeight: 700, color: C.body, cursor: 'pointer', background: '#fff' }}>
+                    Retake
+                  </div>
+                  <div onClick={() => setLaiRes(null)} style={{ flex: 'none', padding: '7px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, color: C.muted, cursor: 'pointer' }}>
+                    ✕
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {isLai && !laiRes && !flash && (
+            <div style={{ fontSize: 10.5, color: C.muted, margin: '0 2px 6px' }}>
+              Keypad enters tenths — 3 then 4 reads 3.4. Or point the camera straight down over the row.
+            </div>
           )}
           {flash && <div style={{ fontSize: 11.5, color: C.greenDark, margin: '0 2px 6px' }}>{flash}</div>}
 
@@ -424,6 +609,96 @@ export function Assess() {
             Done — back to scoring
           </div>
         </>
+      )}
+
+      {/* recheck walk list — server-flagged provisional/marginal values */}
+      {rcOpen && recheck && (
+        <div
+          onClick={() => setRcOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,.45)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: '14px 14px 12px', maxHeight: '82%', overflow: 'auto', width: '100%', maxWidth: 400 }}>
+            <div style={{ font: `600 10px ${MONO}`, color: C.grey, letterSpacing: '.08em', marginBottom: 2 }}>RECHECK LIST</div>
+            <div style={{ fontSize: 11.5, color: C.grey, marginBottom: 10 }}>
+              Values flagged provisional on the tape, marginal plots and plot damage. Tap a plot to walk to it — fix numbers via the office portal or tell Claude.
+            </div>
+            {[...new Set(recheck.map((r) => r.plot))]
+              .sort((a, b) => a - b)
+              .map((plot) => {
+                const items = recheck.filter((r) => r.plot === plot)
+                const tag = /PLOT DAMAGE/i.test(items.map((i) => i.note).join()) ? 'PLOT DAMAGE' : /MARGINAL/i.test(items.map((i) => i.note).join()) ? 'MARGINAL' : 'PROVISIONAL'
+                return (
+                  <div
+                    key={plot}
+                    onClick={() => {
+                      const at = order.indexOf(plot)
+                      if (at >= 0) {
+                        mutTrial(null, (t) => void (t.assessIdx = at))
+                        setRcOpen(false)
+                      }
+                    }}
+                    style={{ border: `1px solid ${C.hairline}`, borderRadius: 10, padding: '9px 11px', marginBottom: 7, cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ font: `700 14px ${MONO}` }}>{plot}</span>
+                      <span style={{ font: `700 8.5px ${MONO}`, letterSpacing: '.07em', color: C.burntDark, background: C.burntTint, padding: '2px 7px', borderRadius: 99 }}>{tag}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: C.green }}>Walk to →</span>
+                    </div>
+                    {items.map((it) => (
+                      <div key={it.measure} style={{ marginTop: 5 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700 }}>
+                          {flat[it.measure]?.[1] ?? it.measure} · {it.value}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.grey, lineHeight: 1.4 }}>{it.note.replace(/\s*\[voice transcript[^\]]*\]\s*$/i, '')}</div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* jump-to-plot picker — tap the plot number to open */}
+      {pickOpen && (
+        <div
+          onClick={() => setPickOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,15,15,.45)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: '14px 14px 12px', maxHeight: '82%', overflow: 'auto', width: '100%', maxWidth: 400 }}>
+            <div style={{ font: `600 10px ${MONO}`, color: C.grey, letterSpacing: '.08em', marginBottom: 2 }}>JUMP TO PLOT</div>
+            <div style={{ fontSize: 11.5, color: C.grey, marginBottom: 10 }}>Tap the plot you’re standing at — scored plots are green.</div>
+            {Array.from({ length: doc.trial.grid.rows }, (_, ri) => ri + 1).map((r) => (
+              <div key={r} style={{ display: 'grid', gridTemplateColumns: `repeat(${doc.trial.grid.positions}, 1fr)`, gap: 4, marginBottom: 4 }}>
+                {Array.from({ length: doc.trial.grid.positions }, (_, pi) => pi + 1).map((p) => {
+                  const cellPid = r * 100 + p
+                  const live = typeof doc.cells[cellPid] === 'number'
+                  const done = live && !!ts.scores[cellPid]
+                  const here = cellPid === pid
+                  return (
+                    <div
+                      key={cellPid}
+                      onClick={() => {
+                        if (!live) return
+                        mutTrial(null, (t) => void (t.assessIdx = Math.max(0, order.indexOf(cellPid))))
+                        setPickOpen(false)
+                      }}
+                      style={{
+                        textAlign: 'center', padding: '8px 0', borderRadius: 7, font: `600 10.5px ${MONO}`,
+                        border: here ? `2px solid ${C.ink}` : `1px solid ${C.hairline}`,
+                        background: !live ? C.chipBg : done ? C.greenTint : '#fff',
+                        color: !live ? C.muted : done ? C.greenDark : C.body,
+                        cursor: live ? 'pointer' : 'default',
+                      }}
+                    >
+                      {cellPid}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )

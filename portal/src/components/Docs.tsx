@@ -18,7 +18,7 @@ export default function Docs() {
           <h1 style={{ margin: '4px 0 0', fontSize: 22, fontWeight: 800, color: '#141414', letterSpacing: '-.01em' }}>Documents &amp; protocol</h1>
           <div style={{ marginTop: 3, fontSize: 12.5, color: '#8A8C8A' }}>Drop what the client or chem rep sent you — the wizard builds from whatever parses.</div>
         </div>
-        <div onClick={() => nav('wizard', { step: 'treatments' })} className="hv-green-border" style={{ padding: '9px 16px', background: '#fff', border: '1px solid #D8DAD8', color: '#141414', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <div onClick={() => nav('builder')} className="hv-green-border" style={{ padding: '9px 16px', background: '#fff', border: '1px solid #D8DAD8', color: '#141414', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
           Open in wizard →
         </div>
       </div>

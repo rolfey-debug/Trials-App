@@ -49,6 +49,19 @@ export function Site() {
               Re-mark the corners ›
             </div>
           </>
+        ) : ts.site.storedPlots?.length ? (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.greenDark, marginBottom: 3 }}>✓ Plot map from the office</div>
+            <div style={{ font: `500 10.5px ${MONO}`, color: C.grey, marginBottom: 8 }}>
+              {ts.site.storedPlots.length} PLOTS PLACED ON THE SITE PLANNER{ts.site.storedAt ? ` · PULLED ${ts.site.storedAt.slice(0, 10)}` : ''}
+            </div>
+            <div style={{ fontSize: 12, color: C.body, lineHeight: 1.5, marginBottom: 8 }}>
+              Plots surface by GPS from the office placement. Marking the two corners on the ground at pegging replaces it with the surveyed grid.
+            </div>
+            <div onClick={() => go('setup')} style={{ fontSize: 12.5, fontWeight: 700, color: C.green, cursor: 'pointer' }}>
+              Mark the corners on the ground ›
+            </div>
+          </>
         ) : (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>Grid not pinned yet</div>

@@ -4,8 +4,10 @@
  * The publishable key is safe to embed: it only grants what RLS allows.
  */
 
-export const SUPA_URL = 'https://lwudweiuihcdksageaxs.supabase.co'
-export const SUPA_KEY = 'sb_publishable_bE8diDIr1jSVGxUZlRZuog_Tx-Ddct5'
+// Sydney (ap-southeast-2) project — the original was created in the wrong
+// region and region is fixed at creation; see docs/REGION-MOVE.md.
+export const SUPA_URL = 'https://ebhsnggwekhfcpgnyxxs.supabase.co'
+export const SUPA_KEY = 'sb_publishable_jqRJrNZiyAqE5wcH23Oo3g_JlQqcFWk'
 
 /** Fixed ids seeded by server/migrations/001_init.sql */
 export const ORG_ID = '00000000-0000-0000-0000-000000000001'
@@ -18,6 +20,7 @@ export const TRIAL_IDS = {
   matong: '00000000-0000-0000-0000-000000000101',
   ganmain: '00000000-0000-0000-0000-000000000102',
   ringwood: '00000000-0000-0000-0000-000000000103',
+  flutriafol: '00000000-0000-0000-0000-000000000104',
 }
 
 export interface Session {
@@ -78,6 +81,20 @@ export async function signInOrUp(email: string, password: string): Promise<AuthR
   }
 }
 
+/** Change the signed-in user's password (GoTrue user update). */
+export async function updatePassword(token: string, password: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: headers(token),
+      body: JSON.stringify({ password }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 export async function refresh(session: Session): Promise<Session | null> {
   try {
     const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`, {
@@ -104,6 +121,67 @@ export async function insert(table: string, rows: unknown[], token: string, opts
     body: JSON.stringify(rows),
   })
   return r.ok
+}
+
+/** Upsert on a named unique constraint's columns (PostgREST `on_conflict`),
+ * for tables whose natural key is not the id — plots (trial_id, plot). */
+export async function upsertOn(table: string, rows: unknown[], conflict: string, token: string): Promise<boolean> {
+  if (!rows.length) return true
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?on_conflict=${conflict}`, {
+      method: 'POST',
+      headers: { ...headers(token), Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(rows),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
+/** Upload a blob into a storage bucket (private; read back with fetchObject). */
+export async function uploadObject(bucket: string, path: string, blob: Blob, token: string): Promise<boolean> {
+  const r = await fetch(`${SUPA_URL}/storage/v1/object/${bucket}/${path}`, {
+    method: 'POST',
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${token}`, 'Content-Type': blob.type || 'application/octet-stream', 'x-upsert': 'true' },
+    body: blob,
+  })
+  return r.ok
+}
+
+/** Fetch a private storage object; null when missing or unauthorised. */
+export async function fetchObject(bucket: string, path: string, token: string): Promise<Blob | null> {
+  const r = await fetch(`${SUPA_URL}/storage/v1/object/authenticated/${bucket}/${path}`, {
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${token}` },
+  })
+  return r.ok ? r.blob() : null
+}
+
+/** PATCH rows matching `filter` (PostgREST query string, e.g. "id=eq.<uuid>"). */
+export async function update(table: string, filter: string, patch: Record<string, unknown>, token: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+      method: 'PATCH',
+      headers: { ...headers(token), Prefer: 'return=minimal' },
+      body: JSON.stringify(patch),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
+/** DELETE rows matching `filter`. Cascades follow the schema's FK rules. */
+export async function remove(table: string, filter: string, token: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+      method: 'DELETE',
+      headers: { ...headers(token), Prefer: 'return=minimal' },
+    })
+    return r.ok
+  } catch {
+    return false
+  }
 }
 
 export async function select<T = unknown>(table: string, query: string, token?: string): Promise<T[] | null> {

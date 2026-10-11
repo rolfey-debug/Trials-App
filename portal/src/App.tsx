@@ -1,10 +1,16 @@
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import Wizard from './components/Wizard'
+import TrialBuilder from './components/TrialBuilder'
+import Outputs from './components/Outputs'
 import Picker from './components/Picker'
 import Docs from './components/Docs'
 import Review from './components/Review'
+import LiveMap from './components/LiveMap'
+import SitePlanner from './components/SitePlanner'
 import MapScreen from './components/MapScreen'
+import Results from './components/Results'
+import AuditLog from './components/AuditLog'
 import { useApp } from './state'
 
 export default function App() {
@@ -15,9 +21,15 @@ export default function App() {
       <div style={{ flex: 1, minWidth: 0, display: 'flex', overflow: 'hidden' }}>
         {s.screen === 'trials' && <Dashboard />}
         {s.screen === 'wizard' && <Wizard />}
+        {s.screen === 'builder' && <TrialBuilder />}
+        {s.screen === 'outputs' && <Outputs />}
         {s.screen === 'docs' && <Docs />}
         {s.screen === 'review' && <Review />}
-        {s.screen === 'map' && <MapScreen />}
+        {s.screen === 'map' && <LiveMap />}
+        {s.screen === 'planner' && <SitePlanner />}
+        {s.screen === 'plotmap' && <MapScreen />}
+        {s.screen === 'results' && <Results />}
+        {s.screen === 'audit' && <AuditLog />}
       </div>
       <Picker />
     </div>

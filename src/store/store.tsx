@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { AppState, Screen, SyncItem, TrialDoc, TrialState } from './types'
 import { idb } from './idb'
-import { RINGWOOD_ID, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
-import { logout as backendLogout, pushToBackend } from '../lib/backend'
+import { FLUTRI_ID, MATONG_ID, RINGWOOD_ID, flutriDoc, flutriTrialState, matongDoc, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
+import { logout as backendLogout, pushToBackend, uploadPendingPhotos } from '../lib/backend'
 
 interface StoreCtx {
   st: AppState
@@ -29,16 +29,68 @@ export function useApp(): StoreCtx {
 
 let syncId = 1000
 
-/** Additive in-place upgrades for state persisted before a trial shipped —
- * installs that predate Ringwood get the trial injected (and its old
- * placeholder stub dropped) without touching any scored data. */
+/** Additive in-place upgrades for state persisted by older app versions —
+ * never touches scored data.
+ *  1. Installs that predate Ringwood get the trial injected (and its old
+ *     placeholder stub dropped).
+ *  2. Measures added to the seed after an install's first run are merged into
+ *     the stored trial docs (an install otherwise keeps the measure library it
+ *     was born with — LAI shipped invisible to existing phones this way). */
 function upgrade(saved: AppState): AppState {
-  if (saved.trials[RINGWOOD_ID]) return saved
   const next = structuredClone(saved)
-  next.trials[RINGWOOD_ID] = ringwoodDoc()
-  next.trialState[RINGWOOD_ID] = ringwoodTrialState()
-  next.otherTrials = next.otherTrials.filter((t) => !/ringwood/i.test(t.name))
-  return next
+  let changed = false
+
+  if (!next.trials[RINGWOOD_ID]) {
+    next.trials[RINGWOOD_ID] = ringwoodDoc()
+    next.trialState[RINGWOOD_ID] = ringwoodTrialState()
+    next.otherTrials = next.otherTrials.filter((t) => !/ringwood/i.test(t.name))
+    changed = true
+  }
+
+  if (!next.trials[FLUTRI_ID]) {
+    next.trials[FLUTRI_ID] = flutriDoc()
+    next.trialState[FLUTRI_ID] = flutriTrialState()
+    changed = true
+  }
+
+  // One-off field correction (8 Oct 2026): the first flutriafol walk went up
+  // the Scepter strip, so the scores saved against 201/202 belong on 102/103.
+  // Guarded to that morning's entry window and an empty target, so it is a
+  // no-op on every other install and never clobbers real Beckom scores.
+  const flutriFix = next.trialState[FLUTRI_ID]
+  if (flutriFix) {
+    const inWindow = (t: number) => t >= Date.parse('2026-10-08T00:30:00Z') && t <= Date.parse('2026-10-08T00:50:00Z')
+    for (const [from, to] of [[201, 102], [202, 103]] as const) {
+      const sc = flutriFix.scores[from]
+      if (sc && inWindow(sc.ts) && !flutriFix.scores[to]) {
+        flutriFix.scores[to] = sc
+        delete flutriFix.scores[from]
+        changed = true
+      }
+    }
+  }
+
+  const freshDocs: Array<[string, TrialDoc]> = [
+    [MATONG_ID, matongDoc()],
+    [RINGWOOD_ID, ringwoodDoc()],
+    [FLUTRI_ID, flutriDoc()],
+  ]
+  const groups = ['disease', 'weeds', 'crop'] as const
+  for (const [id, fresh] of freshDocs) {
+    const cur = next.trials[id]
+    if (!cur) continue
+    for (const g of groups) {
+      const have = new Set(cur.measures[g].map((m) => m[0]))
+      for (const m of fresh.measures[g]) {
+        if (!have.has(m[0])) {
+          cur.measures[g].push(m)
+          changed = true
+        }
+      }
+    }
+  }
+
+  return changed ? next : saved
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
@@ -101,6 +153,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const cur = stRef.current
     if (!cur || !navigator.onLine) return
     void pushToBackend(cur).catch(() => false)
+    // photo files ride up after the rows; successful ids get flagged so the
+    // next sync only carries what's new
+    void uploadPendingPhotos(cur)
+      .then((ids) => {
+        if (!ids.length) return
+        const up = new Set(ids)
+        mut(null, (d) => {
+          for (const ts of Object.values(d.trialState))
+            for (const p of ts.photos) if (up.has(p.id)) p.uploaded = true
+        })
+      })
+      .catch(() => {})
     mut(null, (d) => {
       d.syncQueue = d.syncQueue.map((q) => ({ ...q, synced: true }))
       d.lastSyncTs = Date.now()
@@ -119,7 +183,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     ts.mixDone = {}
     ts.sprDone = {}
     fresh.syncQueue = []
-    fresh.session = { email: 'andrew.rolfe@agnvet.com.au', name: 'A. Rolfe', role: 'admin' }
+    fresh.session = { email: 'andrewrolfe@agnvet.com.au', name: 'A. Rolfe', role: 'admin' }
     setSt(fresh)
   }, [])
 

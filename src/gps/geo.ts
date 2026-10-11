@@ -1,32 +1,10 @@
-import type { Corner, LatLng, TrialDoc } from '../store/types'
+import type { Corner, LatLng, StoredPlot, TrialDoc } from '../store/types'
 import { isTreatmentCell } from '../lib/trial'
 
-const R = 6371000 // earth radius, m
-const rad = (d: number) => (d * Math.PI) / 180
-const deg = (r: number) => (r * 180) / Math.PI
-
-export function haversineM(a: LatLng, b: LatLng): number {
-  const dLat = rad(b.lat - a.lat)
-  const dLng = rad(b.lng - a.lng)
-  const s = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(s))
-}
-
-export function bearingDeg(a: LatLng, b: LatLng): number {
-  const y = Math.sin(rad(b.lng - a.lng)) * Math.cos(rad(b.lat))
-  const x =
-    Math.cos(rad(a.lat)) * Math.sin(rad(b.lat)) - Math.sin(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.cos(rad(b.lng - a.lng))
-  return (deg(Math.atan2(y, x)) + 360) % 360
-}
-
-export function destination(p: LatLng, bearing: number, distM: number): LatLng {
-  const br = rad(bearing)
-  const dr = distM / R
-  const lat1 = rad(p.lat)
-  const lat2 = Math.asin(Math.sin(lat1) * Math.cos(dr) + Math.cos(lat1) * Math.sin(dr) * Math.cos(br))
-  const lng2 = rad(p.lng) + Math.atan2(Math.sin(br) * Math.sin(dr) * Math.cos(lat1), Math.cos(dr) - Math.sin(lat1) * Math.sin(lat2))
-  return { lat: deg(lat2), lng: deg(lng2) }
-}
+// Distance, bearing and projection live in the shared geometry library so the
+// portal's site planner and the phone lay plots with the same maths.
+import { bearingDeg, destination, haversineM, pointInPolygon } from '../../shared/geometry'
+export { bearingDeg, destination, haversineM }
 
 /** Average a set of GPS fixes; accuracy tightens roughly with sqrt(n). */
 export function averageFixes(fixes: Corner[]): Corner {
@@ -95,16 +73,17 @@ export function gridFromCorners(A: Corner, B: Corner, doc: TrialDoc): SiteGrid {
   return { bearingDeg: Math.round(posBearing), frontEdgeM: +frontEdgeM.toFixed(1), plotW, plotL, polygons }
 }
 
-function pointInPolygon(pt: LatLng, poly: LatLng[]): boolean {
-  let inside = false
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const xi = poly[i].lng
-    const yi = poly[i].lat
-    const xj = poly[j].lng
-    const yj = poly[j].lat
-    if (yi > pt.lat !== yj > pt.lat && pt.lng < ((xj - xi) * (pt.lat - yi)) / (yj - yi) + xi) inside = !inside
-  }
-  return inside
+/** A grid from plot polygons stored by the office site planner: same
+ * SiteGrid shape as gridFromCorners, so locate() works unchanged. */
+export function gridFromStored(stored: StoredPlot[], doc: TrialDoc): SiteGrid {
+  const polygons: PlotPolygon[] = stored
+    .filter((p) => isTreatmentCell(doc.cells[p.pid]) || doc.cells[p.pid] === 'reserve')
+    .map((p) => ({ pid: p.pid, corners: p.corners, centre: p.centre }))
+  const first = stored[0]
+  const plotW = first ? haversineM(first.corners[0], first.corners[1]) : doc.trial.plot.widthM
+  const plotL = first ? haversineM(first.corners[1], first.corners[2]) : doc.trial.plot.lengthM
+  const bearing = first ? bearingDeg(first.corners[0], first.corners[1]) : 0
+  return { bearingDeg: Math.round(bearing), frontEdgeM: +(plotW * doc.trial.grid.positions).toFixed(1), plotW, plotL, polygons }
 }
 
 export interface Locate {

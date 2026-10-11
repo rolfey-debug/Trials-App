@@ -40,7 +40,7 @@ export default function MapScreen() {
             </a>
           </div>
         </div>
-        <div onClick={() => nav('wizard', { step: 'treatments' })} className="hv-green-border" style={{ padding: '9px 16px', background: '#fff', border: '1px solid #D8DAD8', color: '#141414', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <div onClick={() => nav('builder')} className="hv-green-border" style={{ padding: '9px 16px', background: '#fff', border: '1px solid #D8DAD8', color: '#141414', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
           Open in wizard →
         </div>
       </div>
