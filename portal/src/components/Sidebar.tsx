@@ -48,6 +48,14 @@ const icons = {
       <line x1="8" y1="12" x2="16" y2="12" />
     </svg>
   ),
+  planner: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <line x1="15" y1="3" x2="15" y2="21" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+    </svg>
+  ),
   map: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
@@ -260,6 +268,9 @@ export default function Sidebar() {
       </NavItem>
       <NavItem active={s.screen === 'map'} onClick={() => nav('map')} icon={icons.map}>
         Map
+      </NavItem>
+      <NavItem active={s.screen === 'planner'} onClick={() => nav('planner')} icon={icons.planner}>
+        Site planner
       </NavItem>
       <NavItem active={s.screen === 'wizard' && s.picker} onClick={() => nav('wizard', { step: 'treatments', picker: true })} icon={icons.products}>
         Products

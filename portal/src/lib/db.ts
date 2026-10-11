@@ -1,7 +1,8 @@
 /** Live trial data for the portal — reads/writes the real backend as the
  * signed-in user (RLS scopes everything to the org). The session is the one
  * the sidebar sign-in (or the field app, same origin) saved to localStorage. */
-import { fetchObject, insert, refresh, remove, select, stableId, update, SUPA_URL, type Session } from '../../../shared/supa'
+import { fetchObject, insert, refresh, remove, select, stableId, update, upsertOn, SUPA_URL, type Session } from '../../../shared/supa'
+import { blockPlots, polygonWkt, type BlockCell, type BlockSpec, type LatLng } from '../../../shared/geometry'
 
 const SESSION_KEY = 'tw.supaSession'
 
@@ -56,7 +57,9 @@ export interface LiveTrial {
     batchVolumeL?: number
     timings?: Record<string, { due?: string; applied?: string }>
   } | null
-  site: { property: string | null; town: string | null; lat: number | null; lng: number | null } | null
+  site: { id: string; property: string | null; town: string | null; lat: number | null; lng: number | null; boundary_geojson: GeoPolygon | null; planned: boolean } | null
+  /** Block placement on the site map (see server/migrations/007_geometry.sql). */
+  layout: BlockLayout | null
   scores: number
   plotsScored: number
   sprayTicks: number
@@ -76,12 +79,25 @@ interface TrialRow {
   aim: string | null
   design: LiveTrial['design']
   spraying: LiveTrial['spraying']
+  layout: BlockLayout | null
   sites: LiveTrial['site']
+}
+
+export interface GeoPolygon {
+  type: 'Polygon'
+  coordinates: number[][][]
+}
+
+/** What trials.layout holds once a block has been placed. */
+export interface BlockLayout extends BlockSpec {
+  planned: boolean
+  placedAt: string
+  placedBy?: string
 }
 
 export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null> {
   const [trials, scores, ops] = await Promise.all([
-    select<TrialRow>('trials', 'select=id,site_id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,sites(property,town,lat,lng)&order=season.desc,name.asc', token),
+    select<TrialRow>('trials', 'select=id,site_id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,layout,sites(id,property,town,lat,lng,boundary_geojson,planned)&order=season.desc,name.asc', token),
     select<{ trial_id: string; plot: number; recorded_at: string }>('scores', 'select=trial_id,plot,recorded_at', token),
     select<{ trial_id: string; detail: { sprayed?: number[] } | null; performed_at: string }>('operations', 'select=trial_id,detail,performed_at', token),
   ])
@@ -129,7 +145,9 @@ export interface TreatmentRow {
   name: string
   recipe: string
   b_spray: boolean
-  components: { plots?: number[]; aTiming?: string | null; bTiming?: string | null } | null
+  /** `plots` is always a plain list here; imports that stored rep→plot objects
+   * are normalised on load and keep the rep mapping in `plotsByRep`. */
+  components: { plots?: number[]; plotsByRep?: Record<string, number>; aTiming?: string | null; bTiming?: string | null } | null
 }
 
 export interface PhotoRow {
@@ -143,8 +161,15 @@ export function loadScores(trialId: string, token: string): Promise<ScoreRow[] |
   return select<ScoreRow>('scores', `select=id,assessment,plot,measure,value,note,recorded_at&trial_id=eq.${trialId}&order=assessment.asc,plot.asc`, token)
 }
 
-export function loadTreatments(trialId: string, token: string): Promise<TreatmentRow[] | null> {
-  return select<TreatmentRow>('treatments', `select=n,name,recipe,b_spray,components&trial_id=eq.${trialId}&order=n.asc`, token)
+export async function loadTreatments(trialId: string, token: string): Promise<TreatmentRow[] | null> {
+  const rows = await select<TreatmentRow>('treatments', `select=n,name,recipe,b_spray,components&trial_id=eq.${trialId}&order=n.asc`, token)
+  if (!rows) return null
+  return rows.map((r) => {
+    const raw = r.components?.plots as unknown
+    if (!raw || Array.isArray(raw)) return r
+    const entries = Object.entries(raw as Record<string, number>).sort((a, b) => Number(a[0]) - Number(b[0]))
+    return { ...r, components: { ...r.components, plots: entries.map((e) => Number(e[1])), plotsByRep: Object.fromEntries(entries) } }
+  })
 }
 
 export interface OperationRow {
@@ -380,4 +405,81 @@ export function documentUrl(d: Pick<DocumentRow, 'storage_path' | 'filename'>): 
     return d.filename.endsWith('(folder)') ? `https://drive.google.com/drive/folders/${id}` : `https://drive.google.com/file/d/${id}/view`
   }
   return null
+}
+
+// --- Site planner: stored plot geometry -------------------------------------
+
+export interface PlotRow {
+  trial_id: string
+  plot: number
+  row: number | null
+  position: number | null
+  kind: 'plot' | 'strip' | 'buffer' | 'out' | 'reserve' | 'spare'
+  treatment: number | null
+  rep: number | null
+  geojson: GeoPolygon
+  area_m2: number | null
+  planned: boolean
+}
+
+export function loadPlots(trialId: string, token: string): Promise<PlotRow[] | null> {
+  return select<PlotRow>('plots', `select=trial_id,plot,row,position,kind,treatment,rep,geojson,area_m2,planned&trial_id=eq.${trialId}&order=plot.asc`, token)
+}
+
+/** Every stored plot for every trial at a site, so the planner shows all blocks together. */
+export function loadSitePlots(trialIds: string[], token: string): Promise<PlotRow[] | null> {
+  if (!trialIds.length) return Promise.resolve([])
+  return select<PlotRow>('plots', `select=trial_id,plot,row,position,kind,treatment,rep,geojson,area_m2,planned&trial_id=in.(${trialIds.join(',')})&order=plot.asc`, token)
+}
+
+/** Treatment number per plot id, from the treatments' plot allocations
+ * (which come as either a rep→plot object or a plain list). */
+export function cellsFromTreatments(trts: Array<{ n: number; components: { plots?: number[] | Record<string, number> } | null }>): Record<string, BlockCell> {
+  const cells: Record<string, BlockCell> = {}
+  for (const t of trts) {
+    const plots = t.components?.plots
+    const list = Array.isArray(plots) ? plots : plots ? Object.values(plots) : []
+    for (const p of list) cells[p] = t.n
+  }
+  return cells
+}
+
+/** Save a block placement: trials.layout plus one plots row per cell. Stale
+ * plot rows from an earlier, larger placement are removed. Geometry goes in
+ * as EWKT, which the PostGIS geometry column reads directly. */
+export async function savePlacement(trialId: string, spec: BlockSpec, cells: Record<string, BlockCell>, repOf: (plot: number) => number | null, token: string, by?: string): Promise<boolean> {
+  const layout: BlockLayout = { ...spec, planned: true, placedAt: new Date().toISOString(), placedBy: by }
+  const shapes = blockPlots(spec, cells)
+  const rows = shapes.map((p) => ({
+    trial_id: trialId,
+    plot: p.plot,
+    row: p.row,
+    position: p.position,
+    kind: p.kind,
+    treatment: p.treatment,
+    rep: repOf(p.plot),
+    geom: polygonWkt(p.corners),
+    planned: true,
+    source: 'block',
+    updated_at: new Date().toISOString(),
+  }))
+  const ok1 = await update('trials', `id=eq.${trialId}`, { layout }, token)
+  if (!ok1) return false
+  const ok2 = await upsertOn('plots', rows, 'trial_id,plot', token)
+  if (!ok2) return false
+  const keep = shapes.map((p) => p.plot).join(',')
+  await remove('plots', `trial_id=eq.${trialId}&plot=not.in.(${keep})`, token)
+  return true
+}
+
+/** Clear a placement: layout back to null and the plot rows gone. */
+export async function clearPlacement(trialId: string, token: string): Promise<boolean> {
+  const ok = await update('trials', `id=eq.${trialId}`, { layout: null }, token)
+  if (!ok) return false
+  return remove('plots', `trial_id=eq.${trialId}`, token)
+}
+
+/** Save a sketched site outline (planned until the corners are pegged). */
+export function saveSiteOutline(siteId: string, ring: LatLng[], token: string): Promise<boolean> {
+  return update('sites', `id=eq.${siteId}`, ring.length >= 3 ? { boundary: polygonWkt(ring), planned: true } : { boundary: null }, token)
 }

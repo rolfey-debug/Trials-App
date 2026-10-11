@@ -123,6 +123,22 @@ export async function insert(table: string, rows: unknown[], token: string, opts
   return r.ok
 }
 
+/** Upsert on a named unique constraint's columns (PostgREST `on_conflict`),
+ * for tables whose natural key is not the id — plots (trial_id, plot). */
+export async function upsertOn(table: string, rows: unknown[], conflict: string, token: string): Promise<boolean> {
+  if (!rows.length) return true
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?on_conflict=${conflict}`, {
+      method: 'POST',
+      headers: { ...headers(token), Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(rows),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 /** Upload a blob into a storage bucket (private; read back with fetchObject). */
 export async function uploadObject(bucket: string, path: string, blob: Blob, token: string): Promise<boolean> {
   const r = await fetch(`${SUPA_URL}/storage/v1/object/${bucket}/${path}`, {

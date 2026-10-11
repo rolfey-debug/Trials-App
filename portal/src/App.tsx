@@ -5,6 +5,7 @@ import Picker from './components/Picker'
 import Docs from './components/Docs'
 import Review from './components/Review'
 import LiveMap from './components/LiveMap'
+import SitePlanner from './components/SitePlanner'
 import MapScreen from './components/MapScreen'
 import Results from './components/Results'
 import AuditLog from './components/AuditLog'
@@ -21,6 +22,7 @@ export default function App() {
         {s.screen === 'docs' && <Docs />}
         {s.screen === 'review' && <Review />}
         {s.screen === 'map' && <LiveMap />}
+        {s.screen === 'planner' && <SitePlanner />}
         {s.screen === 'plotmap' && <MapScreen />}
         {s.screen === 'results' && <Results />}
         {s.screen === 'audit' && <AuditLog />}
