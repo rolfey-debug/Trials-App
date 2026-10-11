@@ -680,7 +680,8 @@ export function recipeText(t: TreatmentDraft): string {
 export async function createTrial(
   d: TrialDraft,
   byTrt: Record<number, Array<{ rep: number; plot: number }>>,
-  token: string
+  token: string,
+  sparePlots: number[] = []
 ): Promise<{ id: string; ok: boolean; failed?: 'trial' | 'treatments' | 'assessments' }> {
   const id = crypto.randomUUID()
   const by = userIdFromToken(token)
@@ -710,6 +711,7 @@ export async function createTrial(
       treatments: d.treatments.length,
       expectedCv: d.design.cv,
       spare: d.design.spare || undefined,
+      sparePlots: sparePlots.length ? sparePlots : undefined,
       notes: [`Built in the office portal ${new Date().toISOString().slice(0, 10)}; randomised from seed ${d.design.seed}`],
     },
     created_by: by,

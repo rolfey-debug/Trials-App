@@ -62,6 +62,8 @@ export async function activeToken(): Promise<string | null> {
  * pushing an unmapped trial would fail its foreign keys and mark the whole
  * sync red. Re-add lines here as trials go live. */
 function trialUuid(localId: string): string | null {
+  // Trials pulled from the office portal are keyed by their backend uuid.
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(localId)) return localId
   const k = localId.toLowerCase()
   if (k.includes('matong')) return TRIAL_IDS.matong
   if (k.includes('flutriafol')) return TRIAL_IDS.flutriafol

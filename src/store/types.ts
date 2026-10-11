@@ -116,6 +116,13 @@ export interface Corner extends LatLng {
   accuracy: number
 }
 
+/** A plot footprint placed in the office site planner (migration 007). */
+export interface StoredPlot {
+  pid: number
+  corners: LatLng[] // 4 corners, front-left first, clockwise
+  centre: LatLng
+}
+
 export interface SiteInfo {
   cooperator: [string, string][]
   paddock: [string, string][]
@@ -125,6 +132,10 @@ export interface SiteInfo {
   bearingDeg?: number
   frontEdgeM?: number
   pinned: boolean
+  /** Plot polygons pulled from the office; used for GPS locating until the
+   * corners are marked on the ground, which then takes over. */
+  storedPlots?: StoredPlot[]
+  storedAt?: string
 }
 
 export interface Invite {

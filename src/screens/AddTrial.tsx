@@ -6,12 +6,14 @@ import { parseSprayMapPdf } from '../parsers/sprayMapPdf'
 import { parseMixingPlan } from '../parsers/mixingPlan'
 import { parseArmCsv, parseProtocolDocx, blankTrial } from '../parsers/otherSources'
 import { freshTrialState } from '../store/seed'
-import type { TrialDoc } from '../store/types'
+import type { StoredPlot, TrialDoc } from '../store/types'
+import { activeToken } from '../lib/backend'
+import { listOfficeTrials, loadOfficeMeasures, loadOfficePlots, siteInfoFromOffice, storedPlotsFrom, trialDocFromOffice, type OfficeMeasure, type OfficeTrial } from '../lib/pullTrials'
 
 /** Add a trial (design screen 2f) — point it at the files you already make.
  * Parsing runs on-device (PDF text + xlsx); the portal can re-parse server-side. */
 
-type Step = 0 | 1 | 2 | 3
+type Step = 0 | 1 | 2 | 3 | 4
 
 interface Parsed {
   doc: TrialDoc
@@ -20,6 +22,7 @@ interface Parsed {
 }
 
 const SOURCES: { t: string; s: string; accept: string | null }[] = [
+  { t: 'From the office', s: 'approved trials built in the portal — treatments, assessment plan and plot map', accept: 'office' },
   { t: 'Spray map PDF', s: 'grid, reps, OUT + reserve plots — like Matong', accept: '.pdf,application/pdf' },
   { t: 'Protocol document', s: '.docx — like Junee Reefs Knockdown 2026', accept: '.docx' },
   { t: 'Mixing plan', s: '.xlsx — treatments, rates, batch volumes', accept: '.xlsx' },
@@ -36,11 +39,43 @@ export function AddTrial() {
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingSource = useRef<string>('')
+  const [office, setOffice] = useState<{ state: 'loading' | 'ready' | 'offline' | 'failed'; trials: OfficeTrial[]; measures: OfficeMeasure[] }>({ state: 'loading', trials: [], measures: [] })
+  /** Site facts and stored plots that ride along with an office trial. */
+  const officeExtras = useRef<{ site: ReturnType<typeof siteInfoFromOffice>; plots: StoredPlot[] } | null>(null)
+
+  const openOffice = async () => {
+    setStep(4)
+    setOffice({ state: 'loading', trials: [], measures: [] })
+    const token = await activeToken()
+    if (!token) {
+      setOffice({ state: 'offline', trials: [], measures: [] })
+      return
+    }
+    const [trials, measures] = await Promise.all([listOfficeTrials(token), loadOfficeMeasures(token)])
+    if (!trials) {
+      setOffice({ state: 'failed', trials: [], measures: [] })
+      return
+    }
+    setOffice({ state: 'ready', trials, measures: measures ?? [] })
+  }
+
+  const pickOffice = async (t: OfficeTrial) => {
+    setSrc('THE OFFICE')
+    setFileName(t.name)
+    setStep(1)
+    const token = await activeToken()
+    const plots = token ? await loadOfficePlots(t.id, token) : null
+    const doc = trialDocFromOffice(t, office.measures)
+    officeExtras.current = { site: siteInfoFromOffice(t), plots: storedPlotsFrom(plots ?? []) }
+    const placed = officeExtras.current.plots.length
+    finishParse(doc, `${t.status} · ${t.assessments.length} assessment timing${t.assessments.length === 1 ? '' : 's'}${placed ? ` · ${placed} plots placed on the site map` : ' · no plot map yet, mark the corners at pegging'}`)
+  }
 
   const reset = () => {
     setStep(0)
     setParsed(null)
     setError('')
+    officeExtras.current = null
   }
 
   const finishParse = (doc: TrialDoc, extraNote?: string) => {
@@ -103,6 +138,10 @@ export function AddTrial() {
   }
 
   const pickSource = (t: string, accept: string | null) => {
+    if (accept === 'office') {
+      void openOffice()
+      return
+    }
     if (!accept) {
       // Start blank
       const name = window.prompt('Trial name?', 'New trial — untitled')
@@ -121,10 +160,25 @@ export function AddTrial() {
 
   const confirm = () => {
     if (!parsed) return
+    const extras = officeExtras.current
     mut({ kind: 'trial', label: `Trial created · ${parsed.doc.trial.name}` }, (d) => {
       d.trials[parsed.doc.id] = parsed.doc
       // re-importing the same document must never wipe scores already taken
-      if (!d.trialState[parsed.doc.id]) d.trialState[parsed.doc.id] = freshTrialState(parsed.doc)
+      const fresh = !d.trialState[parsed.doc.id]
+      if (fresh) d.trialState[parsed.doc.id] = freshTrialState(parsed.doc)
+      const ts = d.trialState[parsed.doc.id]
+      if (extras) {
+        if (fresh) {
+          ts.site.cooperator = extras.site.cooperator
+          ts.site.paddock = extras.site.paddock
+          ts.site.notes = extras.site.notes
+        }
+        // a re-pull refreshes the office plot map but never the surveyed corners
+        if (extras.plots.length) {
+          ts.site.storedPlots = extras.plots
+          ts.site.storedAt = new Date().toISOString()
+        }
+      }
       d.activeTrialId = parsed.doc.id
     })
     setStep(3)
@@ -165,6 +219,31 @@ export function AddTrial() {
             >
               <div style={{ fontSize: 14, fontWeight: 800, color: C.green }}>{s.t}</div>
               <div style={{ fontSize: 11.5, color: C.grey, marginTop: 1 }}>{s.s}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {step === 4 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {office.state === 'loading' && (
+            <div style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 14, padding: '18px', textAlign: 'center', fontSize: 12.5, color: C.grey }}>Fetching approved trials from the office…</div>
+          )}
+          {office.state === 'offline' && (
+            <div style={{ background: C.burntTint, borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: C.burntDark }}>Sign in with signal to pull trials from the office. Everything already on the phone keeps working offline.</div>
+          )}
+          {office.state === 'failed' && (
+            <div style={{ background: C.burntTint, borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: C.burntDark }}>Could not reach the office backend. Try again with better signal.</div>
+          )}
+          {office.state === 'ready' && !office.trials.length && (
+            <div style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 14, padding: '14px 16px', fontSize: 12.5, color: C.grey, lineHeight: 1.5 }}>No approved or active trials on the backend yet. Build one in the office portal and set it to approved.</div>
+          )}
+          {office.trials.map((t) => (
+            <div key={t.id} onClick={() => void pickOffice(t)} style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 13, padding: '12px 15px', cursor: 'pointer' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.green }}>{t.name}</div>
+              <div style={{ fontSize: 11.5, color: C.grey, marginTop: 1 }}>
+                {[t.season, t.status, t.sites?.property, t.crop].filter(Boolean).join(' · ')} · {t.treatments.length} treatments
+              </div>
             </div>
           ))}
         </div>

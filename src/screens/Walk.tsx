@@ -5,7 +5,7 @@ import { useGps } from '../gps/useGps'
 import { PulseDot, ScreenTitle } from '../components/bits'
 import { fieldDayStops, posOf, rowOf, treatmentByN } from '../lib/trial'
 import { SAMPLE_SEV } from '../lib/results'
-import { gridFromCorners, locate } from '../gps/geo'
+import { gridFromCorners, gridFromStored, locate } from '../gps/geo'
 
 /** Field-day walk (design screen 2g) — Rep 1 in treatment order across the front. */
 export function Walk() {
@@ -22,8 +22,8 @@ export function Walk() {
 
   // live GPS check when the grid is pinned; otherwise the stop's own position
   let gpsTxt = `You're at Row ${rowOf(pid)} · Pos ${posOf(pid)}  ✓`
-  if (ts.site.pinned && ts.site.corners && gps.fix) {
-    const grid = gridFromCorners(ts.site.corners.A, ts.site.corners.B, doc)
+  const grid = ts.site.pinned && ts.site.corners ? gridFromCorners(ts.site.corners.A, ts.site.corners.B, doc) : ts.site.storedPlots?.length ? gridFromStored(ts.site.storedPlots, doc) : null
+  if (grid && gps.fix) {
     const hit = locate(gps.fix, grid)
     if (hit.row) gpsTxt = `You're at Row ${hit.row} · Pos ${hit.pos}${hit.pid === pid ? '  ✓' : ` — stop ${wi + 1} is Row ${rowOf(pid)}`}`
   }

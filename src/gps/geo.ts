@@ -1,4 +1,4 @@
-import type { Corner, LatLng, TrialDoc } from '../store/types'
+import type { Corner, LatLng, StoredPlot, TrialDoc } from '../store/types'
 import { isTreatmentCell } from '../lib/trial'
 
 // Distance, bearing and projection live in the shared geometry library so the
@@ -71,6 +71,19 @@ export function gridFromCorners(A: Corner, B: Corner, doc: TrialDoc): SiteGrid {
     }
   }
   return { bearingDeg: Math.round(posBearing), frontEdgeM: +frontEdgeM.toFixed(1), plotW, plotL, polygons }
+}
+
+/** A grid from plot polygons stored by the office site planner: same
+ * SiteGrid shape as gridFromCorners, so locate() works unchanged. */
+export function gridFromStored(stored: StoredPlot[], doc: TrialDoc): SiteGrid {
+  const polygons: PlotPolygon[] = stored
+    .filter((p) => isTreatmentCell(doc.cells[p.pid]) || doc.cells[p.pid] === 'reserve')
+    .map((p) => ({ pid: p.pid, corners: p.corners, centre: p.centre }))
+  const first = stored[0]
+  const plotW = first ? haversineM(first.corners[0], first.corners[1]) : doc.trial.plot.widthM
+  const plotL = first ? haversineM(first.corners[1], first.corners[2]) : doc.trial.plot.lengthM
+  const bearing = first ? bearingDeg(first.corners[0], first.corners[1]) : 0
+  return { bearingDeg: Math.round(bearing), frontEdgeM: +(plotW * doc.trial.grid.positions).toFixed(1), plotW, plotL, polygons }
 }
 
 export interface Locate {

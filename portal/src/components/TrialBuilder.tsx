@@ -157,7 +157,7 @@ export default function TrialBuilder() {
       setSaving(false)
       return
     }
-    const r = await createTrial(d, planned.byTrt, token)
+    const r = await createTrial(d, planned.byTrt, token, planned.bands.flatMap((b) => b.cells.filter((c) => !c.trt).map((c) => c.plot)))
     setSaved(r)
     setSaving(false)
     if (r.ok) {
@@ -855,7 +855,7 @@ function StepReview({ d, planned, problems, saving, saved, save, reload, setMsg,
           <div style={{ ...card, border: `1.5px solid ${GREEN}`, background: '#F3FAF6' }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: '#00512F' }}>Draft trial created</div>
             <div style={{ fontSize: 12.5, color: '#3E403E', marginTop: 4, lineHeight: 1.5 }}>
-              {d.name} is on the backend as a draft with {d.treatments.length} treatments across {totalPlots} plots and {d.assessments.length} assessment timings. Next: place the block on the site map, then submit it for approval from the trials list.
+              {d.name} is on the backend as a draft with {d.treatments.length} treatments across {totalPlots} plots and {d.assessments.length} assessment timings. Next: place the block on the site map, then set it to approved from the trials list so phones can pull it.
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <div onClick={() => nav('planner')} style={btn(true)}>Place it on the site planner →</div>
@@ -934,7 +934,7 @@ function StepReview({ d, planned, problems, saving, saved, save, reload, setMsg,
           <div style={{ fontSize: 12, color: '#3E403E', lineHeight: 1.55 }}>
             1. The trial is saved as a <b>draft</b>: visible in the trials list and the site planner, not yet on phones.<br />
             2. Place the block on the site planner so plots have coordinates.<br />
-            3. Submit for approval from the trials list; an approved trial syncs to the field app.<br />
+            3. Set it to approved from the trials list; phones pull approved and active trials from “Add a trial → From the office”.<br />
             4. Plans, the spray plan, signs and the grower agreement are produced from the saved record.
           </div>
         </div>
