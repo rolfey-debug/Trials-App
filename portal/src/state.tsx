@@ -3,7 +3,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 import { BASE_TREATMENTS, type Treatment } from './data'
 import type { Design } from './lib/layout'
 
-export type Screen = 'trials' | 'wizard' | 'builder' | 'docs' | 'review' | 'map' | 'planner' | 'plotmap' | 'results' | 'audit'
+export type Screen = 'trials' | 'wizard' | 'builder' | 'outputs' | 'docs' | 'review' | 'map' | 'planner' | 'plotmap' | 'results' | 'audit'
 export type Step = 'aim' | 'site' | 'treatments' | 'rand' | 'assess' | 'review'
 
 export interface AppState {

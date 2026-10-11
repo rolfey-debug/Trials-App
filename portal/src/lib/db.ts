@@ -58,6 +58,7 @@ export interface LiveTrial {
     timings?: Record<string, { due?: string; applied?: string }>
   } | null
   site: { id: string; property: string | null; town: string | null; lat: number | null; lng: number | null; boundary_geojson: GeoPolygon | null; planned: boolean } | null
+  client: { name: string; contact: { phone?: string; email?: string; address?: string } | null } | null
   /** Block placement on the site map (see server/migrations/007_geometry.sql). */
   layout: BlockLayout | null
   scores: number
@@ -81,6 +82,7 @@ interface TrialRow {
   spraying: LiveTrial['spraying']
   layout: BlockLayout | null
   sites: LiveTrial['site']
+  clients: LiveTrial['client']
 }
 
 export interface GeoPolygon {
@@ -97,7 +99,7 @@ export interface BlockLayout extends BlockSpec {
 
 export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null> {
   const [trials, scores, ops] = await Promise.all([
-    select<TrialRow>('trials', 'select=id,site_id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,layout,sites(id,property,town,lat,lng,boundary_geojson,planned)&order=season.desc,name.asc', token),
+    select<TrialRow>('trials', 'select=id,site_id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,layout,sites(id,property,town,lat,lng,boundary_geojson,planned),clients(name,contact)&order=season.desc,name.asc', token),
     select<{ trial_id: string; plot: number; recorded_at: string }>('scores', 'select=trial_id,plot,recorded_at', token),
     select<{ trial_id: string; detail: { sprayed?: number[] } | null; performed_at: string }>('operations', 'select=trial_id,detail,performed_at', token),
   ])
@@ -109,6 +111,7 @@ export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null>
     return {
       ...t,
       site: t.sites,
+      client: t.clients,
       scores: sc.length,
       plotsScored: new Set(sc.map((s) => s.plot)).size,
       sprayTicks: op.reduce((n, o) => n + (o.detail?.sprayed?.length ?? 0), 0),
@@ -147,7 +150,27 @@ export interface TreatmentRow {
   b_spray: boolean
   /** `plots` is always a plain list here; imports that stored rep→plot objects
    * are normalised on load and keep the rep mapping in `plotsByRep`. */
-  components: { plots?: number[]; plotsByRep?: Record<string, number>; aTiming?: string | null; bTiming?: string | null } | null
+  components: {
+    plots?: number[]
+    plotsByRep?: Record<string, number>
+    aTiming?: string | null
+    bTiming?: string | null
+    /** Builder trials: every product line with its timing and rate. */
+    lines?: TreatmentLine[]
+    notes?: string[]
+    [timing: string]: unknown
+  } | null
+}
+
+export interface AssessmentRow {
+  n: number
+  timing: string | null
+  measures: string[]
+  blind: boolean
+}
+
+export function loadAssessments(trialId: string, token: string): Promise<AssessmentRow[] | null> {
+  return select<AssessmentRow>('assessments', `select=n,timing,measures,blind&trial_id=eq.${trialId}&order=n.asc`, token)
 }
 
 export interface PhotoRow {

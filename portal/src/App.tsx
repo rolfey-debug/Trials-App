@@ -2,6 +2,7 @@ import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import Wizard from './components/Wizard'
 import TrialBuilder from './components/TrialBuilder'
+import Outputs from './components/Outputs'
 import Picker from './components/Picker'
 import Docs from './components/Docs'
 import Review from './components/Review'
@@ -21,6 +22,7 @@ export default function App() {
         {s.screen === 'trials' && <Dashboard />}
         {s.screen === 'wizard' && <Wizard />}
         {s.screen === 'builder' && <TrialBuilder />}
+        {s.screen === 'outputs' && <Outputs />}
         {s.screen === 'docs' && <Docs />}
         {s.screen === 'review' && <Review />}
         {s.screen === 'map' && <LiveMap />}
