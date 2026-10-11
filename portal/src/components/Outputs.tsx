@@ -3,7 +3,8 @@
  * blank assessment sheets. Preview on the right, print (or save as PDF)
  * from the browser's dialog. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadTreatments, portalToken, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type PrintKind, type TreatmentRow } from '../lib/db'
+import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOrgSettings, loadTreatments, markDocumentDrive, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OrgSettings, type PrintKind, type TreatmentRow } from '../lib/db'
+import { forgetDriveToken, pushPrintoutToDrive } from '../lib/gdrive'
 import { assessmentSheetHtml, documentHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, type PlanData } from '../lib/printouts'
 import { MONO, useApp } from '../state'
 
@@ -42,6 +43,16 @@ export default function Outputs() {
   const [blind, setBlind] = useState(false)
   const [sheetN, setSheetN] = useState(1)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const [saveNote, setSaveNote] = useState('')
+  const [org, setOrg] = useState<OrgSettings>({})
+  const [driveOn, setDriveOn] = useState(() => {
+    try {
+      return localStorage.getItem('tw.driveOn') !== 'off'
+    } catch {
+      return true
+    }
+  })
+  const [driveSetup, setDriveSetup] = useState<{ clientId: string; folder: string } | null>(null)
   const frame = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
@@ -51,7 +62,8 @@ export default function Outputs() {
         setAuth('signedout')
         return
       }
-      const [t, lib] = await Promise.all([loadLiveTrials(token), loadMeasureLibrary(token)])
+      const [t, lib, settings] = await Promise.all([loadLiveTrials(token), loadMeasureLibrary(token), loadOrgSettings(token)])
+      setOrg(settings)
       setTrials(t ?? [])
       setMeasures(new Map((lib ?? []).map((m) => [m.key, m])))
       const first = (t ?? []).find((x) => x.status === 'draft' || x.status === 'approved') ?? (t ?? [])[0]
@@ -115,8 +127,43 @@ export default function Outputs() {
     const kindOf: Record<Kind, PrintKind> = { plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet' }
     const label = kind === 'spray' ? `Spray plan ${timing}` : kind === 'sheet' ? `Assessment sheet A${sheetN}` : KINDS.find((k) => k.id === kind)?.label ?? kind
     const options = kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'sheet' ? { assessment: sheetN } : {}
-    const ok = await savePrintout(trial.id, kindOf[kind], `${label} · ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.html`, html, options, token)
-    setSaveState(ok ? 'saved' : 'failed')
+    const filename = `${label} · ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.html`
+    const docId = await savePrintout(trial.id, kindOf[kind], filename, html, options, token)
+    if (!docId) {
+      setSaveState('failed')
+      setSaveNote('')
+      return
+    }
+    if (driveOn && org.googleClientId) {
+      try {
+        const drive = await pushPrintoutToDrive(org.googleClientId, org.driveFolder || 'AGnVET Trial Work', trial.name, filename, html)
+        await markDocumentDrive(docId, drive, token)
+        setSaveNote(`In Drive: ${org.driveFolder || 'AGnVET Trial Work'} / ${trial.name}`)
+      } catch (e) {
+        setSaveNote(`Saved to documents, but not to Drive: ${e instanceof Error ? e.message : 'unknown error'}`)
+      }
+    } else setSaveNote('')
+    setSaveState('saved')
+  }
+
+  const saveDriveSetup = async () => {
+    if (!driveSetup) return
+    const token = await portalToken()
+    if (!token) return
+    const patch: OrgSettings = { googleClientId: driveSetup.clientId.trim(), driveFolder: driveSetup.folder.trim() || 'AGnVET Trial Work' }
+    if (await saveOrgSettings(patch, token)) {
+      setOrg({ ...org, ...patch })
+      setDriveSetup(null)
+      forgetDriveToken()
+    }
+  }
+  const toggleDrive = (on: boolean) => {
+    setDriveOn(on)
+    try {
+      localStorage.setItem('tw.driveOn', on ? 'on' : 'off')
+    } catch {
+      /* ignore */
+    }
   }
 
   const print = () => {
@@ -218,10 +265,41 @@ export default function Outputs() {
         )}
         <div onClick={print} className="hv-primary" style={{ padding: '11px 14px', background: GREEN, color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', textAlign: 'center' }}>Print / save as PDF</div>
         <div onClick={saveToDocuments} style={{ padding: '9px 14px', background: '#fff', color: saveState === 'failed' ? '#A93414' : '#3E403E', fontSize: 12.5, fontWeight: 700, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: `1px solid ${saveState === 'saved' ? GREEN : '#D8DAD8'}`, opacity: saveState === 'saving' ? 0.6 : 1 }}>
-          {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved to the trial’s documents ✓' : saveState === 'failed' ? 'Could not save — try again' : 'Save a copy to the trial’s documents'}
+          {saveState === 'saving' ? (driveOn && org.googleClientId ? 'Saving and pushing to Drive…' : 'Saving…') : saveState === 'saved' ? 'Saved to the trial’s documents ✓' : saveState === 'failed' ? 'Could not save — try again' : 'Save a copy to the trial’s documents'}
+        </div>
+        {saveNote && <div style={{ fontSize: 11.5, color: saveNote.startsWith('In Drive') ? '#00623C' : '#A93414', lineHeight: 1.4 }}>{saveNote}</div>}
+        <div style={card}>
+          <div style={sectionLabel}>GOOGLE DRIVE</div>
+          {driveSetup ? (
+            <div style={{ display: 'grid', gap: 8 }}>
+              <input value={driveSetup.clientId} onChange={(e) => setDriveSetup({ ...driveSetup, clientId: e.target.value })} placeholder="OAuth client ID (…apps.googleusercontent.com)" style={{ ...inputStyle, fontFamily: MONO, fontSize: 11.5 }} />
+              <input value={driveSetup.folder} onChange={(e) => setDriveSetup({ ...driveSetup, folder: e.target.value })} placeholder="Top folder in Drive" style={inputStyle} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div onClick={saveDriveSetup} style={{ padding: '7px 12px', background: GREEN, color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, cursor: 'pointer', opacity: driveSetup.clientId.trim().endsWith('apps.googleusercontent.com') ? 1 : 0.5 }}>Save</div>
+                <div onClick={() => setDriveSetup(null)} style={{ padding: '7px 12px', background: '#fff', color: '#3E403E', fontSize: 12, fontWeight: 700, borderRadius: 8, cursor: 'pointer', border: '1px solid #D8DAD8' }}>Cancel</div>
+              </div>
+              <div style={{ fontSize: 11, color: GREY, lineHeight: 1.45 }}>
+                In Google Cloud Console: new project, enable the Google Drive API, OAuth consent screen (External, add yourself as a test user), then Credentials → OAuth client ID → Web application with <span style={{ fontFamily: MONO }}>https://rolfey-debug.github.io</span> as an authorised JavaScript origin. Paste the client ID here. The app only sees files it creates. Moving to IT's Workspace later is a new client ID in their project.
+              </div>
+            </div>
+          ) : org.googleClientId ? (
+            <>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: '#3E403E' }}>
+                <input type="checkbox" checked={driveOn} onChange={(e) => toggleDrive(e.target.checked)} /> Also push saved copies to Drive
+              </label>
+              <div style={{ fontSize: 11, color: GREY, marginTop: 6, lineHeight: 1.4 }}>
+                Folder: {org.driveFolder || 'AGnVET Trial Work'} / trial name. Google asks you to sign in the first time each session. <span onClick={() => setDriveSetup({ clientId: org.googleClientId ?? '', folder: org.driveFolder ?? 'AGnVET Trial Work' })} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>Change</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: '#3E403E', lineHeight: 1.45 }}>Not connected. Saved copies stay in the trial's documents only.</div>
+              <div onClick={() => setDriveSetup({ clientId: '', folder: 'AGnVET Trial Work' })} style={{ marginTop: 8, display: 'inline-block', padding: '6px 11px', background: '#fff', color: GREEN, fontSize: 12, fontWeight: 700, borderRadius: 8, cursor: 'pointer', border: `1px solid ${GREEN}` }}>Connect Google Drive</div>
+            </>
+          )}
         </div>
         <div style={{ fontSize: 11, color: GREY, lineHeight: 1.45 }}>
-          A saved copy is the exact page that went to the printer, listed under the trial in Results. Grower agreement and WHS site sheet are not here yet: their wording needs your sign-off before they print. <span onClick={() => nav('builder')} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>New trial</span> builds the record these documents come from.
+          A saved copy is the exact page that went to the printer, listed under the trial in Results and, when Drive is connected, in Drive. Grower agreement and WHS site sheet are not here yet: their wording needs your sign-off before they print. <span onClick={() => nav('builder')} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>New trial</span> builds the record these documents come from.
         </div>
       </div>
       <div style={{ flex: 1, minWidth: 0, background: '#E9EBE9', padding: 18, overflow: 'hidden' }}>
