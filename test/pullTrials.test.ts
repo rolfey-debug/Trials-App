@@ -93,4 +93,8 @@ check('one polygon kept, null skipped', stored.length === 1 && stored[0].pid ===
 check('corners are lat/lng', stored[0].corners.length === 4 && Math.abs(stored[0].corners[0].lat + 34.71992) < 1e-9 && Math.abs(stored[0].corners[0].lng - 147.50966) < 1e-9)
 check('centre inside', stored[0].centre.lat > -34.71992 && stored[0].centre.lat < -34.71981)
 
+
+// --- assessment plan rides along for the phone's round picker ----------------
+check('assessment plan carried in round order', doc.assessments?.map((a) => `${a.n}:${a.timing}:${a.measures.join('+')}`).join(' ') === '1:GS39:rust_plot+vigour 2:harvest:yield_t_ha' && doc.assessments?.[0].blind === true)
+check('no plan gives an empty list', wd.assessments?.length === 0)
 console.log(`pullTrials: ${passed} checks passed`)

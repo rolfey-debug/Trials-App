@@ -40,6 +40,15 @@ function upgrade(saved: AppState): AppState {
   const next = structuredClone(saved)
   let changed = false
 
+  // Assessment rounds (Oct 2026): older installs scored one round only.
+  for (const ts of Object.values(next.trialState)) {
+    if (ts.round === undefined) {
+      ts.round = 1
+      ts.rounds = ts.rounds ?? {}
+      changed = true
+    }
+  }
+
   if (!next.trials[RINGWOOD_ID]) {
     next.trials[RINGWOOD_ID] = ringwoodDoc()
     next.trialState[RINGWOOD_ID] = ringwoodTrialState()

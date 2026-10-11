@@ -213,6 +213,10 @@ export function trialDocFromOffice(t: OfficeTrial, lib: OfficeMeasure[]): TrialD
     },
     measures: measureLibFor(t, lib),
     notes: [...(t.aim ? [`Aim: ${t.aim}`] : []), ...(d.notes ?? [])],
+    assessments: t.assessments
+      .slice()
+      .sort((a, b) => a.n - b.n)
+      .map((a) => ({ n: a.n, timing: a.timing ?? '', measures: a.measures ?? [], blind: a.blind || undefined })),
   }
 }
 

@@ -162,10 +162,10 @@ async function pushTrial(
   ts: TrialState,
   token: string,
 ): Promise<{ scores: number; corrections: number; photos: number; spray: number } | null> {
-  // The app models one assessment round today, so every score syncs under
-  // round 1. assessIdx is the WALK POSITION, not the round — using it here
-  // re-identified every row on each sync from a new position (duplicates).
-  const assessment = 1
+  // Scores sync under their round: the round being scored now (ts.round,
+  // 1 when the install predates rounds) plus every finished round stashed in
+  // ts.rounds. assessIdx is the WALK POSITION, never the round.
+  const roundSets: Array<[number, TrialState['scores']]> = [[ts.round ?? 1, ts.scores], ...Object.entries(ts.rounds ?? {}).map(([r, s]) => [Number(r), s] as [number, TrialState['scores']])]
   // assessor = the signed-in auth uid (same id as the people row) from the JWT
   const assessor = (() => {
     try {
@@ -175,7 +175,7 @@ async function pushTrial(
     }
   })()
   const scoreRows: unknown[] = []
-  for (const [pid, sc] of Object.entries(ts.scores)) {
+  for (const [assessment, scores] of roundSets) for (const [pid, sc] of Object.entries(scores)) {
     for (const [measure, value] of Object.entries(sc.v)) {
       // plant-level readings travel in the note, same shape the transcript
       // parser writes ("plants 20/25/45 — …"), so the portal's per-plant

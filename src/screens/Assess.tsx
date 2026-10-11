@@ -5,7 +5,7 @@ import { useGps } from '../gps/useGps'
 import { fetchRecheckList, type RecheckItem } from '../lib/backend'
 import { assessmentOrder, capFor, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf } from '../lib/trial'
 import { analyzeCanopyPhoto, laiBackspace, laiKeyDigit, type CanopyAnalysis } from '../lib/lai'
-import { gridFromCorners, locate } from '../gps/geo'
+import { gridFromCorners, gridFromStored, locate } from '../gps/geo'
 import { compressAndStore } from '../lib/photo'
 import { PulseDot } from '../components/bits'
 
@@ -40,6 +40,34 @@ export function Assess() {
   const flat = useMemo(() => measureFlat(doc.measures), [doc])
   const groups = useMemo(() => measureGroups(doc.measures), [doc])
   const [msOpen, setMsOpen] = useState(false)
+  const [roundOpen, setRoundOpen] = useState(false)
+  const round = ts.round ?? 1
+  const plan = doc.assessments?.find((a) => a.n === round)
+  const roundOptions = useMemo(() => {
+    const max = Math.max(round, ...(doc.assessments ?? []).map((a) => a.n), ...Object.keys(ts.rounds ?? {}).map(Number))
+    return Array.from({ length: max + 1 }, (_, i) => i + 1)
+  }, [round, doc.assessments, ts.rounds])
+  const switchRound = (r: number) => {
+    setRoundOpen(false)
+    if (r === round) return
+    mutTrial(null, (t) => {
+      const cur = t.round ?? 1
+      t.rounds = t.rounds ?? {}
+      if (Object.keys(t.scores).length) t.rounds[cur] = t.scores
+      else delete t.rounds[cur]
+      t.scores = t.rounds[r] ?? {}
+      delete t.rounds[r]
+      t.round = r
+      t.assessIdx = 0
+      const p = doc.assessments?.find((a) => a.n === r)
+      const known = (p?.measures ?? []).filter((k) => flat[k])
+      if (known.length) {
+        t.activeMeasures = known
+        t.assessField = known[0]
+      }
+      if (p?.blind !== undefined) t.blind = !!p.blind
+    })
+  }
 
   const idx = Math.min(ts.assessIdx, order.length - 1)
   const pid = order[idx]
@@ -60,8 +88,8 @@ export function Assess() {
   const acc = gps.accuracy
   const warnCoarse = acc > 6
   let located: { row: number; pos: number } | null = null
-  if (ts.site.pinned && ts.site.corners && gps.fix) {
-    const grid = gridFromCorners(ts.site.corners.A, ts.site.corners.B, doc)
+  const grid = ts.site.pinned && ts.site.corners ? gridFromCorners(ts.site.corners.A, ts.site.corners.B, doc) : ts.site.storedPlots?.length ? gridFromStored(ts.site.storedPlots, doc) : null
+  if (grid && gps.fix) {
     const hit = locate(gps.fix, grid)
     if (hit.row) located = { row: hit.row, pos: hit.pos! }
   }
@@ -341,8 +369,8 @@ export function Assess() {
         <div style={{ flex: 1, height: 4, background: '#E0E1E0', borderRadius: 2, overflow: 'hidden' }}>
           <div style={{ width: `${Math.round((scored / order.length) * 100)}%`, height: '100%', background: C.green }} />
         </div>
-        <div style={{ font: `500 10.5px ${MONO}`, color: C.grey }}>
-          {scored}/{order.length} · Assess 1
+        <div onClick={() => setRoundOpen(true)} title="Switch assessment round" style={{ font: `600 10.5px ${MONO}`, color: C.green, cursor: 'pointer', padding: '4px 8px', borderRadius: 99, background: C.greenTint, whiteSpace: 'nowrap' }}>
+          {scored}/{order.length} · Assess {round}{plan?.timing ? ` · ${plan.timing}` : ''} ▾
         </div>
         {recheck !== null && recheck.length > 0 && (
           <div
@@ -660,6 +688,31 @@ export function Assess() {
       )}
 
       {/* jump-to-plot picker — tap the plot number to open */}
+      {roundOpen && (
+        <div onClick={() => setRoundOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,20,20,.45)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', background: '#fff', borderRadius: '16px 16px 0 0', padding: '14px 16px 22px', maxHeight: '70vh', overflow: 'auto' }}>
+            <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 2 }}>Assessment round</div>
+            <div style={{ fontSize: 11.5, color: C.grey, marginBottom: 10 }}>Each round syncs under its own number. Switching keeps every round's scores; the measures follow the office plan when there is one.</div>
+            {roundOptions.map((r) => {
+              const p = doc.assessments?.find((a) => a.n === r)
+              const n = r === round ? scored : Object.keys(ts.rounds?.[r] ?? {}).length
+              const isNew = !p && n === 0 && r !== round
+              return (
+                <div key={r} onClick={() => switchRound(r)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${r === round ? C.green : C.hairline}`, background: r === round ? C.greenTint : '#fff', marginBottom: 6, cursor: 'pointer' }}>
+                  <div style={{ font: `700 14px ${MONO}`, color: C.green, width: 28 }}>A{r}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{isNew ? 'New round' : p?.timing || `Round ${r}`}</div>
+                    <div style={{ fontSize: 11, color: C.grey, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p?.measures.length ? p.measures.map((k) => flat[k]?.[1] ?? k).join(' · ') : isNew ? 'keeps the current measure list' : 'no plan from the office'}
+                    </div>
+                  </div>
+                  <div style={{ font: `500 10.5px ${MONO}`, color: C.grey, whiteSpace: 'nowrap' }}>{n ? `${n} scored` : ''}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {pickOpen && (
         <div
           onClick={() => setPickOpen(false)}

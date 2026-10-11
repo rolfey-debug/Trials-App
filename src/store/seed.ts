@@ -199,6 +199,8 @@ export function seedState(): AppState {
 export function freshTrialState(doc: TrialDoc): TrialState {
   return {
     scores: {},
+    round: 1,
+    rounds: {},
     activeMeasures: [...doc.measures.defaultActive],
     assessIdx: 0,
     assessField: doc.measures.defaultActive[0],

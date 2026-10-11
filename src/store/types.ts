@@ -66,6 +66,8 @@ export interface TrialDoc {
   conditionsRecordA?: Record<string, string | number>
   /** Operational notes carried from the source workbook (mixing caveats etc.). */
   notes?: string[]
+  /** The assessment plan from the office: timing and measures per round. */
+  assessments?: Array<{ n: number; timing: string; measures: string[]; blind?: boolean }>
 }
 
 export interface Score {
@@ -151,9 +153,12 @@ export interface Person {
   chip: 'ADMIN' | 'TEAM' | 'GROWER' | 'LIMITED'
 }
 
-/** Per-trial mutable state. */
+/** Per-trial mutable state. `scores` is the round being scored now;
+ * finished rounds sit in `rounds` keyed by their number and sync under it. */
 export interface TrialState {
   scores: Record<number, Score>
+  round?: number
+  rounds?: Record<number, Record<number, Score>>
   activeMeasures: string[]
   assessIdx: number
   assessField: string
