@@ -1,7 +1,7 @@
 /** Live trial data for the portal — reads/writes the real backend as the
  * signed-in user (RLS scopes everything to the org). The session is the one
  * the sidebar sign-in (or the field app, same origin) saved to localStorage. */
-import { fetchObject, insert, refresh, remove, select, stableId, update, uploadObject, upsertOn, ORG_ID, SUPA_URL, type Session } from '../../../shared/supa'
+import { fetchObject, insert, refresh, remove, rpc, select, stableId, update, uploadObject, upsertOn, ORG_ID, SUPA_URL, type Session } from '../../../shared/supa'
 import { blockPlots, lineWkt, pointWkt, polygonWkt, type BlockCell, type BlockSpec, type LatLng } from '../../../shared/geometry'
 
 const SESSION_KEY = 'tw.supaSession'
@@ -307,14 +307,15 @@ export async function saveMachineScores(
   trialId: string,
   measure: string,
   rows: Array<{ plot: number; value: number; note: string }>,
-  token: string
+  token: string,
+  assessment = 1
 ): Promise<boolean> {
   return insert(
     'scores',
     rows.map((r) => ({
-      id: stableId(trialId, 1, String(r.plot), measure),
+      id: stableId(trialId, assessment, String(r.plot), measure),
       trial_id: trialId,
-      assessment: 1,
+      assessment,
       plot: r.plot,
       measure,
       value: r.value,
@@ -952,4 +953,52 @@ export interface PersonRow {
 
 export function loadPeople(token: string): Promise<PersonRow[] | null> {
   return select<PersonRow>('people', 'select=id,name,role&order=name.asc', token)
+}
+
+// --- Yield map points (paddock-scale strips) ----------------------------------
+
+export interface YieldMeanRow {
+  plot: number
+  treatment: number | null
+  n: number
+  mean: number
+  sd: number
+  moisture: number | null
+}
+
+/** Insert cleaned points in batches. Returns the number inserted. */
+export async function uploadYieldPoints(trialId: string, source: string, pts: Array<{ lat: number; lng: number; yieldTHa: number; moisturePct: number | null; recordedAt: string | null }>, token: string, onProgress?: (done: number) => void): Promise<number> {
+  const size = 500
+  let done = 0
+  for (let i = 0; i < pts.length; i += size) {
+    const rows = pts.slice(i, i + size).map((p) => ({ trial_id: trialId, source, geom: pointWkt(p), yield_t_ha: Math.round(p.yieldTHa * 1000) / 1000, moisture_pct: p.moisturePct, recorded_at: p.recordedAt && !Number.isNaN(Date.parse(p.recordedAt)) ? new Date(p.recordedAt).toISOString() : null }))
+    if (!(await insert('yield_points', rows, token))) return done
+    done += rows.length
+    onProgress?.(done)
+  }
+  return done
+}
+
+export function clearYieldPoints(trialId: string, source: string, token: string): Promise<boolean> {
+  return remove('yield_points', `trial_id=eq.${trialId}&source=eq.${encodeURIComponent(source)}`, token)
+}
+
+export const assignYieldPoints = (trialId: string, token: string) => rpc<number>('assign_yield_points', { p_trial: trialId }, token)
+export const plotYieldMeans = (trialId: string, token: string) =>
+  rpc<Array<Record<string, unknown>>>('plot_yield_means', { p_trial: trialId }, token).then((rows) =>
+    rows ? rows.map((r): YieldMeanRow => ({ plot: Number(r.plot), treatment: r.treatment == null ? null : Number(r.treatment), n: Number(r.n), mean: Number(r.mean), sd: Number(r.sd), moisture: r.moisture == null ? null : Number(r.moisture) })) : null
+  )
+
+export function loadYieldSources(trialId: string, token: string): Promise<Array<{ source: string; n: number; assigned: number }> | null> {
+  return select<{ source: string; plot: number | null }>('yield_points', `select=source,plot&trial_id=eq.${trialId}`, token).then((rows) => {
+    if (!rows) return null
+    const m = new Map<string, { n: number; assigned: number }>()
+    for (const r of rows) {
+      const e = m.get(r.source) ?? { n: 0, assigned: 0 }
+      e.n++
+      if (r.plot != null) e.assigned++
+      m.set(r.source, e)
+    }
+    return [...m.entries()].map(([source, e]) => ({ source, ...e }))
+  })
 }

@@ -229,3 +229,14 @@ export function stableId(...parts: Array<string | number>): string {
   // 8-4-4-4-12, RFC-4122 shaped (version 4 / variant 8 nibbles fixed)
   return `${a}-${b.slice(0, 4)}-4${b.slice(4, 7)}-8${c.slice(0, 3)}-${c.slice(3)}${d.slice(0, 7)}`
 }
+
+/** Call a Postgres function through PostgREST (`/rpc/<name>`). */
+export async function rpc<T = unknown>(fn: string, args: Record<string, unknown>, token: string): Promise<T | null> {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, { method: 'POST', headers: headers(token), body: JSON.stringify(args) })
+    if (!r.ok) return null
+    return (await r.json()) as T
+  } catch {
+    return null
+  }
+}

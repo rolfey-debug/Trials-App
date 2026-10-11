@@ -6,6 +6,7 @@ import { correctScore, documentUrl, openStoredDocument, loadCalibrations, loadDo
 import { applyCalibrations, loadFixture, seasonSummary } from '../lib/pheno'
 import type { SiteWeather } from '../../../shared/phenology/engine'
 import { exportResults } from '../lib/exportXlsx'
+import YieldImport from './YieldImport'
 import { rcbdAnova, type Anova } from '../lib/stats'
 
 const GREEN = '#007749'
@@ -623,6 +624,22 @@ export default function Results() {
               </>
             )}
           </div>
+        )}
+
+        {trial && (trial.trial_type === 'paddock_scale' || trial.layout) && (
+          <YieldImport
+            trial={trial}
+            hasPlots={!!trial.layout}
+            rounds={rounds}
+            onScoresWritten={() => {
+              void (async () => {
+                const token = await portalToken()
+                if (!token) return
+                const sc = await loadScores(trialId!, token)
+                if (sc) setScores(sc)
+              })()
+            }}
+          />
         )}
 
         {/* files on Drive and uploaded documents for this trial */}
