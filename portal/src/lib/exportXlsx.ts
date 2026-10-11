@@ -3,7 +3,7 @@
  * field app's pure spreadsheet writer. */
 import { downloadBlob, writeXlsx, type SheetSpec } from '../../../src/exports/xlsxWrite'
 import { select } from '../../../shared/supa'
-import type { LiveTrial } from './db'
+import type { LiveTrial, MeasureDef } from './db'
 
 interface ScoreRow {
   plot: number
@@ -88,7 +88,8 @@ export function exportResults(
   rows: Array<{ n: number; name: string; recipe: string; plots: number[]; cells: Record<string, { mean: number; sd: number | null } | null> }>,
   letters: Record<string, Record<string, string>>,
   lsdLine: Record<string, { lsd05: number; cv: number } | undefined>,
-  plotRows: Array<{ plot: number; trt: string; values: Record<string, number>; note: string }>
+  plotRows: Array<{ plot: number; trt: string; values: Record<string, number>; note: string }>,
+  defs: Array<MeasureDef | null> = []
 ) {
   const meanSheet: SheetSpec = {
     name: 'Treatment means',
@@ -116,6 +117,26 @@ export function exportResults(
       ...plotRows.map((p) => [p.plot, p.trt, ...measures.map((m) => p.values[m] ?? ''), p.note]),
     ],
   }
+  /** The standard names behind each column, so another company can read the
+   * file without our key list: EPPO code and scientific name of the target,
+   * rating type, unit, plant part and sampling rule. */
+  const measureSheet: SheetSpec | null = defs.some(Boolean)
+    ? {
+        name: 'Measures',
+        colWidths: [18, 40, 12, 32, 22, 14, 12, 10, 30, 10, 16],
+        rows: [
+          ['Key', 'Measure', 'EPPO code', 'Target (scientific)', 'Target (common)', 'Rating', 'Unit', 'Part', 'Sample', 'Better', 'Same as'],
+          ...measures.map((m, i): (string | number | null)[] => {
+            const d = defs[i]
+            return d
+              ? [d.key, d.label, d.target ?? '', d.taxa?.scientific ?? '', d.taxa?.common ?? '', d.rating, d.unit ?? '', d.part ?? '', d.sample ?? '', d.higher_better ? 'higher' : 'lower', d.canonical ?? '']
+              : [m, labelOf(m), '', '', '', '', '', '', 'not in the shared library yet', '', '']
+          }),
+          [],
+          ['EPPO codes: https://gd.eppo.int/ — rating types: count, pct_control (% of untreated), pct_severity (% area affected), pct_lai (% leaf area), pct_incidence (% plants), score, index, yield, dry_matter.'],
+        ],
+      }
+    : null
   const safe = trialName.replace(/[\\/:*?"<>|]/g, '·')
-  downloadBlob(writeXlsx([meanSheet, plotSheet]), `${safe} — results.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  downloadBlob(writeXlsx(measureSheet ? [meanSheet, plotSheet, measureSheet] : [meanSheet, plotSheet]), `${safe} — results.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 }

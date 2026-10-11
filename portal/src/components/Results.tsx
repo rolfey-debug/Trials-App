@@ -2,7 +2,7 @@
  * map, a measure-vs-measure scatter, and per-plot detail with photos. Reads
  * the real backend under RLS; everything renders from scores + treatments. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { correctScore, documentUrl, loadCalibrations, loadDocuments, loadLiveTrials, loadOperations, loadScores, loadSiteWeather, loadSoilTests, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, refreshWeather, type Calibration, type DocumentRow, type LiveTrial, type OperationRow, type PhotoRow, type ScoreRow, type SoilTestRow, type TreatmentRow, type WeatherDay } from '../lib/db'
+import { correctScore, documentUrl, loadCalibrations, loadDocuments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadScores, loadSiteWeather, loadSoilTests, loadTreatments, loadTrialPhotos, photoObjectUrl, portalToken, refreshWeather, type Calibration, type DocumentRow, type LiveTrial, type MeasureDef, type OperationRow, type PhotoRow, type ScoreRow, type SoilTestRow, type TreatmentRow, type WeatherDay } from '../lib/db'
 import { applyCalibrations, loadFixture, seasonSummary } from '../lib/pheno'
 import type { SiteWeather } from '../../../shared/phenology/engine'
 import { exportResults } from '../lib/exportXlsx'
@@ -80,7 +80,12 @@ const MEASURE_LABEL: Record<string, string> = {
   blackleg_uci_plants: 'Blackleg UCI · plants affected',
   blackleg_uci_pct: 'Blackleg UCI %',
 }
-const label = (k: string) => MEASURE_LABEL[k] ?? k
+/** The shared assessment library (measures + EPPO-coded targets), filled from
+ * Postgres once a session is open. The static maps above stay as the
+ * fallback for keys the library does not know yet, and for offline reloads. */
+const LIBRARY = new Map<string, MeasureDef>()
+const label = (k: string) => LIBRARY.get(k)?.label ?? MEASURE_LABEL[k] ?? k
+const higherBetter = (k: string) => LIBRARY.get(k)?.higher_better ?? HIGH_BETTER.has(k)
 
 /** Measures where a higher value is the better result. */
 const HIGH_BETTER = new Set([
@@ -145,6 +150,7 @@ export default function Results() {
   const [photos, setPhotos] = useState<PhotoRow[]>([])
   const [ops, setOps] = useState<OperationRow[]>([])
   const [docs, setDocs] = useState<DocumentRow[]>([])
+  const [libRev, setLibRev] = useState(0)
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({})
   const [weather, setWeather] = useState<WeatherDay[]>([])
   const [fixture, setFixture] = useState<SiteWeather | null>(null)
@@ -182,7 +188,11 @@ export default function Results() {
         setState('signedout')
         return
       }
-      const t = await loadLiveTrials(token)
+      const [t, lib] = await Promise.all([loadLiveTrials(token), loadMeasureLibrary(token)])
+      if (lib) {
+        for (const m of lib) LIBRARY.set(m.key, m)
+        setLibRev((r) => r + 1)
+      }
       if (t) {
         setTrials(t)
         const first = t.find((x) => x.scores > 0) ?? t[0]
@@ -297,7 +307,7 @@ export default function Results() {
   const sortedMeans = useMemo(() => {
     if (!sort) return { rows: meansRows, rank: null as Map<number, number> | null }
     const m = sort.m
-    const dir = HIGH_BETTER.has(m) ? -1 : 1
+    const dir = higherBetter(m) ? -1 : 1
     const val = (r: (typeof meansRows)[number]) => r.cells[m]?.mean
     const rows = [...meansRows].sort((a, b) => {
       const av = val(a)
@@ -310,7 +320,8 @@ export default function Results() {
     const rank = new Map(rows.filter((r) => val(r) != null).map((r, i) => [r.t.n, i + 1]))
     if (sort.rev) rows.reverse()
     return { rows, rank }
-  }, [meansRows, sort])
+    // libRev: a late library load can flip which direction is 'better'
+  }, [meansRows, sort, libRev])
 
   /** RCBD ANOVA per measure, when every treatment carries the same complete
    * block count (block = position in the treatment's plot list). */
@@ -448,7 +459,8 @@ export default function Results() {
                     trt: trtOf.get(plot) ? `T${trtOf.get(plot)!.n} ${trtOf.get(plot)!.name}` : '',
                     values,
                     note: (byPlot.notes.get(plot) ?? []).join(' | '),
-                  }))
+                  })),
+                  measures.map((m) => LIBRARY.get(m) ?? null)
                 )
               }
               style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: GREEN, cursor: 'pointer', border: `1.5px solid #9CC7B2`, borderRadius: 8, padding: '6px 12px', background: '#E3F1EA' }}
@@ -846,7 +858,7 @@ export default function Results() {
         {(() => {
           const data = meansRows.filter((r) => r.cells[measure] != null).map((r) => ({ t: r.t, c: r.cells[measure]! }))
           if (data.length < 2) return null
-          const dir = HIGH_BETTER.has(measure) ? -1 : 1
+          const dir = higherBetter(measure) ? -1 : 1
           data.sort((a, b) => (a.c.mean - b.c.mean) * dir || a.t.n - b.t.n)
           const maxV = Math.max(...data.map((d) => d.c.mean + (d.c.sd ?? 0))) * 1.08
           const GUT = 195
@@ -909,7 +921,7 @@ export default function Results() {
                 })}
               </svg>
               <div style={{ fontSize: 11, color: GREY, marginTop: 6 }}>
-                Treatment means, best first ({HIGH_BETTER.has(measure) ? 'higher' : 'lower'} is better) · whiskers ±SD · treatments sharing a letter are not separated at LSD 5% · untreated in grey. Hover a bar for the rep values; click it for the full breakdown. Pick the measure in the table above.
+                Treatment means, best first ({higherBetter(measure) ? 'higher' : 'lower'} is better) · whiskers ±SD · treatments sharing a letter are not separated at LSD 5% · untreated in grey. Hover a bar for the rep values; click it for the full breakdown. Pick the measure in the table above.
               </div>
             </div>
           )

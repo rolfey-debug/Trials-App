@@ -483,3 +483,29 @@ export async function clearPlacement(trialId: string, token: string): Promise<bo
 export function saveSiteOutline(siteId: string, ring: LatLng[], token: string): Promise<boolean> {
   return update('sites', `id=eq.${siteId}`, ring.length >= 3 ? { boundary: polygonWkt(ring), planned: true } : { boundary: null }, token)
 }
+
+// --- Assessment library: standard measures with EPPO-coded targets ----------
+
+/** One row of the shared `measures` library, with its target taxon joined.
+ * `canonical` points at the current key when this one is an older alias. */
+export interface MeasureDef {
+  key: string
+  label: string
+  rating: string
+  unit: string | null
+  target: string | null
+  part: string | null
+  sample: string | null
+  higher_better: boolean
+  min: number | null
+  max: number | null
+  decimals: number
+  group_key: string | null
+  canonical: string | null
+  note: string | null
+  taxa: { scientific: string; common: string | null; kind: string } | null
+}
+
+export function loadMeasureLibrary(token: string): Promise<MeasureDef[] | null> {
+  return select<MeasureDef>('measures', 'select=key,label,rating,unit,target,part,sample,higher_better,min,max,decimals,group_key,canonical,note,taxa(scientific,common,kind)&active=is.true&order=group_key.asc,label.asc', token)
+}
