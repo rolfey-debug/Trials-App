@@ -19,7 +19,7 @@ export default function Docs() {
           <div style={{ marginTop: 3, fontSize: 12.5, color: '#8A8C8A' }}>Drop what the client or chem rep sent you — the wizard builds from whatever parses.</div>
         </div>
         <div onClick={() => nav('builder', { editTrialId: null })} className="hv-green-border" style={{ padding: '9px 16px', background: '#fff', border: '1px solid #D8DAD8', color: '#141414', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          Open in wizard →
+          New trial →
         </div>
       </div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>

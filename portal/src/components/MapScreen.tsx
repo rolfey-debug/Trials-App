@@ -41,7 +41,7 @@ export default function MapScreen() {
           </div>
         </div>
         <div onClick={() => nav('builder', { editTrialId: null })} className="hv-green-border" style={{ padding: '9px 16px', background: '#fff', border: '1px solid #D8DAD8', color: '#141414', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          Open in wizard →
+          New trial →
         </div>
       </div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>

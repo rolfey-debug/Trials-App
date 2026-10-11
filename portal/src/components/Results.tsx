@@ -694,7 +694,7 @@ export default function Results() {
                                 {d.filename} ↗
                               </a>
                             ) : d.storage_path.startsWith('supa:') ? (
-                              <span onClick={async () => { const token = await portalToken(); if (token && !(await openStoredDocument(d, token))) alert('Could not open that file.') }} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>
+                              <span onClick={async () => { const w = window.open('', '_blank'); const token = await portalToken(); if (!token || !(await openStoredDocument(d, token, w))) alert('Could not open that file.') }} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>
                                 {d.filename} ↗
                               </span>
                             ) : (

@@ -107,7 +107,7 @@ export default function TrialBuilder() {
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
-    if (d.editingId) return // edits of a saved trial are not the new-trial draft
+    if (d.editingId || editId) return // edits of a saved trial are not the new-trial draft
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d))
     } catch {
@@ -115,9 +115,20 @@ export default function TrialBuilder() {
     }
   }, [d])
 
-  // editing a saved trial: load it into the draft shape
+  // editing a saved trial: load it into the draft shape; leaving edit mode
+  // while mounted (New trial in the sidebar) returns to the stored draft
   useEffect(() => {
-    if (!editId) return
+    if (!editId) {
+      if (d.editingId) {
+        setD(loadDraft())
+        setEditLoad('none')
+        setSaved(null)
+        setStep('basics')
+      }
+      return
+    }
+    setEditLoad('loading')
+    setSaved(null)
     void (async () => {
       const token = await portalToken()
       if (!token) return
@@ -152,10 +163,13 @@ export default function TrialBuilder() {
   const patchDesign = (p: Partial<TrialDraft['design']>) => setD((x) => ({ ...x, design: { ...x.design, ...p } }))
 
   const nTrt = d.treatments.length
-  const planned = useMemo(
-    () => (d.lockedPlots ? planFromPlots(d.lockedPlots, d.lockedSpare ?? []) : plan({ seed: d.design.seed, type: d.design.type as DesignType, nTrt, reps: d.design.reps, demoRep: d.design.demoRep, spare: d.design.spare })),
-    [d.lockedPlots, d.lockedSpare, d.design.seed, d.design.type, nTrt, d.design.reps, d.design.demoRep, d.design.spare]
-  )
+  const planned = useMemo(() => {
+    if (!d.lockedPlots) return plan({ seed: d.design.seed, type: d.design.type as DesignType, nTrt, reps: d.design.reps, demoRep: d.design.demoRep, spare: d.design.spare })
+    // the saved allocation belongs to the treatment it was made for, whatever number it holds now
+    const byTrt: Record<number, Array<{ rep: number; plot: number }>> = {}
+    for (const t of d.treatments) if (t.lockedN != null && d.lockedPlots[t.lockedN]) byTrt[t.n] = d.lockedPlots[t.lockedN]
+    return planFromPlots(byTrt, d.lockedSpare ?? [])
+  }, [d.lockedPlots, d.lockedSpare, d.treatments, d.design.seed, d.design.type, nTrt, d.design.reps, d.design.demoRep, d.design.spare])
   useEffect(() => {
     if (planned.rows !== d.design.rows || planned.positions !== d.design.positions) patchDesign({ rows: planned.rows, positions: planned.positions })
   }, [planned.rows, planned.positions]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -170,7 +184,7 @@ export default function TrialBuilder() {
     if (d.design.type !== 'Demo' && d.design.reps < 2) p.push('Fewer than two reps: choose the demonstration design or add a rep.')
     if (!d.assessments.length) p.push('Add at least one assessment timing.')
     if (d.assessments.some((a) => !a.measures.length)) p.push('An assessment timing has no measures.')
-    if (d.lockedPlots && d.treatments.some((t) => !(d.lockedPlots![t.n]?.length))) p.push('A treatment has no plots in the saved allocation: re-randomise in the Design step, or put the treatment list back.')
+    if (d.lockedPlots && d.treatments.some((t) => t.lockedN == null || !(d.lockedPlots![t.lockedN]?.length))) p.push('A treatment has no plots in the saved allocation (new or from a protocol): re-randomise in the Design step, or put the treatment list back.')
     return p
   }, [d, nTrt])
 
@@ -327,7 +341,7 @@ function StepBasics({ d, patch, patchDesign, ref_, reload, setMsg }: { d: TrialD
       patch({ protocolId: null })
       return
     }
-    patch({ protocolId: id, treatments: p.treatments.map((t, i) => ({ ...t, n: i + 1 })), assessments: p.assessments.map((a, i) => ({ ...a, n: i + 1 })), crop: d.crop || p.crop || '' })
+    patch({ protocolId: id, treatments: p.treatments.map((t, i) => ({ ...t, n: i + 1, lockedN: undefined })), assessments: p.assessments.map((a, i) => ({ ...a, n: i + 1 })), crop: d.crop || p.crop || '' })
   }
 
   return (

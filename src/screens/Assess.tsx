@@ -65,7 +65,7 @@ export function Assess() {
         t.activeMeasures = known
         t.assessField = known[0]
       }
-      if (p?.blind !== undefined) t.blind = !!p.blind
+      if (p) t.blind = !!p.blind
     })
   }
 
@@ -88,7 +88,7 @@ export function Assess() {
   const acc = gps.accuracy
   const warnCoarse = acc > 6
   let located: { row: number; pos: number } | null = null
-  const grid = ts.site.pinned && ts.site.corners ? gridFromCorners(ts.site.corners.A, ts.site.corners.B, doc) : ts.site.storedPlots?.length ? gridFromStored(ts.site.storedPlots, doc) : null
+  const grid = useMemo(() => (ts.site.pinned && ts.site.corners ? gridFromCorners(ts.site.corners.A, ts.site.corners.B, doc) : ts.site.storedPlots?.length ? gridFromStored(ts.site.storedPlots, doc) : null), [ts.site.pinned, ts.site.corners, ts.site.storedPlots, doc])
   if (grid && gps.fix) {
     const hit = locate(gps.fix, grid)
     if (hit.row) located = { row: hit.row, pos: hit.pos! }

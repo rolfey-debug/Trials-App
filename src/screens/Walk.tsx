@@ -22,7 +22,7 @@ export function Walk() {
 
   // live GPS check when the grid is pinned; otherwise the stop's own position
   let gpsTxt = `You're at Row ${rowOf(pid)} · Pos ${posOf(pid)}  ✓`
-  const grid = ts.site.pinned && ts.site.corners ? gridFromCorners(ts.site.corners.A, ts.site.corners.B, doc) : ts.site.storedPlots?.length ? gridFromStored(ts.site.storedPlots, doc) : null
+  const grid = useMemo(() => (ts.site.pinned && ts.site.corners ? gridFromCorners(ts.site.corners.A, ts.site.corners.B, doc) : ts.site.storedPlots?.length ? gridFromStored(ts.site.storedPlots, doc) : null), [ts.site.pinned, ts.site.corners, ts.site.storedPlots, doc])
   if (grid && gps.fix) {
     const hit = locate(gps.fix, grid)
     if (hit.row) gpsTxt = `You're at Row ${hit.row} · Pos ${hit.pos}${hit.pid === pid ? '  ✓' : ` — stop ${wi + 1} is Row ${rowOf(pid)}`}`

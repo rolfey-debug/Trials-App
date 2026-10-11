@@ -216,7 +216,7 @@ export function trialDocFromOffice(t: OfficeTrial, lib: OfficeMeasure[]): TrialD
     assessments: t.assessments
       .slice()
       .sort((a, b) => a.n - b.n)
-      .map((a) => ({ n: a.n, timing: a.timing ?? '', measures: a.measures ?? [], blind: a.blind || undefined })),
+      .map((a) => ({ n: a.n, timing: a.timing ?? '', measures: a.measures ?? [], blind: !!a.blind })),
   }
 }
 

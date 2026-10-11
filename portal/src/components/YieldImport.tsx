@@ -60,15 +60,16 @@ export default function YieldImport({ trial, hasPlots, rounds, onScoresWritten }
     setBusy('Loading points…')
     if (sources.some((s) => s.source === parsed.name)) await clearYieldPoints(trial.id, parsed.name, token)
     const n = await uploadYieldPoints(trial.id, parsed.name, parsed.points, token, (done) => setBusy(`Loading points… ${done} of ${parsed.points.length}`))
-    if (n < parsed.points.length) {
-      setErr(`Only ${n} of ${parsed.points.length} points loaded. Check the connection and import again; the file is replaced, not duplicated.`)
-    }
+    const problems: string[] = []
+    if (n < parsed.points.length) problems.push(`Only ${n} of ${parsed.points.length} points loaded. Check the connection and import again; the file is replaced, not duplicated.`)
     setBusy('Assigning points to strips…')
     const assigned = await assignYieldPoints(trial.id, token)
     setBusy(null)
     setParsed(null)
     await refresh()
-    if (assigned === 0) setErr('No points fell inside the stored strips. Check the block is placed on the site planner where the strips really are, and that the file uses WGS84 latitude and longitude.')
+    if (assigned === null) problems.push('Points loaded but the strip assignment failed on the server. Try again; if it keeps failing the database function needs looking at.')
+    else if (assigned === 0) problems.push('No points fell inside the stored strips. Check the block is placed on the site planner where the strips really are, and that the file uses WGS84 latitude and longitude.')
+    setErr(problems.join(' '))
   }
 
   const writeScores = async () => {

@@ -36,6 +36,8 @@ returns integer
 language plpgsql security invoker set search_path = public, extensions as $$
 declare n integer;
 begin
+  -- Re-assign from scratch so points that no longer fall in a strip drop out.
+  update public.yield_points set plot = null where trial_id = p_trial;
   update public.yield_points y
      set plot = p.plot
     from public.plots p

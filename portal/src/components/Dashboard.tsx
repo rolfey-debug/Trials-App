@@ -39,7 +39,7 @@ function EditModal({ trial, token, onDone }: { trial: LiveTrial; token: string; 
   const save = async () => {
     if (busy) return
     setBusy(true)
-    const ok = await saveTrial(trial.id, { ...f, season: f.season ? Number(f.season) : null }, token)
+    const ok = await saveTrial(trial.id, { ...f, season: f.season ? Number(f.season) : null }, token, trial.status)
     setBusy(false)
     if (ok) onDone(true)
     else setErr('Save failed — check the connection and try again.')

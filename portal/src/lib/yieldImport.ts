@@ -121,8 +121,11 @@ export function parseYieldCsv(text: string, crop?: string | null): YieldParse {
   const ys = raw.map((p) => p.yieldTHa).sort((a, b) => a - b)
   const median = ys.length ? ys[Math.floor(ys.length / 2)] : 0
   const mad = ys.length ? [...ys.map((v) => Math.abs(v - median))].sort((a, b) => a - b)[Math.floor(ys.length / 2)] : 0
-  const lo = median - 3 * 1.4826 * mad
-  const hi = Math.min(median + 3 * 1.4826 * mad, median * 3)
+  // A rounded export can put more than half the rows on one value (MAD = 0);
+  // fall back to a ±50 % band around the median so the file is not emptied.
+  const spread = mad > 0 ? 3 * 1.4826 * mad : median * 0.5
+  const lo = median - spread
+  const hi = Math.min(median + spread, median * 3)
   const points = raw.filter((p) => {
     if (p.yieldTHa < lo || p.yieldTHa > hi) {
       drop('outlier')

@@ -37,6 +37,8 @@ export interface LiveTrial {
   site_id: string | null
   client_id: string | null
   approved_by: string | null
+  group_id: string | null
+  protocol_id: string | null
   name: string
   season: number | null
   status: string
@@ -74,6 +76,8 @@ interface TrialRow {
   site_id: string | null
   client_id: string | null
   approved_by: string | null
+  group_id: string | null
+  protocol_id: string | null
   name: string
   season: number | null
   status: string
@@ -103,7 +107,7 @@ export interface BlockLayout extends BlockSpec {
 
 export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null> {
   const [trials, scores, ops] = await Promise.all([
-    select<TrialRow>('trials', 'select=id,site_id,client_id,approved_by,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,layout,sites(id,property,town,lat,lng,boundary_geojson,planned),clients(name,contact)&order=season.desc,name.asc', token),
+    select<TrialRow>('trials', 'select=id,site_id,client_id,approved_by,group_id,protocol_id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,layout,sites(id,property,town,lat,lng,boundary_geojson,planned),clients(name,contact)&order=season.desc,name.asc', token),
     select<{ trial_id: string; plot: number; recorded_at: string }>('scores', 'select=trial_id,plot,recorded_at', token),
     select<{ trial_id: string; detail: { sprayed?: number[] } | null; performed_at: string }>('operations', 'select=trial_id,detail,performed_at', token),
   ])
@@ -126,8 +130,11 @@ export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null>
 
 export type TrialPatch = Partial<Pick<LiveTrial, 'name' | 'season' | 'status' | 'crop' | 'variety' | 'sown_date' | 'aim'>>
 
-export function saveTrial(id: string, patch: TrialPatch, token: string): Promise<boolean> {
-  const stamp = patch.status === 'approved' || patch.status === 'active' ? { approved_by: userIdFromToken(token) } : patch.status === 'draft' || patch.status === 'review' ? { approved_by: null } : {}
+/** `prevStatus` lets a status change stamp or clear the approver; an edit
+ * that leaves the status alone leaves approved_by alone too. */
+export function saveTrial(id: string, patch: TrialPatch, token: string, prevStatus?: string | null): Promise<boolean> {
+  const changed = patch.status !== undefined && patch.status !== prevStatus
+  const stamp = !changed ? {} : patch.status === 'approved' || patch.status === 'active' ? { approved_by: jwtSub(token) } : patch.status === 'draft' || patch.status === 'review' ? { approved_by: null } : {}
   return update('trials', `id=eq.${id}`, { ...patch, ...stamp, updated_at: new Date().toISOString() }, token)
 }
 
@@ -544,14 +551,7 @@ export function loadMeasureLibrary(token: string): Promise<MeasureDef[] | null> 
 // --- Trial builder: clients, sites, protocols, groups and the save ------------
 
 /** The signed-in person's id (people.id = auth.uid()), read from the JWT. */
-export function userIdFromToken(token: string): string | null {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))) as { sub?: string }
-    return payload.sub ?? null
-  } catch {
-    return null
-  }
-}
+export const userIdFromToken = (token: string): string | null => jwtSub(token)
 
 export interface ClientRow {
   id: string
@@ -615,6 +615,8 @@ export interface TreatmentLine {
 
 export interface TreatmentDraft {
   n: number
+  /** When editing: the number this treatment had when its plots were allocated. */
+  lockedN?: number
   name: string
   lines: TreatmentLine[]
   note?: string
@@ -800,7 +802,9 @@ export async function updateTrial(
   token: string
 ): Promise<{ id: string; ok: boolean; failed?: 'trial' | 'treatments' | 'assessments' }> {
   const design = designJson(d, sparePlots, keepDesign)
-  ;(design.notes as string[]).push(`Edited in the office portal ${new Date().toISOString().slice(0, 10)}`)
+  const notes = (design.notes as string[]).filter((n) => !/^Edited in the office portal /.test(n))
+  notes.push(`Edited in the office portal ${new Date().toISOString().slice(0, 10)}`)
+  design.notes = notes
   if (!(await update('trials', `id=eq.${id}`, { ...trialFields(d), design, updated_at: new Date().toISOString() }, token))) return { id, ok: false, failed: 'trial' }
   const trts = treatmentRows(id, d, byTrt)
   if (!(await upsertOn('treatments', trts, 'trial_id,n', token))) return { id, ok: false, failed: 'treatments' }
@@ -831,10 +835,10 @@ export function draftFromTrial(t: LiveTrial, trts: TreatmentRow[], assess: Asses
     variety: t.variety ?? '',
     sownDate: t.sown_date ?? '',
     aim: t.aim ?? '',
-    clientId: (t as unknown as { client_id?: string | null }).client_id ?? null,
+    clientId: t.client_id,
     siteId: t.site_id,
-    protocolId: null,
-    groupId: null,
+    protocolId: t.protocol_id,
+    groupId: t.group_id,
     design: {
       type: ['RCBD', 'CRD', 'Latin square', 'Strips', 'Demo'].includes(type) ? type : 'RCBD',
       reps: typeof dz.reps === 'number' ? dz.reps : Math.max(1, ...Object.values(locked).map((x) => x.length)),
@@ -847,7 +851,7 @@ export function draftFromTrial(t: LiveTrial, trts: TreatmentRow[], assess: Asses
       rows: grid.rows ?? (plotsAll.length ? Math.max(...plotsAll.map((p) => Math.floor(p / 100))) : 0),
       positions: grid.positions ?? (plotsAll.length ? Math.max(...plotsAll.map((p) => p % 100)) : 0),
     },
-    treatments: trts.map((tr) => ({ n: tr.n, name: tr.name, lines: lines(tr), note: Array.isArray(tr.components?.notes) ? (tr.components!.notes as string[]).join(' · ') || undefined : undefined })),
+    treatments: trts.map((tr) => ({ n: tr.n, lockedN: tr.n, name: tr.name, lines: lines(tr), note: Array.isArray(tr.components?.notes) ? (tr.components!.notes as string[]).join(' · ') || undefined : undefined })),
     assessments: assess.map((a) => ({ n: a.n, timing: a.timing ?? '', measures: a.measures ?? [], blind: a.blind })),
     editingId: t.id,
     lockedPlots: plotsAll.length ? locked : undefined,
@@ -908,13 +912,23 @@ export async function savePrintout(trialId: string, kind: PrintKind, filename: s
 }
 
 /** Open a saved printout from the bucket in a new tab (signed-in read). */
-export async function openStoredDocument(d: Pick<DocumentRow, 'storage_path'>, token: string): Promise<boolean> {
+export async function openStoredDocument(d: Pick<DocumentRow, 'storage_path'>, token: string, win?: Window | null): Promise<boolean> {
   const m = /^supa:([^/]+)\/(.+)$/.exec(d.storage_path)
-  if (!m) return false
+  if (!m) {
+    win?.close()
+    return false
+  }
   const blob = await fetchObject(m[1], m[2], token)
-  if (!blob) return false
+  if (!blob) {
+    win?.close()
+    return false
+  }
   const url = URL.createObjectURL(blob.type.startsWith('text/html') ? blob : new Blob([blob], { type: 'text/html' }))
-  window.open(url, '_blank')
+  // The caller opens the window inside the click so popup blockers allow it;
+  // we only point it at the blob once the fetch is done.
+  const target = win ?? window.open('', '_blank')
+  if (!target) return false
+  target.location.href = url
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
   return true
 }
