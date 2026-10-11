@@ -7,11 +7,12 @@
  * timings; the site planner then places the block on the map. The draft is
  * kept in localStorage so navigating away or reloading does not lose it. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { advise, DESIGN_BLURB, DESIGN_LABEL, plan, TYPICAL_CV, type DesignType } from '../lib/design'
+import { advise, DESIGN_BLURB, DESIGN_LABEL, plan, planFromPlots, TYPICAL_CV, type DesignType } from '../lib/design'
+import { treatmentLines } from '../lib/printouts'
 import { cellColors, randomSeed } from '../lib/layout'
 import { loadProducts, searchPicker, type PickerProduct } from '../lib/products'
 import {
-  createClient, createSite, createTrial, createTrialGroup, loadAssessmentSets, loadClients, loadMeasureLibrary, loadProtocols, loadSites, loadTrialGroups, portalToken, recipeText, saveProtocol,
+  createClient, createSite, createTrial, createTrialGroup, draftFromTrial, loadAssessments, loadAssessmentSets, loadClients, loadLiveTrials, loadMeasureLibrary, loadProtocols, loadSites, loadTreatments, loadTrialGroups, portalToken, recipeText, saveProtocol, updateTrial,
   type AssessmentDraft, type AssessmentSet, type ClientRow, type MeasureDef, type ProtocolRow, type SiteRow, type TreatmentDraft, type TreatmentLine, type TrialDraft, type TrialGroupRow,
 } from '../lib/db'
 import { MONO, useApp } from '../state'
@@ -93,9 +94,12 @@ interface Ref {
 }
 
 export default function TrialBuilder() {
-  const { nav } = useApp()
+  const { s, nav } = useApp()
+  const editId = s.editTrialId
   const [step, setStep] = useState<BStep>('basics')
-  const [d, setD] = useState<TrialDraft>(loadDraft)
+  const [d, setD] = useState<TrialDraft>(() => (editId ? initialDraft() : loadDraft()))
+  const [editLoad, setEditLoad] = useState<'none' | 'loading' | 'ready' | 'failed'>(editId ? 'loading' : 'none')
+  const origDesign = useRef<Record<string, unknown> | null>(null)
   const [ref, setRef] = useState<Ref | null>(null)
   const [auth, setAuth] = useState<'loading' | 'ok' | 'signedout'>('loading')
   const [saving, setSaving] = useState(false)
@@ -103,12 +107,31 @@ export default function TrialBuilder() {
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
+    if (d.editingId) return // edits of a saved trial are not the new-trial draft
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d))
     } catch {
       /* private mode */
     }
   }, [d])
+
+  // editing a saved trial: load it into the draft shape
+  useEffect(() => {
+    if (!editId) return
+    void (async () => {
+      const token = await portalToken()
+      if (!token) return
+      const [trials, trts, assess] = await Promise.all([loadLiveTrials(token), loadTreatments(editId, token), loadAssessments(editId, token)])
+      const t = trials?.find((x) => x.id === editId)
+      if (!t) {
+        setEditLoad('failed')
+        return
+      }
+      origDesign.current = (t.design ?? {}) as Record<string, unknown>
+      setD(draftFromTrial(t, trts ?? [], assess ?? [], treatmentLines))
+      setEditLoad('ready')
+    })()
+  }, [editId])
 
   const reload = async () => {
     const token = await portalToken()
@@ -129,7 +152,10 @@ export default function TrialBuilder() {
   const patchDesign = (p: Partial<TrialDraft['design']>) => setD((x) => ({ ...x, design: { ...x.design, ...p } }))
 
   const nTrt = d.treatments.length
-  const planned = useMemo(() => plan({ seed: d.design.seed, type: d.design.type as DesignType, nTrt, reps: d.design.reps, demoRep: d.design.demoRep, spare: d.design.spare }), [d.design.seed, d.design.type, nTrt, d.design.reps, d.design.demoRep, d.design.spare])
+  const planned = useMemo(
+    () => (d.lockedPlots ? planFromPlots(d.lockedPlots, d.lockedSpare ?? []) : plan({ seed: d.design.seed, type: d.design.type as DesignType, nTrt, reps: d.design.reps, demoRep: d.design.demoRep, spare: d.design.spare })),
+    [d.lockedPlots, d.lockedSpare, d.design.seed, d.design.type, nTrt, d.design.reps, d.design.demoRep, d.design.spare]
+  )
   useEffect(() => {
     if (planned.rows !== d.design.rows || planned.positions !== d.design.positions) patchDesign({ rows: planned.rows, positions: planned.positions })
   }, [planned.rows, planned.positions]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -144,6 +170,7 @@ export default function TrialBuilder() {
     if (d.design.type !== 'Demo' && d.design.reps < 2) p.push('Fewer than two reps: choose the demonstration design or add a rep.')
     if (!d.assessments.length) p.push('Add at least one assessment timing.')
     if (d.assessments.some((a) => !a.measures.length)) p.push('An assessment timing has no measures.')
+    if (d.lockedPlots && d.treatments.some((t) => !(d.lockedPlots![t.n]?.length))) p.push('A treatment has no plots in the saved allocation: re-randomise in the Design step, or put the treatment list back.')
     return p
   }, [d, nTrt])
 
@@ -157,10 +184,11 @@ export default function TrialBuilder() {
       setSaving(false)
       return
     }
-    const r = await createTrial(d, planned.byTrt, token, planned.bands.flatMap((b) => b.cells.filter((c) => !c.trt).map((c) => c.plot)))
+    const spare = planned.bands.flatMap((b) => b.cells.filter((c) => !c.trt).map((c) => c.plot))
+    const r = d.editingId ? await updateTrial(d.editingId, d, planned.byTrt, spare, origDesign.current, token) : await createTrial(d, planned.byTrt, token, spare)
     setSaved(r)
     setSaving(false)
-    if (r.ok) {
+    if (r.ok && !d.editingId) {
       try {
         localStorage.removeItem(DRAFT_KEY)
       } catch {
@@ -185,7 +213,7 @@ export default function TrialBuilder() {
     <div style={{ flex: 1, minWidth: 0, display: 'flex', overflow: 'hidden' }}>
       <div style={{ width: 248, flex: 'none', borderRight: `1px solid ${HAIR}`, background: '#FBFCFB', padding: '20px 14px', overflow: 'auto' }}>
         <div onClick={() => nav('trials')} style={{ margin: '0 8px 14px', fontSize: 12, fontWeight: 700, color: GREY, cursor: 'pointer' }}>← Trials</div>
-        <div style={{ margin: '0 8px 4px', fontSize: 10, fontWeight: 800, letterSpacing: '.14em', color: GREY }}>NEW TRIAL · DRAFT</div>
+        <div style={{ margin: '0 8px 4px', fontSize: 10, fontWeight: 800, letterSpacing: '.14em', color: GREY }}>{d.editingId ? `EDITING · ${(d.status ?? '').toUpperCase()}` : 'NEW TRIAL · DRAFT'}</div>
         <div style={{ margin: '0 8px 18px', fontSize: 14.5, fontWeight: 800, color: INK, lineHeight: 1.3, minHeight: 19 }}>{d.name.trim() || 'Untitled trial'}</div>
         {STEPS.map((s, i) => {
           const on = s.id === step
@@ -205,7 +233,11 @@ export default function TrialBuilder() {
             </div>
           )
         })}
-        <div onClick={() => { if (confirm('Clear this draft and start again?')) { setD(initialDraft()); setSaved(null); setStep('basics') } }} style={{ margin: '18px 8px 0', fontSize: 11.5, fontWeight: 700, color: '#A93414', cursor: 'pointer' }}>Clear draft</div>
+        {d.editingId ? (
+          <div onClick={() => { if (saved?.ok || confirm('Discard the unsaved changes to this trial?')) nav('trials') }} style={{ margin: '18px 8px 0', fontSize: 11.5, fontWeight: 700, color: '#A93414', cursor: 'pointer' }}>{saved?.ok ? 'Back to trials' : 'Discard changes'}</div>
+        ) : (
+          <div onClick={() => { if (confirm('Clear this draft and start again?')) { setD(initialDraft()); setSaved(null); setStep('basics') } }} style={{ margin: '18px 8px 0', fontSize: 11.5, fontWeight: 700, color: '#A93414', cursor: 'pointer' }}>Clear draft</div>
+        )}
       </div>
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -216,9 +248,11 @@ export default function TrialBuilder() {
         </div>
         <div style={{ flex: 1, overflow: 'auto', padding: '18px 28px 28px' }}>
           {auth === 'loading' && !ref ? <div style={{ fontSize: 12.5, color: GREY }}>Loading clients, sites, protocols and the assessment library…</div> : null}
+          {editLoad === 'loading' && <div style={{ fontSize: 12.5, color: GREY, marginBottom: 10 }}>Loading the saved trial…</div>}
+          {editLoad === 'failed' && <div style={{ ...warn, marginBottom: 10 }}>That trial could not be loaded. Go back to the trials list and try again.</div>}
           {ref && step === 'basics' && <StepBasics d={d} patch={patch} patchDesign={patchDesign} ref_={ref} reload={reload} setMsg={setMsg} />}
           {ref && step === 'treatments' && <StepTreatments d={d} patch={patch} />}
-          {ref && step === 'design' && <StepDesign d={d} patchDesign={patchDesign} planned={planned} measures={ref.measures} />}
+          {ref && step === 'design' && <StepDesign d={d} patch={patch} patchDesign={patchDesign} planned={planned} measures={ref.measures} />}
           {ref && step === 'assess' && <StepAssess d={d} patch={patch} ref_={ref} />}
           {ref && step === 'review' && <StepReview d={d} planned={planned} problems={problems} saving={saving} saved={saved} save={save} reload={reload} setMsg={setMsg} ref_={ref} />}
           {msg && <div style={{ ...warn, marginTop: 14 }}>{msg}</div>}
@@ -229,7 +263,7 @@ export default function TrialBuilder() {
           {idx < STEPS.length - 1 ? (
             <div onClick={() => setStep(STEPS[idx + 1].id)} className="hv-primary" style={btn(true)}>Continue →</div>
           ) : (
-            <div onClick={save} className="hv-primary" style={btn(true, problems.length > 0 || saving || (saved?.ok ?? false))}>{saving ? 'Saving…' : saved?.ok ? 'Saved' : 'Create draft trial'}</div>
+            <div onClick={save} className="hv-primary" style={btn(true, problems.length > 0 || saving || (saved?.ok ?? false))}>{saving ? 'Saving…' : saved?.ok ? 'Saved' : d.editingId ? 'Save changes' : 'Create draft trial'}</div>
           )}
         </div>
       </div>
@@ -549,7 +583,7 @@ function LineRow({ line, products, onChange, onRemove }: { line: TreatmentLine; 
 
 // --- Step 3: design and randomisation ---------------------------------------
 
-function StepDesign({ d, patchDesign, planned, measures }: { d: TrialDraft; patchDesign: (p: Partial<TrialDraft['design']>) => void; planned: ReturnType<typeof plan>; measures: MeasureDef[] }) {
+function StepDesign({ d, patch, patchDesign, planned, measures }: { d: TrialDraft; patch: (p: Partial<TrialDraft>) => void; patchDesign: (p: Partial<TrialDraft['design']>) => void; planned: ReturnType<typeof plan>; measures: MeasureDef[] }) {
   const nTrt = d.treatments.length
   const type = d.design.type as DesignType
   const advice = useMemo(() => advise({ type, nTrt, reps: d.design.reps, cv: d.design.cv, demoRep: d.design.demoRep }), [type, nTrt, d.design.reps, d.design.cv, d.design.demoRep])
@@ -625,7 +659,15 @@ function StepDesign({ d, patchDesign, planned, measures }: { d: TrialDraft; patc
         </div>
 
         <div style={card}>
-          <div style={sectionLabel}>PLOT PLAN · SEED {d.design.seed}</div>
+          <div style={sectionLabel}>{d.lockedPlots ? 'PLOT PLAN · AS SAVED ON THE RECORD' : `PLOT PLAN · SEED ${d.design.seed}`}</div>
+          {d.lockedPlots && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10, padding: '8px 10px', borderRadius: 8, background: '#FFF4D6', border: '1px solid #F2DDA6', fontSize: 12, color: '#5A4300', lineHeight: 1.45 }}>
+              <span style={{ flex: 1, minWidth: 220 }}>
+                The allocation below is the one saved with the trial{(d.scores ?? 0) > 0 ? `, and ${d.scores} synced scores sit on these plot numbers, so it stays locked` : ''}. Seed, reps and design settings above only apply once you re-randomise.
+              </span>
+              {(d.scores ?? 0) === 0 && <span onClick={() => { if (confirm('Re-randomise the plots? Every treatment gets new plot numbers and the site placement will need redoing.')) patch({ lockedPlots: undefined, lockedSpare: undefined }) }} style={btn()}>Re-randomise plots</span>}
+            </div>
+          )}
           <div style={{ display: 'grid', gap: 4, overflow: 'auto' }}>
             {planned.bands.map((b) => (
               <div key={b.rep} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -853,9 +895,11 @@ function StepReview({ d, planned, problems, saving, saved, save, reload, setMsg,
       <div style={{ display: 'grid', gap: 14 }}>
         {saved?.ok ? (
           <div style={{ ...card, border: `1.5px solid ${GREEN}`, background: '#F3FAF6' }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#00512F' }}>Draft trial created</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#00512F' }}>{d.editingId ? 'Changes saved' : 'Draft trial created'}</div>
             <div style={{ fontSize: 12.5, color: '#3E403E', marginTop: 4, lineHeight: 1.5 }}>
-              {d.name} is on the backend as a draft with {d.treatments.length} treatments across {totalPlots} plots and {d.assessments.length} assessment timings. Next: place the block on the site map, then set it to approved from the trials list so phones can pull it.
+              {d.editingId
+                ? `${d.name} is updated: ${d.treatments.length} treatments across ${totalPlots} plots and ${d.assessments.length} assessment timings. Phones that already pulled this trial pick the changes up on their next “From the office” pull.`
+                : `${d.name} is on the backend as a draft with ${d.treatments.length} treatments across ${totalPlots} plots and ${d.assessments.length} assessment timings. Next: place the block on the site map, then set it to approved from the trials list so phones can pull it.`}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <div onClick={() => nav('planner')} style={btn(true)}>Place it on the site planner →</div>
@@ -939,7 +983,7 @@ function StepReview({ d, planned, problems, saving, saved, save, reload, setMsg,
           </div>
         </div>
         {!saved?.ok && (
-          <div onClick={save} className="hv-primary" style={{ ...btn(true, problems.length > 0 || saving), textAlign: 'center', padding: '11px 14px' }}>{saving ? 'Saving…' : 'Create draft trial'}</div>
+          <div onClick={save} className="hv-primary" style={{ ...btn(true, problems.length > 0 || saving), textAlign: 'center', padding: '11px 14px' }}>{saving ? 'Saving…' : d.editingId ? 'Save changes' : 'Create draft trial'}</div>
         )}
       </div>
     </div>

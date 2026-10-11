@@ -42,6 +42,8 @@ export interface AppState {
   showFills: boolean
   drone: 'None' | 'RGB ortho' | 'NDVI'
   droneOp: number
+  /** Trial opened for editing in the builder; null means a new trial. */
+  editTrialId: string | null
 }
 
 const initial: AppState = {
@@ -81,6 +83,7 @@ const initial: AppState = {
   showFills: false,
   drone: 'NDVI',
   droneOp: 65,
+  editTrialId: null,
 }
 
 export interface Store {

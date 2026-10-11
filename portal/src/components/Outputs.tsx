@@ -299,7 +299,7 @@ export default function Outputs() {
           )}
         </div>
         <div style={{ fontSize: 11, color: GREY, lineHeight: 1.45 }}>
-          A saved copy is the exact page that went to the printer, listed under the trial in Results and, when Drive is connected, in Drive. Grower agreement and WHS site sheet are not here yet: their wording needs your sign-off before they print. <span onClick={() => nav('builder')} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>New trial</span> builds the record these documents come from.
+          A saved copy is the exact page that went to the printer, listed under the trial in Results and, when Drive is connected, in Drive. Grower agreement and WHS site sheet are not here yet: their wording needs your sign-off before they print. <span onClick={() => nav('builder', { editTrialId: null })} style={{ color: GREEN, fontWeight: 700, cursor: 'pointer' }}>New trial</span> builds the record these documents come from.
         </div>
       </div>
       <div style={{ flex: 1, minWidth: 0, background: '#E9EBE9', padding: 18, overflow: 'hidden' }}>

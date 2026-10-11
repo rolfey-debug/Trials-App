@@ -203,3 +203,27 @@ export function plan(o: PlanOpts): Plan {
   for (const b of bands) for (const c of b.cells) if (c.trt) (byTrt[c.trt] ??= []).push({ rep: c.rep, plot: c.plot })
   return { bands, byTrt, rows: bands.length, positions: bands[0]?.cells.length ?? 0 }
 }
+
+/** A plan rebuilt from an existing allocation (editing a saved trial), so
+ * the grid, treatment colours and plot lists show without re-randomising.
+ * Rows become the bands; cells not in the allocation show as spare. */
+export function planFromPlots(byTrt: Record<number, Array<{ rep: number; plot: number }>>, spare: number[] = []): Plan {
+  const trtOf = new Map<number, number>()
+  for (const [n, ps] of Object.entries(byTrt)) for (const p of ps) trtOf.set(p.plot, Number(n))
+  const plots = [...trtOf.keys(), ...spare]
+  if (!plots.length) return { bands: [], byTrt: {}, rows: 0, positions: 0 }
+  const rows = Math.max(...plots.map((p) => Math.floor(p / 100)))
+  const positions = Math.max(...plots.map((p) => p % 100))
+  const bands: PlanBand[] = []
+  for (let r = 1; r <= rows; r++) {
+    const cells: PlanCell[] = []
+    for (let p = 1; p <= positions; p++) {
+      const plot = r * 100 + p
+      if (trtOf.has(plot) || spare.includes(plot)) cells.push({ plot, rep: r, position: p, trt: trtOf.get(plot) ?? 0 })
+    }
+    if (cells.length) bands.push({ rep: r, label: `ROW ${r}`, cells })
+  }
+  const out: Plan['byTrt'] = {}
+  for (const [n, ps] of Object.entries(byTrt)) out[Number(n)] = [...ps].sort((a, b) => a.plot - b.plot)
+  return { bands, byTrt: out, rows, positions }
+}

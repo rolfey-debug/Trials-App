@@ -28,6 +28,7 @@ const field: React.CSSProperties = { width: '100%', padding: '8px 10px', fontSiz
 const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 800, letterSpacing: '.1em', color: '#8A8C8A', margin: '10px 0 4px' }
 
 function EditModal({ trial, token, onDone }: { trial: LiveTrial; token: string; onDone: (changed: boolean) => void }) {
+  const { nav } = useApp()
   const [f, setF] = useState<TrialPatch>({
     name: trial.name, season: trial.season, status: trial.status, crop: trial.crop,
     variety: trial.variety, sown_date: trial.sown_date, aim: trial.aim,
@@ -87,6 +88,12 @@ function EditModal({ trial, token, onDone }: { trial: LiveTrial; token: string; 
         <input type="date" value={f.sown_date ?? ''} onChange={(e) => setF({ ...f, sown_date: e.target.value || null })} style={field} />
         <div style={lbl}>AIM</div>
         <textarea value={f.aim ?? ''} onChange={(e) => setF({ ...f, aim: e.target.value || null })} rows={3} style={{ ...field, resize: 'vertical', fontFamily: 'inherit' }} />
+        <div style={{ marginTop: 12, padding: '9px 11px', borderRadius: 8, background: '#F7FAF8', border: '1px solid #BCDCCB', fontSize: 12, color: '#00512F', lineHeight: 1.45 }}>
+          Treatments, design, plots and assessments are edited in the builder.{' '}
+          <span onClick={() => { onDone(false); nav('builder', { editTrialId: trial.id }) }} style={{ fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>Open in the builder →</span>
+          {trial.scores > 0 && <span style={{ color: '#8A5A00' }}> This trial has {trial.scores} synced scores, so the plot allocation stays locked there.</span>}
+        </div>
+        {(f.status === 'approved' || f.status === 'active') && f.status !== trial.status && <div style={{ fontSize: 11.5, color: '#3E403E', marginTop: 8 }}>Saving as {f.status} records you as the approver.</div>}
         {err && <div style={{ marginTop: 10, fontSize: 12, color: '#A93414' }}>{err}</div>}
         <div style={{ display: 'flex', gap: 14, marginTop: 16, alignItems: 'center' }}>
           <div
@@ -178,7 +185,7 @@ export default function Dashboard() {
           className="focus-green"
           style={{ width: 252, padding: '9px 12px', fontSize: 13, border: '1px solid #E4E4E6', borderRadius: 8, background: '#fff', color: '#141414', outline: 'none' }}
         />
-        <div onClick={() => nav('builder')} className="hv-primary" style={{ padding: '9px 16px', background: '#007749', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <div onClick={() => nav('builder', { editTrialId: null })} className="hv-primary" style={{ padding: '9px 16px', background: '#007749', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
           + New trial
         </div>
       </div>

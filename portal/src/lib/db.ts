@@ -35,6 +35,8 @@ export async function portalToken(): Promise<string | null> {
 export interface LiveTrial {
   id: string
   site_id: string | null
+  client_id: string | null
+  approved_by: string | null
   name: string
   season: number | null
   status: string
@@ -70,6 +72,8 @@ export interface LiveTrial {
 interface TrialRow {
   id: string
   site_id: string | null
+  client_id: string | null
+  approved_by: string | null
   name: string
   season: number | null
   status: string
@@ -99,7 +103,7 @@ export interface BlockLayout extends BlockSpec {
 
 export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null> {
   const [trials, scores, ops] = await Promise.all([
-    select<TrialRow>('trials', 'select=id,site_id,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,layout,sites(id,property,town,lat,lng,boundary_geojson,planned),clients(name,contact)&order=season.desc,name.asc', token),
+    select<TrialRow>('trials', 'select=id,site_id,client_id,approved_by,name,season,status,trial_type,crop,variety,sown_date,aim,design,spraying,layout,sites(id,property,town,lat,lng,boundary_geojson,planned),clients(name,contact)&order=season.desc,name.asc', token),
     select<{ trial_id: string; plot: number; recorded_at: string }>('scores', 'select=trial_id,plot,recorded_at', token),
     select<{ trial_id: string; detail: { sprayed?: number[] } | null; performed_at: string }>('operations', 'select=trial_id,detail,performed_at', token),
   ])
@@ -123,7 +127,8 @@ export async function loadLiveTrials(token: string): Promise<LiveTrial[] | null>
 export type TrialPatch = Partial<Pick<LiveTrial, 'name' | 'season' | 'status' | 'crop' | 'variety' | 'sown_date' | 'aim'>>
 
 export function saveTrial(id: string, patch: TrialPatch, token: string): Promise<boolean> {
-  return update('trials', `id=eq.${id}`, patch, token)
+  const stamp = patch.status === 'approved' || patch.status === 'active' ? { approved_by: userIdFromToken(token) } : patch.status === 'draft' || patch.status === 'review' ? { approved_by: null } : {}
+  return update('trials', `id=eq.${id}`, { ...patch, ...stamp, updated_at: new Date().toISOString() }, token)
 }
 
 /** Deletes the trial; scores/photos/operations/treatments cascade with it. */
@@ -684,6 +689,14 @@ export interface TrialDraft {
   }
   treatments: TreatmentDraft[]
   assessments: AssessmentDraft[]
+  /** Set when editing a saved trial. */
+  editingId?: string
+  /** The saved allocation, kept until the planner chooses to re-randomise. */
+  lockedPlots?: Record<number, Array<{ rep: number; plot: number }>>
+  lockedSpare?: number[]
+  /** Scores already synced for the trial (re-randomising would orphan them). */
+  scores?: number
+  status?: string
 }
 
 /** Timing letters in application order (A first), for the recipe text. */
@@ -702,49 +715,32 @@ export function recipeText(t: TreatmentDraft): string {
 /** Create the trial as a draft with its treatments (plots allocated) and
  * assessments. Returns the new trial id. Partial failure leaves the trial
  * in place as a draft so nothing typed is lost; the builder reports it. */
-export async function createTrial(
-  d: TrialDraft,
-  byTrt: Record<number, Array<{ rep: number; plot: number }>>,
-  token: string,
-  sparePlots: number[] = []
-): Promise<{ id: string; ok: boolean; failed?: 'trial' | 'treatments' | 'assessments' }> {
-  const id = crypto.randomUUID()
-  const by = userIdFromToken(token)
-  const trial = {
-    id,
-    org_id: ORG_ID,
-    client_id: d.clientId,
-    site_id: d.siteId,
-    group_id: d.groupId,
-    protocol_id: d.protocolId,
-    name: d.name.trim(),
-    season: d.season,
-    status: 'draft',
-    trial_type: d.trialType,
-    aim: d.aim.trim() || null,
-    crop: d.crop.trim() || null,
-    variety: d.variety.trim() || null,
-    sown_date: d.sownDate || null,
-    design: {
-      type: d.design.type,
-      reps: d.design.reps,
-      seed: d.design.seed,
-      demoRep: d.design.demoRep || undefined,
-      blocking: 'row',
-      grid: { rows: d.design.rows, positions: d.design.positions },
-      plot: { widthM: d.design.plotW, lengthM: d.design.plotL, areaM2: Math.round(d.design.plotW * d.design.plotL * 100) / 100 },
-      treatments: d.treatments.length,
-      expectedCv: d.design.cv,
-      spare: d.design.spare || undefined,
-      sparePlots: sparePlots.length ? sparePlots : undefined,
-      notes: [`Built in the office portal ${new Date().toISOString().slice(0, 10)}; randomised from seed ${d.design.seed}`],
-    },
-    created_by: by,
+/** The design json the record carries, from the draft. Existing notes and
+ * any keys the builder does not own (reservePlots, marginalPlots, source)
+ * are kept when `keep` is given. */
+export function designJson(d: TrialDraft, sparePlots: number[], keep: Record<string, unknown> | null = null): Record<string, unknown> {
+  const notes = Array.isArray(keep?.notes) ? [...(keep!.notes as string[])] : []
+  if (!keep) notes.push(`Built in the office portal ${new Date().toISOString().slice(0, 10)}; randomised from seed ${d.design.seed}`)
+  return {
+    ...(keep ?? {}),
+    type: d.design.type,
+    reps: d.design.reps,
+    seed: d.design.seed,
+    demoRep: d.design.demoRep || undefined,
+    blocking: 'row',
+    grid: { rows: d.design.rows, positions: d.design.positions },
+    plot: { widthM: d.design.plotW, lengthM: d.design.plotL, areaM2: Math.round(d.design.plotW * d.design.plotL * 100) / 100 },
+    treatments: d.treatments.length,
+    expectedCv: d.design.cv,
+    spare: d.design.spare || undefined,
+    sparePlots: sparePlots.length ? sparePlots : undefined,
+    notes,
   }
-  if (!(await insert('trials', [trial], token))) return { id, ok: false, failed: 'trial' }
+}
 
+export function treatmentRows(trialId: string, d: TrialDraft, byTrt: Record<number, Array<{ rep: number; plot: number }>>) {
   const timings = [...new Set(d.treatments.flatMap((t) => t.lines.map((l) => l.timing)))].sort(timingOrder)
-  const trts = d.treatments.map((t) => {
+  return d.treatments.map((t) => {
     const plots = (byTrt[t.n] ?? []).map((p) => p.plot).sort((a, b) => a - b)
     const plotsByRep: Record<string, number> = {}
     for (const p of byTrt[t.n] ?? []) plotsByRep[String(p.rep)] = p.plot
@@ -755,13 +751,109 @@ export async function createTrial(
       components[`${tm.toLowerCase()}Timing`] = ls.length ? ls.map((l) => `${l.product}${l.rate != null ? ` ${l.rate} ${l.unit}` : ''}`).join(' + ') : null
     }
     if (t.note) components.notes = [t.note]
-    return { trial_id: id, n: t.n, name: t.name.trim(), b_spray: t.lines.some((l) => l.timing === 'B'), components, recipe: recipeText(t) }
+    return { trial_id: trialId, n: t.n, name: t.name.trim(), b_spray: t.lines.some((l) => l.timing === 'B'), components, recipe: recipeText(t) }
   })
-  if (!(await insert('treatments', trts, token))) return { id, ok: false, failed: 'treatments' }
+}
 
-  const rows = d.assessments.map((a) => ({ trial_id: id, n: a.n, timing: a.timing, measures: a.measures, blind: a.blind }))
-  if (!(await insert('assessments', rows, token))) return { id, ok: false, failed: 'assessments' }
+export const assessmentRows = (trialId: string, d: TrialDraft) => d.assessments.map((a) => ({ trial_id: trialId, n: a.n, timing: a.timing, measures: a.measures, blind: a.blind }))
+
+function trialFields(d: TrialDraft) {
+  return {
+    client_id: d.clientId,
+    site_id: d.siteId,
+    group_id: d.groupId,
+    protocol_id: d.protocolId,
+    name: d.name.trim(),
+    season: d.season,
+    trial_type: d.trialType,
+    aim: d.aim.trim() || null,
+    crop: d.crop.trim() || null,
+    variety: d.variety.trim() || null,
+    sown_date: d.sownDate || null,
+  }
+}
+
+export async function createTrial(
+  d: TrialDraft,
+  byTrt: Record<number, Array<{ rep: number; plot: number }>>,
+  token: string,
+  sparePlots: number[] = []
+): Promise<{ id: string; ok: boolean; failed?: 'trial' | 'treatments' | 'assessments' }> {
+  const id = crypto.randomUUID()
+  const trial = { id, org_id: ORG_ID, status: 'draft', ...trialFields(d), design: designJson(d, sparePlots), created_by: userIdFromToken(token) }
+  if (!(await insert('trials', [trial], token))) return { id, ok: false, failed: 'trial' }
+  if (!(await insert('treatments', treatmentRows(id, d, byTrt), token))) return { id, ok: false, failed: 'treatments' }
+  if (!(await insert('assessments', assessmentRows(id, d), token))) return { id, ok: false, failed: 'assessments' }
   return { id, ok: true }
+}
+
+/** Save edits to an existing trial: fields and design updated, treatments
+ * and assessments upserted on (trial_id, n) with removed numbers deleted.
+ * Status, created_by and approval are untouched. */
+export async function updateTrial(
+  id: string,
+  d: TrialDraft,
+  byTrt: Record<number, Array<{ rep: number; plot: number }>>,
+  sparePlots: number[],
+  keepDesign: Record<string, unknown> | null,
+  token: string
+): Promise<{ id: string; ok: boolean; failed?: 'trial' | 'treatments' | 'assessments' }> {
+  const design = designJson(d, sparePlots, keepDesign)
+  ;(design.notes as string[]).push(`Edited in the office portal ${new Date().toISOString().slice(0, 10)}`)
+  if (!(await update('trials', `id=eq.${id}`, { ...trialFields(d), design, updated_at: new Date().toISOString() }, token))) return { id, ok: false, failed: 'trial' }
+  const trts = treatmentRows(id, d, byTrt)
+  if (!(await upsertOn('treatments', trts, 'trial_id,n', token))) return { id, ok: false, failed: 'treatments' }
+  await remove('treatments', `trial_id=eq.${id}&n=not.in.(${trts.map((t) => t.n).join(',') || 0})`, token)
+  const rows = assessmentRows(id, d)
+  if (rows.length && !(await upsertOn('assessments', rows, 'trial_id,n', token))) return { id, ok: false, failed: 'assessments' }
+  await remove('assessments', `trial_id=eq.${id}&n=not.in.(${rows.map((a) => a.n).join(',') || 0})`, token)
+  return { id, ok: true }
+}
+
+/** Load a saved trial back into the builder's draft shape. */
+export function draftFromTrial(t: LiveTrial, trts: TreatmentRow[], assess: AssessmentRow[], lines: (t: TreatmentRow) => TreatmentLine[]): TrialDraft {
+  const dz = (t.design ?? {}) as Record<string, unknown>
+  const locked: Record<number, Array<{ rep: number; plot: number }>> = {}
+  for (const tr of trts) {
+    const byRep = tr.components?.plotsByRep
+    const plots = tr.components?.plots ?? []
+    locked[tr.n] = byRep ? Object.entries(byRep).map(([rep, plot]) => ({ rep: Number(rep), plot: Number(plot) })) : plots.map((plot, i) => ({ rep: i + 1, plot }))
+  }
+  const plotsAll = Object.values(locked).flat().map((p) => p.plot)
+  const grid = (dz.grid as { rows?: number; positions?: number } | undefined) ?? {}
+  const type = typeof dz.type === 'string' ? (dz.type === 'RCB' ? 'RCBD' : dz.type) : 'RCBD'
+  return {
+    name: t.name,
+    season: t.season ?? new Date().getFullYear(),
+    trialType: (t.trial_type as TrialDraft['trialType']) ?? 'plot',
+    crop: t.crop ?? '',
+    variety: t.variety ?? '',
+    sownDate: t.sown_date ?? '',
+    aim: t.aim ?? '',
+    clientId: (t as unknown as { client_id?: string | null }).client_id ?? null,
+    siteId: t.site_id,
+    protocolId: null,
+    groupId: null,
+    design: {
+      type: ['RCBD', 'CRD', 'Latin square', 'Strips', 'Demo'].includes(type) ? type : 'RCBD',
+      reps: typeof dz.reps === 'number' ? dz.reps : Math.max(1, ...Object.values(locked).map((x) => x.length)),
+      seed: typeof dz.seed === 'string' ? dz.seed : 'KEPT',
+      demoRep: dz.demoRep === true,
+      spare: typeof dz.spare === 'number' ? dz.spare : 0,
+      plotW: t.design?.plot?.widthM ?? 2,
+      plotL: t.design?.plot?.lengthM ?? 12,
+      cv: typeof dz.expectedCv === 'number' ? dz.expectedCv : 15,
+      rows: grid.rows ?? (plotsAll.length ? Math.max(...plotsAll.map((p) => Math.floor(p / 100))) : 0),
+      positions: grid.positions ?? (plotsAll.length ? Math.max(...plotsAll.map((p) => p % 100)) : 0),
+    },
+    treatments: trts.map((tr) => ({ n: tr.n, name: tr.name, lines: lines(tr), note: Array.isArray(tr.components?.notes) ? (tr.components!.notes as string[]).join(' · ') || undefined : undefined })),
+    assessments: assess.map((a) => ({ n: a.n, timing: a.timing ?? '', measures: a.measures ?? [], blind: a.blind })),
+    editingId: t.id,
+    lockedPlots: plotsAll.length ? locked : undefined,
+    lockedSpare: Array.isArray(dz.sparePlots) ? (dz.sparePlots as number[]) : [],
+    scores: t.scores,
+    status: t.status,
+  }
 }
 
 // --- Site features: tracks, gates, hazards and the like on the site map -------

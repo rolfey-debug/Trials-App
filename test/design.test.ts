@@ -1,5 +1,5 @@
 /** Design advisor: LSD% arithmetic and the randomiser's guarantees. */
-import { advise, errorDf, lsdPercent, plan } from '../portal/src/lib/design'
+import { advise, errorDf, lsdPercent, plan, planFromPlots } from '../portal/src/lib/design'
 
 let passed = 0
 function check(name: string, cond: boolean) {
@@ -65,4 +65,11 @@ const demoPlan = plan({ seed: 'X', type: 'Demo', nTrt: 7, reps: 1 })
 check('demo plan is one band in order', demoPlan.rows === 1 && demoPlan.bands[0].cells.map((c) => c.trt).join() === '1,2,3,4,5,6,7')
 check('empty plan for no treatments', plan({ seed: 'X', type: 'RCBD', nTrt: 0, reps: 3 }).bands.length === 0)
 
+
+// --- plan from an existing allocation ----------------------------------------
+const existing = planFromPlots({ 1: [{ rep: 1, plot: 101 }, { rep: 2, plot: 203 }], 2: [{ rep: 1, plot: 102 }, { rep: 2, plot: 201 }], 3: [{ rep: 1, plot: 103 }, { rep: 2, plot: 202 }] }, [104, 204])
+check('existing plan: 2 rows × 4 positions', existing.rows === 2 && existing.positions === 4)
+check('existing plan: treatments in place', existing.bands[1].cells.map((c) => c.trt).join() === '2,3,1,0')
+check('existing plan: spare kept', existing.bands[0].cells[3].plot === 104 && existing.bands[0].cells[3].trt === 0)
+check('existing plan: empty', planFromPlots({}).bands.length === 0)
 console.log(`design: ${passed} checks passed`)
