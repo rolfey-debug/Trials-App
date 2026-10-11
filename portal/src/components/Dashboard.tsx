@@ -178,7 +178,7 @@ export default function Dashboard() {
           className="focus-green"
           style={{ width: 252, padding: '9px 12px', fontSize: 13, border: '1px solid #E4E4E6', borderRadius: 8, background: '#fff', color: '#141414', outline: 'none' }}
         />
-        <div onClick={() => nav('wizard', { step: 'treatments' })} className="hv-primary" style={{ padding: '9px 16px', background: '#007749', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <div onClick={() => nav('builder')} className="hv-primary" style={{ padding: '9px 16px', background: '#007749', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
           + New trial
         </div>
       </div>

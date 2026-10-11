@@ -1,6 +1,7 @@
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import Wizard from './components/Wizard'
+import TrialBuilder from './components/TrialBuilder'
 import Picker from './components/Picker'
 import Docs from './components/Docs'
 import Review from './components/Review'
@@ -19,6 +20,7 @@ export default function App() {
       <div style={{ flex: 1, minWidth: 0, display: 'flex', overflow: 'hidden' }}>
         {s.screen === 'trials' && <Dashboard />}
         {s.screen === 'wizard' && <Wizard />}
+        {s.screen === 'builder' && <TrialBuilder />}
         {s.screen === 'docs' && <Docs />}
         {s.screen === 'review' && <Review />}
         {s.screen === 'map' && <LiveMap />}

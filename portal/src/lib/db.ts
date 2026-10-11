@@ -1,7 +1,7 @@
 /** Live trial data for the portal — reads/writes the real backend as the
  * signed-in user (RLS scopes everything to the org). The session is the one
  * the sidebar sign-in (or the field app, same origin) saved to localStorage. */
-import { fetchObject, insert, refresh, remove, select, stableId, update, upsertOn, SUPA_URL, type Session } from '../../../shared/supa'
+import { fetchObject, insert, refresh, remove, select, stableId, update, upsertOn, ORG_ID, SUPA_URL, type Session } from '../../../shared/supa'
 import { blockPlots, polygonWkt, type BlockCell, type BlockSpec, type LatLng } from '../../../shared/geometry'
 
 const SESSION_KEY = 'tw.supaSession'
@@ -508,4 +508,231 @@ export interface MeasureDef {
 
 export function loadMeasureLibrary(token: string): Promise<MeasureDef[] | null> {
   return select<MeasureDef>('measures', 'select=key,label,rating,unit,target,part,sample,higher_better,min,max,decimals,group_key,canonical,note,taxa(scientific,common,kind)&active=is.true&order=group_key.asc,label.asc', token)
+}
+
+// --- Trial builder: clients, sites, protocols, groups and the save ------------
+
+/** The signed-in person's id (people.id = auth.uid()), read from the JWT. */
+export function userIdFromToken(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))) as { sub?: string }
+    return payload.sub ?? null
+  } catch {
+    return null
+  }
+}
+
+export interface ClientRow {
+  id: string
+  name: string
+  contact: { phone?: string; email?: string; address?: string; abn?: string } | null
+}
+
+export function loadClients(token: string): Promise<ClientRow[] | null> {
+  return select<ClientRow>('clients', 'select=id,name,contact&order=name.asc', token)
+}
+
+export async function createClient(name: string, contact: ClientRow['contact'], token: string): Promise<string | null> {
+  const id = crypto.randomUUID()
+  const ok = await insert('clients', [{ id, org_id: ORG_ID, name, contact }], token)
+  return ok ? id : null
+}
+
+export interface SiteRow {
+  id: string
+  client_id: string | null
+  property: string
+  town: string | null
+  lat: number | null
+  lng: number | null
+  paddock: string | null
+  soil: string | null
+}
+
+export function loadSites(token: string): Promise<SiteRow[] | null> {
+  return select<SiteRow>('sites', 'select=id,client_id,property,town,lat,lng,paddock,soil&order=property.asc', token)
+}
+
+export async function createSite(row: Omit<SiteRow, 'id'>, token: string): Promise<string | null> {
+  const id = crypto.randomUUID()
+  const ok = await insert('sites', [{ id, org_id: ORG_ID, ...row }], token)
+  return ok ? id : null
+}
+
+export interface AssessmentSet {
+  key: string
+  org_id: string | null
+  trial_type: string
+  name: string
+  items: Array<{ measure: string; timing: string; note?: string }>
+  note: string | null
+}
+
+export function loadAssessmentSets(token: string): Promise<AssessmentSet[] | null> {
+  return select<AssessmentSet>('assessment_sets', 'select=key,org_id,trial_type,name,items,note&order=name.asc', token)
+}
+
+/** One line of a treatment: a product at a rate, applied at a timing. */
+export interface TreatmentLine {
+  timing: string
+  product: string
+  rate: number | null
+  unit: string
+  /** Experimental or unregistered product (flagged on maps and signs). */
+  exp?: boolean
+}
+
+export interface TreatmentDraft {
+  n: number
+  name: string
+  lines: TreatmentLine[]
+  note?: string
+}
+
+export interface AssessmentDraft {
+  n: number
+  timing: string
+  measures: string[]
+  blind: boolean
+  note?: string
+}
+
+export interface ProtocolRow {
+  id: string
+  name: string
+  crop: string | null
+  treatments: TreatmentDraft[]
+  assessments: AssessmentDraft[]
+  created_at: string
+}
+
+export function loadProtocols(token: string): Promise<ProtocolRow[] | null> {
+  return select<ProtocolRow>('protocols', 'select=id,name,crop,treatments,assessments,created_at&order=created_at.desc', token)
+}
+
+export async function saveProtocol(name: string, crop: string | null, treatments: TreatmentDraft[], assessments: AssessmentDraft[], token: string): Promise<string | null> {
+  const id = crypto.randomUUID()
+  const ok = await insert('protocols', [{ id, org_id: ORG_ID, name, crop, treatments, assessments, created_by: userIdFromToken(token) }], token)
+  return ok ? id : null
+}
+
+export interface TrialGroupRow {
+  id: string
+  name: string
+  protocol_id: string | null
+}
+
+export function loadTrialGroups(token: string): Promise<TrialGroupRow[] | null> {
+  return select<TrialGroupRow>('trial_groups', 'select=id,name,protocol_id&order=name.asc', token)
+}
+
+export async function createTrialGroup(name: string, protocolId: string | null, token: string): Promise<string | null> {
+  const id = crypto.randomUUID()
+  const ok = await insert('trial_groups', [{ id, org_id: ORG_ID, name, protocol_id: protocolId }], token)
+  return ok ? id : null
+}
+
+/** Everything the builder collects before the first save. */
+export interface TrialDraft {
+  name: string
+  season: number
+  trialType: 'demonstration' | 'plot' | 'paddock_scale'
+  crop: string
+  variety: string
+  sownDate: string
+  aim: string
+  clientId: string | null
+  siteId: string | null
+  protocolId: string | null
+  groupId: string | null
+  design: {
+    type: string
+    reps: number
+    seed: string
+    demoRep: boolean
+    spare: number
+    plotW: number
+    plotL: number
+    cv: number
+    rows: number
+    positions: number
+  }
+  treatments: TreatmentDraft[]
+  assessments: AssessmentDraft[]
+}
+
+/** Timing letters in application order (A first), for the recipe text. */
+const timingOrder = (a: string, b: string) => a.localeCompare(b)
+
+export function recipeText(t: TreatmentDraft): string {
+  const byTiming = new Map<string, string[]>()
+  for (const l of t.lines) {
+    const rate = l.rate != null ? ` ${l.rate} ${l.unit}` : ''
+    ;(byTiming.get(l.timing) ?? byTiming.set(l.timing, []).get(l.timing)!).push(`${l.product}${rate}${l.exp ? ' (EXP)' : ''}`)
+  }
+  if (!byTiming.size) return t.name.toLowerCase().includes('untreated') ? 'Untreated' : ''
+  return [...byTiming.entries()].sort(([a], [b]) => timingOrder(a, b)).map(([tm, ps]) => `${tm}: ${ps.join(' + ')}`).join(' · ')
+}
+
+/** Create the trial as a draft with its treatments (plots allocated) and
+ * assessments. Returns the new trial id. Partial failure leaves the trial
+ * in place as a draft so nothing typed is lost; the builder reports it. */
+export async function createTrial(
+  d: TrialDraft,
+  byTrt: Record<number, Array<{ rep: number; plot: number }>>,
+  token: string
+): Promise<{ id: string; ok: boolean; failed?: 'trial' | 'treatments' | 'assessments' }> {
+  const id = crypto.randomUUID()
+  const by = userIdFromToken(token)
+  const trial = {
+    id,
+    org_id: ORG_ID,
+    client_id: d.clientId,
+    site_id: d.siteId,
+    group_id: d.groupId,
+    protocol_id: d.protocolId,
+    name: d.name.trim(),
+    season: d.season,
+    status: 'draft',
+    trial_type: d.trialType,
+    aim: d.aim.trim() || null,
+    crop: d.crop.trim() || null,
+    variety: d.variety.trim() || null,
+    sown_date: d.sownDate || null,
+    design: {
+      type: d.design.type,
+      reps: d.design.reps,
+      seed: d.design.seed,
+      demoRep: d.design.demoRep || undefined,
+      blocking: 'row',
+      grid: { rows: d.design.rows, positions: d.design.positions },
+      plot: { widthM: d.design.plotW, lengthM: d.design.plotL, areaM2: Math.round(d.design.plotW * d.design.plotL * 100) / 100 },
+      treatments: d.treatments.length,
+      expectedCv: d.design.cv,
+      spare: d.design.spare || undefined,
+      notes: [`Built in the office portal ${new Date().toISOString().slice(0, 10)}; randomised from seed ${d.design.seed}`],
+    },
+    created_by: by,
+  }
+  if (!(await insert('trials', [trial], token))) return { id, ok: false, failed: 'trial' }
+
+  const timings = [...new Set(d.treatments.flatMap((t) => t.lines.map((l) => l.timing)))].sort(timingOrder)
+  const trts = d.treatments.map((t) => {
+    const plots = (byTrt[t.n] ?? []).map((p) => p.plot).sort((a, b) => a - b)
+    const plotsByRep: Record<string, number> = {}
+    for (const p of byTrt[t.n] ?? []) plotsByRep[String(p.rep)] = p.plot
+    const components: Record<string, unknown> = { plots, plotsByRep, lines: t.lines }
+    for (const tm of timings) {
+      const ls = t.lines.filter((l) => l.timing === tm)
+      components[tm] = ls.map((l) => ({ product: l.product, rate: l.rate, unit: l.unit, exp: l.exp || undefined }))
+      components[`${tm.toLowerCase()}Timing`] = ls.length ? ls.map((l) => `${l.product}${l.rate != null ? ` ${l.rate} ${l.unit}` : ''}`).join(' + ') : null
+    }
+    if (t.note) components.notes = [t.note]
+    return { trial_id: id, n: t.n, name: t.name.trim(), b_spray: t.lines.some((l) => l.timing === 'B'), components, recipe: recipeText(t) }
+  })
+  if (!(await insert('treatments', trts, token))) return { id, ok: false, failed: 'treatments' }
+
+  const rows = d.assessments.map((a) => ({ trial_id: id, n: a.n, timing: a.timing, measures: a.measures, blind: a.blind }))
+  if (!(await insert('assessments', rows, token))) return { id, ok: false, failed: 'assessments' }
+  return { id, ok: true }
 }

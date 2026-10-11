@@ -260,7 +260,7 @@ export default function Sidebar() {
       <NavItem active={s.screen === 'trials' || s.screen === 'review'} onClick={() => nav('trials')} icon={icons.trials}>
         Trials
       </NavItem>
-      <NavItem active={s.screen === 'wizard' && !s.picker} onClick={() => nav('wizard', { step: 'treatments' })} icon={icons.new}>
+      <NavItem active={s.screen === 'builder'} onClick={() => nav('builder')} icon={icons.new}>
         New trial
       </NavItem>
       <NavItem active={s.screen === 'results'} onClick={() => nav('results')} icon={icons.results}>
