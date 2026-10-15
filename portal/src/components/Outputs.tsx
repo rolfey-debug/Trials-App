@@ -3,7 +3,8 @@
  * blank assessment sheets. Preview on the right, print (or save as PDF)
  * from the browser's dialog. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOrgSettings, loadPeople, loadSiteFeatures, loadTreatments, markDocumentDrive, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OrgSettings, type PersonRow, type PrintKind, type SiteFeatureRow, type TreatmentRow } from '../lib/db'
+import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadOrgSettings, loadPeople, loadScores, loadSiteFeatures, loadSiteWeather, loadTreatments, loadTrialCorrections, loadTrialPhotos, markDocumentDrive, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OperationRow, type OrgSettings, type PersonRow, type PrintKind, type ScoreRow, type SiteFeatureRow, type TreatmentRow, type WeatherDay } from '../lib/db'
+import { trialReportHtml, type ReportCorrection } from '../lib/report'
 import { forgetDriveToken, pushPrintoutToDrive } from '../lib/gdrive'
 import { agreementHtml, assessmentSheetHtml, documentHtml, growerInfoHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, whsPackHtml, type DocsData } from '../lib/printouts'
 import { MONO, useApp } from '../state'
@@ -13,8 +14,9 @@ const GREY = '#8A8C8A'
 const INK = '#141414'
 const HAIR = '#E4E4E6'
 
-type Kind = 'plan' | 'spray' | 'signs' | 'site' | 'sheet' | 'agreement' | 'grower' | 'whs'
+type Kind = 'report' | 'plan' | 'spray' | 'signs' | 'site' | 'sheet' | 'agreement' | 'grower' | 'whs'
 const KINDS: Array<{ id: Kind; label: string; blurb: string }> = [
+  { id: 'report', label: 'Trial report', blurb: 'results per assessment with LSD letters, ranked bars, plot map, season, observations' },
   { id: 'plan', label: 'Trial plan', blurb: 'aim, site, treatments, plot plan, assessment schedule' },
   { id: 'spray', label: 'Spray and mixing plan', blurb: 'batch volumes and product amounts per treatment, tick boxes, application record' },
   { id: 'signs', label: 'Plot signs', blurb: 'one per plot or rep 1 only, 2 or 4 per A4 sheet' },
@@ -39,6 +41,14 @@ export default function Outputs() {
   const [measures, setMeasures] = useState<Map<string, MeasureDef>>(new Map())
   const [features, setFeatures] = useState<SiteFeatureRow[]>([])
   const [people, setPeople] = useState<PersonRow[]>([])
+  const [scores, setScores] = useState<ScoreRow[]>([])
+  const [weather, setWeather] = useState<WeatherDay[]>([])
+  const [ops, setOps] = useState<OperationRow[]>([])
+  const [corrections, setCorrections] = useState<ReportCorrection[]>([])
+  const [photosByPlot, setPhotosByPlot] = useState<Record<number, number>>({})
+  const [reportDraft, setReportDraft] = useState(true)
+  const [reportBlind, setReportBlind] = useState(false)
+  const [reportPrimary, setReportPrimary] = useState('')
   const [kind, setKind] = useState<Kind>('plan')
   const [timing, setTiming] = useState('A')
   const [water, setWater] = useState(100)
@@ -84,10 +94,20 @@ export default function Outputs() {
       const token = await portalToken()
       if (!token) return
       const siteId = trials.find((x) => x.id === trialId)?.site_id ?? null
-      const [tr, as, fe] = await Promise.all([loadTreatments(trialId, token), loadAssessments(trialId, token), siteId ? loadSiteFeatures(siteId, token) : Promise.resolve([])])
+      const [tr, as, fe, sc, wx, op, co, ph] = await Promise.all([
+        loadTreatments(trialId, token), loadAssessments(trialId, token), siteId ? loadSiteFeatures(siteId, token) : Promise.resolve([]),
+        loadScores(trialId, token), siteId ? loadSiteWeather(siteId, token) : Promise.resolve([]), loadOperations(trialId, token), loadTrialCorrections(trialId, token), loadTrialPhotos(trialId, token),
+      ])
       setTrts(tr ?? [])
       setAssess(as ?? [])
       setFeatures(fe ?? [])
+      setScores((sc ?? []).map((x) => ({ ...x, value: Number(x.value) })))
+      setWeather(wx ?? [])
+      setOps(op ?? [])
+      setCorrections(co ?? [])
+      const counts: Record<number, number> = {}
+      for (const p of ph ?? []) counts[p.plot] = (counts[p.plot] ?? 0) + 1
+      setPhotosByPlot(counts)
       setSheetN(as?.[0]?.n ?? 1)
     })()
   }, [trialId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -105,6 +125,8 @@ export default function Outputs() {
     if (!trial) return ''
     const d: DocsData = { trial, treatments: trts, assessments: assess, measures, features, applicators: people.filter((p) => ['admin', 'agronomist', 'team'].includes(p.role)).map((p) => ({ name: p.name, role: p.role })) }
     switch (kind) {
+      case 'report':
+        return documentHtml(`${trial.name} — trial report`, trialReportHtml({ trial, treatments: trts, scores, measures, weather, operations: ops, corrections, photosByPlot, options: { draft: reportDraft, blind: reportBlind, primary: reportPrimary || undefined } }))
       case 'plan':
         return documentHtml(`${trial.name} — trial plan`, trialPlanHtml(d))
       case 'spray':
@@ -124,7 +146,7 @@ export default function Outputs() {
         return a ? documentHtml(`${trial.name} — assessment ${a.n}`, assessmentSheetHtml(d, a)) : documentHtml(trial.name, '<p class="muted">No assessment timings on this trial yet. Add them in the builder or the trial editor.</p>')
       }
     }
-  }, [trial, trts, assess, measures, features, people, kind, timing, water, overage, signSize, repOne, blind, sheetN])
+  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, reportDraft, reportBlind, reportPrimary, kind, timing, water, overage, signSize, repOne, blind, sheetN])
 
   useEffect(() => {
     setSaveState('idle')
@@ -138,9 +160,9 @@ export default function Outputs() {
       setSaveState('failed')
       return
     }
-    const kindOf: Record<Kind, PrintKind> = { plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet', agreement: 'agreement', grower: 'grower-info', whs: 'whs' }
+    const kindOf: Record<Kind, PrintKind> = { report: 'report', plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet', agreement: 'agreement', grower: 'grower-info', whs: 'whs' }
     const label = kind === 'spray' ? `Spray plan ${timing}` : kind === 'sheet' ? `Assessment sheet A${sheetN}` : KINDS.find((k) => k.id === kind)?.label ?? kind
-    const options = kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'sheet' ? { assessment: sheetN } : {}
+    const options = kind === 'report' ? { draft: reportDraft, blind: reportBlind, primary: reportPrimary || null } : kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'sheet' ? { assessment: sheetN } : {}
     const filename = `${label} · ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.html`
     const docId = await savePrintout(trial.id, kindOf[kind], filename, html, options, token)
     if (!docId) {
@@ -227,6 +249,25 @@ export default function Outputs() {
             })}
           </div>
         </div>
+        {kind === 'report' && (
+          <div style={card}>
+            <div style={sectionLabel}>REPORT OPTIONS</div>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: '#3E403E', marginBottom: 6 }}>
+              <input type="checkbox" checked={reportDraft} onChange={(e) => setReportDraft(e.target.checked)} /> Draft band (plot means as recorded, not for distribution)
+            </label>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: '#3E403E', marginBottom: 8 }}>
+              <input type="checkbox" checked={reportBlind} onChange={(e) => setReportBlind(e.target.checked)} /> Treatment codes only (blind copy)
+            </label>
+            <div style={{ ...sectionLabel, fontSize: 9.5 }}>RANK AND MAP BY</div>
+            <select value={reportPrimary} onChange={(e) => setReportPrimary(e.target.value)} style={inputStyle}>
+              <option value="">Auto (fullest disease measure per round)</option>
+              {[...new Set(scores.map((s) => s.measure))].sort().map((m) => (
+                <option key={m} value={m}>{measures.get(m)?.label ?? m}</option>
+              ))}
+            </select>
+            <div style={{ fontSize: 11, color: GREY, marginTop: 8, lineHeight: 1.4 }}>{scores.length ? `${scores.length} synced scores across ${new Set(scores.map((s) => s.assessment + ':' + s.recorded_at.slice(0, 10))).size} scoring days.` : 'No synced scores yet: the report prints the plan, season and treatments only.'}</div>
+          </div>
+        )}
         {kind === 'spray' && (
           <div style={card}>
             <div style={sectionLabel}>SPRAY PLAN OPTIONS</div>

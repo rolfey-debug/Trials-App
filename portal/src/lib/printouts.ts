@@ -37,7 +37,8 @@ const BASE_CSS = `
   .exp { color: #cf4520; border: 1px solid #cf4520; border-radius: 3px; padding: 0 4px; font-weight: 800; font-size: 9px; letter-spacing: .08em; }
   .foot { margin-top: 28px; padding-top: 8px; border-top: 1px solid #E4E4E6; font-size: 9px; color: #8A8C8A; display: flex; justify-content: space-between; }
   .page + .page { margin-top: 36px; padding-top: 24px; border-top: 3px dashed #D8DAD8; }
-  @media print { body { padding: 14mm 14mm 18mm; } .page { page-break-after: always; } .page + .page { margin-top: 0; padding-top: 0; border-top: 0; } .foot { position: fixed; bottom: 8mm; left: 14mm; right: 14mm; margin: 0; border: 0; } }
+  .keep { page-break-inside: avoid; break-inside: avoid; }
+  @media print { body { padding: 0; } .page { page-break-after: always; } .page + .page { margin-top: 0; padding-top: 0; border-top: 0; } tr { page-break-inside: avoid; } }
 `
 
 export function printHtml(title: string, body: string, extraCss = ''): HTMLIFrameElement | null {

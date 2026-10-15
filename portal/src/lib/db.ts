@@ -1016,3 +1016,8 @@ export function loadYieldSources(trialId: string, token: string): Promise<Array<
     return [...m.entries()].map(([source, e]) => ({ source, ...e }))
   })
 }
+
+/** Corrections for one trial, oldest first, in the report's shape. */
+export function loadTrialCorrections(trialId: string, token: string): Promise<Array<{ plot: number; kind: string; measure: string | null; old_value: number | null; new_value: number | null; reason: string | null; made_at: string }> | null> {
+  return select('corrections', `select=plot,kind,measure,old_value,new_value,reason,made_at&trial_id=eq.${trialId}&order=made_at.asc`, token)
+}
