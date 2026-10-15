@@ -5,6 +5,7 @@ export type Role = 'admin' | 'team' | 'grower' | 'rep'
 export type Screen =
   | 'login'
   | 'home'
+  | 'account'
   | 'assess'
   | 'map'
   | 'spray'
@@ -65,6 +66,8 @@ export interface TrialDoc {
   conditionsRecordA?: Record<string, string | number>
   /** Operational notes carried from the source workbook (mixing caveats etc.). */
   notes?: string[]
+  /** The assessment plan from the office: timing and measures per round. */
+  assessments?: Array<{ n: number; timing: string; measures: string[]; blind?: boolean }>
 }
 
 export interface Score {
@@ -73,6 +76,9 @@ export interface Score {
   photoIds: string[]
   ts: number
   by: string
+  /** Per-measure plant-level readings; v[measure] holds their mean on save
+   * and the readings themselves travel in the synced note ("plants 20/25/45"). */
+  plants?: Record<string, number[]>
 }
 
 export interface Issue {
@@ -96,6 +102,8 @@ export interface PhotoMeta {
   flagged: boolean
   /** true when a real captured blob exists in IndexedDB under this id */
   stored: boolean
+  /** true once the blob has landed in the org's storage bucket */
+  uploaded?: boolean
   sizeKB?: number
   lat?: number
   lng?: number
@@ -110,6 +118,13 @@ export interface Corner extends LatLng {
   accuracy: number
 }
 
+/** A plot footprint placed in the office site planner (migration 007). */
+export interface StoredPlot {
+  pid: number
+  corners: LatLng[] // 4 corners, front-left first, clockwise
+  centre: LatLng
+}
+
 export interface SiteInfo {
   cooperator: [string, string][]
   paddock: [string, string][]
@@ -119,6 +134,10 @@ export interface SiteInfo {
   bearingDeg?: number
   frontEdgeM?: number
   pinned: boolean
+  /** Plot polygons pulled from the office; used for GPS locating until the
+   * corners are marked on the ground, which then takes over. */
+  storedPlots?: StoredPlot[]
+  storedAt?: string
 }
 
 export interface Invite {
@@ -134,9 +153,12 @@ export interface Person {
   chip: 'ADMIN' | 'TEAM' | 'GROWER' | 'LIMITED'
 }
 
-/** Per-trial mutable state. */
+/** Per-trial mutable state. `scores` is the round being scored now;
+ * finished rounds sit in `rounds` keyed by their number and sync under it. */
 export interface TrialState {
   scores: Record<number, Score>
+  round?: number
+  rounds?: Record<number, Record<number, Score>>
   activeMeasures: string[]
   assessIdx: number
   assessField: string
