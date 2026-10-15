@@ -27,7 +27,7 @@ export interface MapOptions {
   /** Tiles may be enlarged up to this factor so a small block still fills the width (default 3). */
   maxScale?: number
   /** Open lines (tracks, fences, power lines). */
-  lines?: Array<{ pts: LatLng[]; colour?: string; label?: string; dash?: boolean }>
+  lines?: Array<{ pts: LatLng[]; colour?: string; label?: string; dash?: boolean; width?: number }>
   /** Credit line drawn in the corner; an empty string leaves it off (put it in a caption instead). */
   attribution?: string
   tileUrl?: (z: number, x: number, y: number) => string
@@ -112,7 +112,10 @@ export function satelliteMapHtml(polygons: MapPolygon[], o: MapOptions = {}): st
       tiles.push(`<img src="${esc(tile(z, tx, ty))}" alt="" style="position:absolute;left:${left.toFixed(1)}px;top:${top.toFixed(1)}px;width:${(TILE * scale).toFixed(2)}px;height:${(TILE * scale).toFixed(2)}px;display:block">`)
     }
   const FONT = 'font-family="Mulish, Arial, sans-serif"'
-  const polys = polygons.map((p) => {
+  // shapes first, then lines, then labels, so a route drawn through plots never hides their numbers
+  const shapes: string[] = []
+  const labels: string[] = []
+  for (const p of polygons) {
     const px = p.ring.map((q) => toPx(q))
     const d = px.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ')
     const cx = px.reduce((a, q) => a + q.x, 0) / px.length
@@ -130,13 +133,15 @@ export function satelliteMapHtml(polygons: MapPolygon[], o: MapOptions = {}): st
     if (ang < -90) ang += 180
     const fs = Math.max(5, Math.min(9, shortPx * 0.85, longPx / Math.max(2, (p.label ?? '').length) / 0.62))
     const show = p.label && longPx >= 12 && shortPx >= 5
-    return `<polygon points="${d}" fill="${esc(p.fill)}" fill-opacity="${p.opacity ?? 0.55}" stroke="${esc(p.stroke ?? '#ffffff')}" stroke-width="0.8">${p.title ? `<title>${esc(p.title)}</title>` : ''}</polygon>${show ? `<text transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${ang.toFixed(1)})" y="${(fs * 0.35).toFixed(1)}" text-anchor="middle" font-size="${fs.toFixed(1)}" font-weight="700" fill="#fff" stroke="#000" stroke-width="${(fs / 4).toFixed(1)}" paint-order="stroke" ${FONT}>${esc(p.label!)}</text>` : ''}`
-  })
+    shapes.push(`<polygon points="${d}" fill="${esc(p.fill)}" fill-opacity="${p.opacity ?? 0.55}" stroke="${esc(p.stroke ?? '#ffffff')}" stroke-width="0.8">${p.title ? `<title>${esc(p.title)}</title>` : ''}</polygon>`)
+    if (show) labels.push(`<text transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${ang.toFixed(1)})" y="${(fs * 0.35).toFixed(1)}" text-anchor="middle" font-size="${fs.toFixed(1)}" font-weight="700" fill="#fff" stroke="#000" stroke-width="${(fs / 4).toFixed(1)}" paint-order="stroke" ${FONT}>${esc(p.label!)}</text>`)
+  }
   const lines = (o.lines ?? []).map((l) => {
     const px = l.pts.map((q) => toPx(q))
     const d = px.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ')
     const mid = px[Math.floor(px.length / 2)]
-    return `<polyline points="${d}" fill="none" stroke="${esc(l.colour ?? '#F2A900')}" stroke-width="2"${l.dash ? ' stroke-dasharray="6 4"' : ''}/>${l.label && mid ? `<text x="${(mid.x + 4).toFixed(1)}" y="${(mid.y - 4).toFixed(1)}" font-size="9" font-weight="700" fill="#fff" stroke="#000" stroke-width="2" paint-order="stroke" ${FONT}>${esc(l.label)}</text>` : ''}`
+    const w = l.width ?? 2
+    return `<polyline points="${d}" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="${w + 2}" stroke-linejoin="round"/><polyline points="${d}" fill="none" stroke="${esc(l.colour ?? '#F2A900')}" stroke-width="${w}" stroke-linejoin="round"${l.dash ? ' stroke-dasharray="6 4"' : ''}/>${l.label && mid ? `<text x="${(mid.x + 4).toFixed(1)}" y="${(mid.y - 4).toFixed(1)}" font-size="9" font-weight="700" fill="#fff" stroke="#000" stroke-width="2" paint-order="stroke" ${FONT}>${esc(l.label)}</text>` : ''}`
   })
   const pins = (o.pins ?? []).map((p) => {
     const q = toPx(p.at)
@@ -149,7 +154,7 @@ export function satelliteMapHtml(polygons: MapPolygon[], o: MapOptions = {}): st
   return `<div style="position:relative;width:${W}px;height:${H}px;overflow:hidden;border-radius:6px;background:#1f2a1f;break-inside:avoid">
     ${tiles.join('')}
     <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="position:absolute;left:0;top:0">
-      ${polys.join('')}${lines.join('')}${pins.join('')}
+      ${shapes.join('')}${lines.join('')}${labels.join('')}${pins.join('')}
       <g transform="translate(${W - 36},34)"><polygon points="0,-18 6,6 0,2 -6,6" fill="#fff" stroke="#000" stroke-width="1"/><text x="0" y="22" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" stroke="#000" stroke-width="2" paint-order="stroke" font-family="Mulish, Arial, sans-serif">N</text></g>
       <g transform="translate(12,${H - 16})"><rect x="0" y="0" width="${barPx.toFixed(1)}" height="4" fill="#fff" stroke="#000" stroke-width="1"/><text x="${(barPx / 2).toFixed(1)}" y="-4" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" stroke="#000" stroke-width="2" paint-order="stroke" font-family="Mulish, Arial, sans-serif">${barM} m</text></g>
       ${o.attribution === '' ? '' : `<text x="${W - 6}" y="${H - 5}" text-anchor="end" font-size="8" fill="#fff" stroke="#000" stroke-width="1.5" paint-order="stroke" font-family="Mulish, Arial, sans-serif">${esc(o.attribution ?? 'Imagery © Esri, Maxar, Earthstar Geographics')}</text>`}
