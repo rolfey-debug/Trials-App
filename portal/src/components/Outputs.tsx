@@ -3,7 +3,7 @@
  * blank assessment sheets. Preview on the right, print (or save as PDF)
  * from the browser's dialog. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadOrgSettings, loadPeople, loadScores, loadSiteFeatures, loadSiteWeather, loadTreatments, loadTrialCorrections, loadTrialPhotos, markDocumentDrive, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OperationRow, type OrgSettings, type PersonRow, type PrintKind, type ScoreRow, type SiteFeatureRow, type TreatmentRow, type WeatherDay } from '../lib/db'
+import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadOrgSettings, loadPeople, loadPlots, loadScores, loadSiteFeatures, loadSiteWeather, loadTreatments, loadTrialCorrections, loadTrialPhotos, markDocumentDrive, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OperationRow, type OrgSettings, type PersonRow, type PlotRow, type PrintKind, type ScoreRow, type SiteFeatureRow, type TreatmentRow, type WeatherDay } from '../lib/db'
 import { trialReportHtml, type ReportCorrection } from '../lib/report'
 import { forgetDriveToken, pushPrintoutToDrive } from '../lib/gdrive'
 import { agreementHtml, assessmentSheetHtml, documentHtml, growerInfoHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, whsPackHtml, type DocsData } from '../lib/printouts'
@@ -46,6 +46,8 @@ export default function Outputs() {
   const [ops, setOps] = useState<OperationRow[]>([])
   const [corrections, setCorrections] = useState<ReportCorrection[]>([])
   const [photosByPlot, setPhotosByPlot] = useState<Record<number, number>>({})
+  const [photoPoints, setPhotoPoints] = useState<Array<{ plot: number; lat: number; lng: number }>>([])
+  const [plots, setPlots] = useState<PlotRow[]>([])
   const [reportDraft, setReportDraft] = useState(true)
   const [reportBlind, setReportBlind] = useState(false)
   const [reportPrimary, setReportPrimary] = useState('')
@@ -94,9 +96,10 @@ export default function Outputs() {
       const token = await portalToken()
       if (!token) return
       const siteId = trials.find((x) => x.id === trialId)?.site_id ?? null
-      const [tr, as, fe, sc, wx, op, co, ph] = await Promise.all([
+      const [tr, as, fe, sc, wx, op, co, ph, pl] = await Promise.all([
         loadTreatments(trialId, token), loadAssessments(trialId, token), siteId ? loadSiteFeatures(siteId, token) : Promise.resolve([]),
         loadScores(trialId, token), siteId ? loadSiteWeather(siteId, token) : Promise.resolve([]), loadOperations(trialId, token), loadTrialCorrections(trialId, token), loadTrialPhotos(trialId, token),
+        loadPlots(trialId, token),
       ])
       setTrts(tr ?? [])
       setAssess(as ?? [])
@@ -108,6 +111,8 @@ export default function Outputs() {
       const counts: Record<number, number> = {}
       for (const p of ph ?? []) counts[p.plot] = (counts[p.plot] ?? 0) + 1
       setPhotosByPlot(counts)
+      setPhotoPoints((ph ?? []).filter((p) => p.meta?.lat != null && p.meta?.lng != null).map((p) => ({ plot: p.plot, lat: Number(p.meta!.lat), lng: Number(p.meta!.lng) })))
+      setPlots(pl ?? [])
       setSheetN(as?.[0]?.n ?? 1)
     })()
   }, [trialId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -126,7 +131,7 @@ export default function Outputs() {
     const d: DocsData = { trial, treatments: trts, assessments: assess, measures, features, applicators: people.filter((p) => ['admin', 'agronomist', 'team'].includes(p.role)).map((p) => ({ name: p.name, role: p.role })) }
     switch (kind) {
       case 'report':
-        return documentHtml(`${trial.name} — trial report`, trialReportHtml({ trial, treatments: trts, scores, measures, weather, operations: ops, corrections, photosByPlot, options: { draft: reportDraft, blind: reportBlind, primary: reportPrimary || undefined } }))
+        return documentHtml(`${trial.name} — trial report`, trialReportHtml({ trial, treatments: trts, scores, measures, weather, operations: ops, corrections, photosByPlot, photoPoints, plots, features, options: { draft: reportDraft, blind: reportBlind, primary: reportPrimary || undefined } }))
       case 'plan':
         return documentHtml(`${trial.name} — trial plan`, trialPlanHtml(d))
       case 'spray':
@@ -146,7 +151,7 @@ export default function Outputs() {
         return a ? documentHtml(`${trial.name} — assessment ${a.n}`, assessmentSheetHtml(d, a)) : documentHtml(trial.name, '<p class="muted">No assessment timings on this trial yet. Add them in the builder or the trial editor.</p>')
       }
     }
-  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, reportDraft, reportBlind, reportPrimary, kind, timing, water, overage, signSize, repOne, blind, sheetN])
+  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, photoPoints, plots, reportDraft, reportBlind, reportPrimary, kind, timing, water, overage, signSize, repOne, blind, sheetN])
 
   useEffect(() => {
     setSaveState('idle')

@@ -54,6 +54,9 @@ export interface LiveTrial {
     grid?: { rows: number; positions: number }
     plot?: { widthM: number; lengthM: number; areaM2: number }
     notes?: string[]
+    reservePlots?: number[]
+    marginalPlots?: number[]
+    sparePlots?: number[]
   } | null
   spraying: {
     waterRateLPerHa?: number

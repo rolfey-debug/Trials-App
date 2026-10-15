@@ -7,7 +7,10 @@
 import { cellColors } from './layout'
 import { rcbdAnova, type Anova } from './stats'
 import { esc, treatmentLines } from './printouts'
-import type { LiveTrial, MeasureDef, OperationRow, ScoreRow, TreatmentRow, WeatherDay } from './db'
+import { fitGrid, type GeoPoint } from './geofit'
+import { satelliteMapHtml, type MapOptions, type MapPolygon } from './sitemap'
+import { pointsFromGeoJson, ringFromGeoJson, type LatLng } from '../../../shared/geometry'
+import type { LiveTrial, MeasureDef, OperationRow, PlotRow, ScoreRow, SiteFeatureRow, TreatmentRow, WeatherDay } from './db'
 
 export interface ReportCorrection {
   plot: number
@@ -39,6 +42,12 @@ export interface ReportData {
   operations?: OperationRow[]
   corrections?: ReportCorrection[]
   photosByPlot?: Record<number, number>
+  /** Stored plot polygons from the site planner; drawn on the satellite map when present. */
+  plots?: PlotRow[]
+  /** GPS positions of plot photos; when no plots are stored, a grid is fitted to these. */
+  photoPoints?: Array<{ plot: number; lat: number; lng: number }>
+  /** Gates, tracks, hazards and the like, drawn on the map. */
+  features?: SiteFeatureRow[]
   options?: ReportOptions
 }
 
@@ -216,6 +225,64 @@ function plotMapHtml(trial: LiveTrial, trts: TreatmentRow[], scores: ScoreRow[],
   <p class="muted" style="margin-top:6px">Shade = ${esc(measure)} from ${fmt(lo)} (light) to ${fmt(hi)} (dark). Rows down the page, positions across; plot = row × 100 + position.</p>`
 }
 
+/** Satellite map of the block. Plot polygons come from the stored placement
+ * when the planner has one, otherwise from a least-squares grid fitted to the
+ * GPS positions of the plot photos (labelled as such, never surveyed), and
+ * failing both the site pin alone. Tiles are Esri World Imagery. */
+export function siteMapHtml(d: ReportData): string {
+  const { trial, treatments } = d
+  const blind = !!d.options?.blind
+  const trtOf = new Map<number, number>()
+  for (const t of treatments) for (const p of t.components?.plots ?? []) trtOf.set(Number(p), t.n)
+  const nameOf = new Map(treatments.map((t) => [t.n, blind ? `T${t.n}` : t.name]))
+  const poly = (ring: LatLng[], plot: number, trt: number | null, kind: string): MapPolygon => {
+    const cc = trt ? cellColors(trt) : cellColors(0)
+    return { ring, fill: trt === 1 ? '#ffffff' : cc.bg, opacity: trt === 1 ? 0.35 : 0.6, label: String(plot), title: `Plot ${plot}${trt ? ` · T${trt} ${nameOf.get(trt) ?? ''}` : ` · ${kind}`}`.trim() }
+  }
+  let polygons: MapPolygon[] = []
+  let caption = ''
+  const stored = (d.plots ?? []).filter((p) => p.kind === 'plot' || p.kind === 'strip')
+  if (stored.length) {
+    polygons = stored.map((p) => poly(ringFromGeoJson(p.geojson), p.plot, p.treatment ?? trtOf.get(p.plot) ?? null, p.kind)).filter((p) => p.ring.length >= 3)
+    caption = `${polygons.length} plots as placed in the site planner${trial.site?.planned ? '' : ' (planned, not pegged)'}.`
+  } else if (d.photoPoints && d.photoPoints.length) {
+    const pts: GeoPoint[] = d.photoPoints.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)).map((p) => ({ lat: p.lat, lng: p.lng, row: Math.floor(p.plot / 100), pos: p.plot % 100 }))
+    const fit = fitGrid(pts)
+    if (fit) {
+      const plots = [...new Set([...trtOf.keys(), ...(trial.design?.marginalPlots ?? []), ...(trial.design?.reservePlots ?? []), ...(trial.design?.sparePlots ?? [])])].sort((a, b) => a - b)
+      polygons = plots.map((p) => poly(fit.cell(Math.floor(p / 100), p % 100).map(([lat, lng]) => ({ lat, lng })), p, trtOf.get(p) ?? null, 'plot'))
+      caption = `Plot grid fitted to the GPS positions of ${fit.points} plot photos (fit error ${fit.rmsM.toFixed(1)} m RMS). Indicative only, not surveyed; the block has not been placed in the site planner.`
+    }
+  }
+  const pins: NonNullable<MapOptions['pins']> = []
+  const lines: NonNullable<MapOptions['lines']> = []
+  if (!polygons.length && trial.site?.lat != null && trial.site?.lng != null) {
+    pins.push({ at: { lat: trial.site.lat, lng: trial.site.lng }, label: 'Site' })
+    caption = 'Site pin only: no plots placed and no GPS-tagged plot photos yet.'
+  }
+  for (const f of d.features ?? []) {
+    const label = f.name ?? f.kind.replace(/_/g, ' ')
+    if (f.geojson.type === 'Point') {
+      const [lng, lat] = f.geojson.coordinates as number[]
+      pins.push({ at: { lat, lng }, label, colour: f.kind === 'hazard' ? '#cf4520' : '#F2A900' })
+    } else if (f.geojson.type === 'LineString') {
+      lines.push({ pts: pointsFromGeoJson(f.geojson), label, colour: f.kind === 'power_line' ? '#cf4520' : '#F2A900', dash: f.kind !== 'track' })
+    } else if (f.geojson.type === 'Polygon') {
+      polygons.push({ ring: ringFromGeoJson(f.geojson as { type: string; coordinates: number[][][] }), fill: f.kind === 'hazard' ? '#cf4520' : '#F2A900', opacity: 0.2, stroke: '#F2A900', label, title: label })
+    }
+  }
+  if (trial.site?.boundary_geojson) {
+    const ring = ringFromGeoJson(trial.site.boundary_geojson)
+    if (ring.length >= 3 && polygons.length) polygons.unshift({ ring, fill: 'none', opacity: 0, stroke: '#ffffff' })
+  }
+  const map = satelliteMapHtml(polygons, { width: 700, maxHeight: 560, maxScale: 4, padM: polygons.length ? 15 : 120, pins, lines, attribution: '' })
+  if (!map) return ''
+  const legend = polygons.length && trtOf.size
+    ? `<div style="flex:1;min-width:180px;display:grid;grid-template-columns:${treatments.length > 12 ? '1fr 1fr' : '1fr'};gap:2px 12px;font-size:10px;line-height:1.3;align-content:start">${treatments.map((t) => { const cc = t.n === 1 ? { bg: '#fff', border: '1px dashed #B9BBB9' } : cellColors(t.n); return `<div style="display:flex;gap:6px;align-items:center"><span style="flex:none;width:11px;height:11px;border-radius:2px;background:${cc.bg};border:${cc.border}"></span><span class="mono" style="width:24px">T${t.n}</span><span>${blind ? '' : esc(t.name)}</span></div>` }).join('')}</div>`
+    : ''
+  return `<div class="keep"><h2>Site map</h2><div style="display:flex;gap:16px;align-items:flex-start">${map}${legend}</div><p class="muted" style="margin-top:4px">${esc(caption)} North is up; plot colours follow the treatment number, untreated plots are left clear. Imagery © Esri, Maxar, Earthstar Geographics.</p></div>`
+}
+
 function weatherHtml(weather: WeatherDay[], sown: string | null): string {
   if (!weather.length) return ''
   const from = sown ?? weather[0].date
@@ -326,8 +393,9 @@ export function trialReportHtml(d: ReportData): string {
 
   // site and season
   const season = `${hdr('Site, season and applications')}
+    ${siteMapHtml(d)}
     ${d.weather?.length ? `<h2>Weather at the site</h2>${weatherHtml(d.weather, trial.sown_date)}` : ''}
-    <h2>Operations</h2>${applicationsHtml(d.operations ?? [], trial)}
+    <div class="keep"><h2>Operations</h2>${applicationsHtml(d.operations ?? [], trial)}</div>
     <h2>Treatments</h2>
     <table><thead><tr><th>#</th><th>Treatment</th><th>Products and rates by timing</th><th>Plots</th></tr></thead><tbody>
       ${treatments.map((t) => `<tr><td class="mono"><b>T${t.n}</b></td><td><b>${blind ? `T${t.n}` : esc(t.name)}</b></td><td>${blind ? '—' : recipe(t)}</td><td class="mono">${(t.components?.plots ?? []).join(' ')}</td></tr>`).join('')}
