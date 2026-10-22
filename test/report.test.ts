@@ -57,4 +57,13 @@ check('flagged plot and correction listed', html.includes('PLOT DAMAGE: back hal
 check('summary names the best treatment', html.includes('best Prosaro'))
 const blind = trialReportHtml({ ...d, options: { blind: true } })
 check('blind report hides names and recipes', !blind.includes('Prosaro') && blind.includes('T2'))
+const outTrial: LiveTrial = { ...trial, design: { ...trial.design!, outPlots: [303] } }
+const outHtml = trialReportHtml({ ...d, trial: outTrial })
+check('out plot dropped from means and shown on the map', outHtml.includes('1 plot excluded from the analysis (303)') && outHtml.includes('>OUT</b>') && /untreated 42\.5/.test(outHtml))
+check('every field note is listed, office notes are not', outHtml.includes('PLOT DAMAGE: back half missing') && !trialReportHtml({ ...d, scores: [...scores, sc(1, '2026-10-08', 102, 'pgreen', 50, 'Derived in the office as (q1 + q2) x 5')] }).includes('Derived in the office'))
+const rowsM = new Map(measures)
+rowsM.set('till_q1', { ...measures.get('dmg_f1')!, key: 'till_q1', part: 'quadrat', group_key: 'weed' })
+rowsM.set('till_m2', { ...measures.get('dmg_f1')!, key: 'till_m2', part: 'plot', group_key: 'weed' })
+const rr = splitRounds([sc(4, '2026-10-22', 101, 'till_q1', 3), sc(4, '2026-10-22', 101, 'till_m2', 40), sc(4, '2026-10-22', 102, 'till_q1', 1)], rowsM)
+check('per-plot measure beats the raw quadrat count as primary', pickPrimary(rr[0], rowsM) === 'till_m2')
 console.log(`report: ${passed} checks passed`)

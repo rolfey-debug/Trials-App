@@ -32,6 +32,15 @@ check('flat data: one letter for all', flat.letters['A'] === 'a' && flat.letters
 
 // unbalanced input is refused rather than mis-analysed
 check('unbalanced returns null', rcbdAnova({ A: [1, 2, 3], B: [1, 2] }) === null)
+
+// one missing plot: Yates estimate (3·38 + 3·23 − 125) / 4 = 14.5, error df down by one
+const miss = rcbdAnova({ A: [10, 12, 14], B: [20, 22, 24], C: [10, 13, null] })!
+check('missing plot analysed', !!miss && miss.missing === 1 && miss.estimated.C?.[0] === 2)
+check('missing plot estimate 14.5', near(miss.means.find((x) => x.key === 'C')!.mean, (10 + 13 + 14.5) / 3))
+check('error df reduced to 3', miss.dfError === 3)
+check('B still alone on top with a missing plot', miss.letters['B'] === 'a' && miss.letters['A'] === miss.letters['C'])
+check('too many missing refused', rcbdAnova({ A: [1, null, 3], B: [null, 2, 3], C: [1, 2, null] }) === null)
+check('a treatment with one value refused', rcbdAnova({ A: [1, null, null], B: [2, 2, 3], C: [1, 2, 3], D: [4, 5, 6], E: [1, 1, 2] }) === null)
 check('single rep returns null', rcbdAnova({ A: [1], B: [2] }) === null)
 
 // t table: exact rows and interpolation stay sane

@@ -57,6 +57,8 @@ export interface LiveTrial {
     reservePlots?: number[]
     marginalPlots?: number[]
     sparePlots?: number[]
+    /** Plots taken out of the trial (damage, drift); never scored or analysed from then on. */
+    outPlots?: number[]
   } | null
   spraying: {
     waterRateLPerHa?: number

@@ -63,7 +63,12 @@ export interface Round {
 
 const fmt = (n: number, d = 1) => (Number.isFinite(n) ? n.toFixed(d) : '—')
 const dateAu = (iso: string) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
-const dayOf = (iso: string) => iso.slice(0, 10)
+/** Calendar day in the viewer's time zone (a 10:47 am count in Corowa is not the day before). */
+const dayOf = (iso: string) => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 /** Fallback labels and direction for keys the library does not know. */
 const HIGHER_BETTER_FALLBACK = /^(pgreen|ndvi|vigour|cropsafe|control_pct|ctrl_|biomass|plants|plant_count|dm_|yield|pod_count|feed_)/
@@ -120,6 +125,8 @@ export function higherBetter(k: string, measures: Map<string, MeasureDef>): bool
 }
 
 export interface TrtStat {
+  /** one slot per allocated plot in rep order; null where unscored or excluded */
+  byBlock: Array<number | null>
   n: number
   name: string
   plots: number[]
@@ -130,24 +137,26 @@ export interface TrtStat {
 
 /** Per-treatment values for one measure in one round, in rep order (the
  * order of the treatment's plot list), with the mean of the plots scored. */
-export function treatmentStats(trts: TreatmentRow[], scores: ScoreRow[], measure: string): TrtStat[] {
+export function treatmentStats(trts: TreatmentRow[], scores: ScoreRow[], measure: string, excluded?: Set<number>): TrtStat[] {
   const byPlot = new Map<number, number>()
-  for (const s of scores) if (s.measure === measure && s.value != null) byPlot.set(s.plot, Number(s.value))
+  for (const s of scores) if (s.measure === measure && s.value != null && !excluded?.has(s.plot)) byPlot.set(s.plot, Number(s.value))
   return trts.map((t) => {
     const plots = t.components?.plots ?? []
-    const values = plots.map((p) => byPlot.get(p)).filter((v): v is number => v !== undefined)
+    const byBlock = plots.map((p) => byPlot.get(p) ?? null)
+    const values = byBlock.filter((v): v is number => v !== null)
     const mean = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
     const sd = values.length > 1 && mean !== null ? Math.sqrt(values.reduce((a, v) => a + (v - mean) ** 2, 0) / (values.length - 1)) : null
-    return { n: t.n, name: t.name, plots, values, mean, sd }
+    return { n: t.n, name: t.name, plots, values, byBlock, mean, sd }
   })
 }
 
 /** ANOVA when every treatment has the same complete set of reps. */
 export function anovaFor(stats: TrtStat[]): Anova | null {
   const r = stats[0]?.plots.length ?? 0
-  if (r < 2 || stats.some((s) => s.plots.length !== r || s.values.length !== r)) return null
-  const data: Record<string, number[]> = {}
-  for (const s of stats) data[`T${s.n}`] = s.values
+  if (r < 2 || stats.some((s) => s.plots.length !== r)) return null
+  if (stats.every((s) => s.values.length === 0)) return null
+  const data: Record<string, Array<number | null>> = {}
+  for (const s of stats) data[`T${s.n}`] = s.byBlock
   return rcbdAnova(data)
 }
 
@@ -156,7 +165,11 @@ export function anovaFor(stats: TrtStat[]): Anova | null {
 export function pickPrimary(round: Round, measures: Map<string, MeasureDef>): string {
   const counts = new Map<string, number>()
   for (const s of round.scores) counts.set(s.measure, (counts.get(s.measure) ?? 0) + 1)
-  return [...counts.entries()].sort((a, b) => groupRank(measures.get(a[0])) - groupRank(measures.get(b[0])) || b[1] - a[1])[0]?.[0] ?? round.measures[0]
+  // raw quadrat or row counts sit behind the per-plot measure they feed
+  const partRank = (m?: MeasureDef) => (m?.part === 'quadrat' || m?.part === 'row' || /_q\d$|_col$/.test(m?.key ?? '') ? 1 : 0)
+  // a measured count or leaf-area reading before a visual percentage
+  const ratingRank = (m?: MeasureDef) => (m?.rating === 'count' || m?.rating === 'pct_lai' || m?.rating === 'yield' ? 0 : 1)
+  return [...counts.entries()].sort((a, b) => groupRank(measures.get(a[0])) - groupRank(measures.get(b[0])) || partRank(measures.get(a[0])) - partRank(measures.get(b[0])) || ratingRank(measures.get(a[0])) - ratingRank(measures.get(b[0])) || b[1] - a[1])[0]?.[0] ?? round.measures[0]
 }
 
 // --- pieces ------------------------------------------------------------------
@@ -211,6 +224,10 @@ function plotMapHtml(trial: LiveTrial, trts: TreatmentRow[], scores: ScoreRow[],
       const pid = r * 100 + p
       const t = trtOf.get(pid)
       const v = val.get(pid)
+      if (trial.design?.outPlots?.includes(pid)) {
+        cells.push(`<div class="cell" style="background:repeating-linear-gradient(45deg,#F4F5F4 0 4px,#E4E4E6 4px 8px);color:#8A8C8A;border:1px solid #D8DAD8"><span class="mono" style="font-size:9px">${pid}</span><b style="font-size:9px">OUT</b></div>`)
+        continue
+      }
       if (t === undefined) {
         cells.push('<div class="cell" style="background:#F4F5F4;color:#B9BBB9"><span class="mono" style="font-size:9px">·</span></div>')
         continue
@@ -313,19 +330,28 @@ function applicationsHtml(ops: OperationRow[], trial: LiveTrial): string {
   const sow = ops.find((o) => o.kind === 'sow')
   if (sow) {
     const d = (sow.detail ?? {}) as Record<string, string>
-    rows.push(`<tr><td>Sowing</td><td>${esc(dateAu(sow.performed_at))}</td><td>${esc([d.variety && `variety ${d.variety}`, d.fert && `fertiliser ${d.fert}`, d.preEm && `pre-emergent ${d.preEm}`, d.stubble && `stubble ${d.stubble}`].filter(Boolean).join(' · '))}</td></tr>`)
+    rows.push(`<tr><td>Sowing</td><td>${esc(dateAu(sow.performed_at))}</td><td>${esc([d.variety && `variety ${d.variety}`, d.fert && `fertiliser ${d.fert}`, d.preEm && `pre-emergent ${d.preEm}`, d.stubble && `stubble ${d.stubble}`, d.note].filter(Boolean).join(' · '))}</td></tr>`)
   }
-  for (const o of ops.filter((x) => x.kind === 'spray').sort((a, b) => a.performed_at.localeCompare(b.performed_at))) {
+  const kindLabel = (o: OperationRow) => {
+    const tl = (o.detail as { timingLabel?: string } | null)?.timingLabel
+    const planned = o.timing ? (trial.spraying?.timings?.[o.timing] as { label?: string } | undefined) : undefined
+    if (o.kind === 'spray') return `Application ${o.timing ?? ''}${planned?.label ? ` (${planned.label})` : tl && tl !== o.timing ? ` (${tl})` : ''}`.trim()
+    if (o.kind === 'fertilise') return `Fertiliser${tl ? ` (${tl})` : ''}`
+    return `${o.kind.charAt(0).toUpperCase()}${o.kind.slice(1)}${tl ? ` (${tl})` : ''}`
+  }
+  for (const o of ops.filter((x) => x.kind !== 'sow').sort((a, b) => a.performed_at.localeCompare(b.performed_at))) {
     const cond = Object.entries(o.conditions ?? {}).filter(([k]) => k !== 'Date').map(([k, v]) => `${k} ${v}`).join(', ')
     const planned = o.timing ? trial.spraying?.timings?.[o.timing] : undefined
-    rows.push(`<tr><td>Application ${esc(o.timing ?? '')}</td><td>${esc(planned?.applied ? dateAu(planned.applied) : dateAu(o.performed_at))}</td><td>${esc([o.detail?.sprayed?.length ? `${o.detail.sprayed.length} plots` : null, cond || null, o.detail?.note ?? null, o.equipment_id?.name ?? null].filter(Boolean).join(' · '))}</td></tr>`)
+    rows.push(`<tr><td>${esc(kindLabel(o))}</td><td>${esc(planned?.applied ? dateAu(planned.applied) : dateAu(o.performed_at))}</td><td>${esc([o.detail?.sprayed?.length ? `${o.detail.sprayed.length} plots` : null, o.detail?.note ?? null, cond || null, o.equipment_id?.name ?? null].filter(Boolean).join(' · '))}</td></tr>`)
   }
   if (!rows.length) return '<p class="muted">No operations on the record.</p>'
   return `<table><thead><tr><th style="width:18%">Operation</th><th style="width:16%">Date</th><th>Detail</th></tr></thead><tbody>${rows.join('')}</tbody></table>
   <p class="muted" style="margin-top:4px">Water rate ${esc(String(trial.spraying?.waterRateLPerHa ?? '—'))} L/ha${trial.design?.plot ? `, ${trial.design.plot.widthM} × ${trial.design.plot.lengthM} m plots` : ''}.</p>`
 }
 
-const FLAG_RE = /(PLOT DAMAGE|MARGINAL|recheck|Recheck|not called|garbled|unclear|excluded|reassigned|wrong bottle|scratch|discard)/
+const FLAG_RE = /(PLOT DAMAGE|MARGINAL|recheck|Recheck|not called|garbled|unclear|excluded|reassigned|wrong bottle|rouge bottle|rogue bottle|scratch|discard|damage|drift|bleach)/i
+/** Office bookkeeping notes that are not field observations. */
+const SYSTEM_NOTE_RE = /^(Derived in the office|Field count typed into chat|Edited in the office portal)/
 
 function observationsHtml(rounds: Round[], trts: TreatmentRow[], corrections: ReportCorrection[], blind: boolean): string {
   const trtOf = new Map<number, number>()
@@ -334,13 +360,14 @@ function observationsHtml(rounds: Round[], trts: TreatmentRow[], corrections: Re
   for (const r of rounds) {
     const seen = new Set<string>()
     for (const s of r.scores) {
-      if (!s.note || !FLAG_RE.test(s.note)) continue
-      // keep the human part of the note, drop the plant readings prefix
-      const text = s.note.replace(/^plants [^—|]*—\s*/, '').replace(/\s*\[voice transcript[^\]]*\]/g, '').trim()
-      const key = `${s.plot}:${text}`
+      if (!s.note || SYSTEM_NOTE_RE.test(s.note)) continue
+      // keep the human part of the note, drop the plant readings prefix and office suffixes
+      const text = s.note.replace(/^plants [^—|]*—\s*/, '').replace(/\s*\[voice transcript[^\]]*\]/g, '').replace(/;\s*(Derived in the office|Field count typed)[^;]*$/, '').trim()
+      if (!text || /^(Derived|Field count)/.test(text)) continue
+      const key = `${s.plot}:${text.toLowerCase()}`
       if (seen.has(key)) continue
       seen.add(key)
-      items.push(`<li><span class="mono">${s.plot}</span>${blind ? '' : ` <span class="muted">T${trtOf.get(s.plot) ?? '?'}</span>`} · ${esc(r.label)}: ${esc(text)}</li>`)
+      items.push(`<li><span class="mono">${s.plot}</span>${blind ? '' : ` <span class="muted">T${trtOf.get(s.plot) ?? '?'}</span>`} · ${esc(r.label)}: ${esc(text)}${FLAG_RE.test(text) ? ' <span style="color:#A93414;font-weight:700">⚑</span>' : ''}</li>`)
     }
   }
   const corr = corrections.length ? `<p style="margin-top:8px"><b>${corrections.length} correction${corrections.length === 1 ? '' : 's'}</b> on the record${corrections.length <= 12 ? ': ' + corrections.map((c) => `${c.plot} ${c.kind}${c.measure ? ` ${c.measure}` : ''}${c.old_value != null && c.new_value != null ? ` ${fmt(c.old_value)} → ${fmt(c.new_value)}` : ''}`).join('; ') : ', listed in the audit log'}. Every change keeps the old value, the new value, who made it and why.</p>` : ''
@@ -350,13 +377,18 @@ function observationsHtml(rounds: Round[], trts: TreatmentRow[], corrections: Re
 // --- the report --------------------------------------------------------------
 
 export function trialReportHtml(d: ReportData): string {
-  const { trial, treatments, scores, measures } = d
+  const { trial, scores, measures } = d
+  // plots taken out of the trial carry no weight in means or letters; they
+  // stay in the allocation so the block structure holds for the ANOVA
+  const out = new Set(trial.design?.outPlots ?? [])
+  const treatments = d.treatments
+  const statsOf = (sc: ScoreRow[], m: string) => treatmentStats(treatments, sc, m, out)
   const o = d.options ?? {}
   const blind = !!o.blind
   const rounds = splitRounds(scores, measures)
   const site = trial.site ? [trial.site.property, trial.site.town].filter(Boolean).join(', ') : ''
   const logo = typeof document !== 'undefined' ? new URL('assets/agnvet-logo.png', document.baseURI).href : ''
-  const plotsN = new Set(treatments.flatMap((t) => t.components?.plots ?? [])).size
+  const plotsN = new Set(treatments.flatMap((t) => t.components?.plots ?? []).filter((p) => !out.has(p))).size
   const draftBand = o.draft ? '<div style="margin:0 0 16px;padding:8px 14px;border-radius:6px;background:#FBEDE8;border-bottom:2px solid #cf4520;color:#A93414;font-size:11px;font-weight:800;letter-spacing:.08em">DRAFT · PLOT MEANS AND FIELD NOTES AS RECORDED · NOT FOR DISTRIBUTION</div>' : ''
   const page = (body: string) => `<div class="page">${body}</div>`
   const hdr = (kind: string) => `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px"><div><div class="eyebrow">${esc(kind)}</div><div style="font-size:15px;font-weight:800">${esc(trial.name)}</div></div>${logo ? `<img src="${esc(logo)}" alt="AGnVET" style="height:26px">` : ''}</div>`
@@ -380,14 +412,15 @@ export function trialReportHtml(d: ReportData): string {
     <h2>Summary of results</h2>
     ${rounds.length ? rounds.map((r) => {
       const pm = o.primary && r.measures.includes(o.primary) ? o.primary : pickPrimary(r, measures)
-      const stats = treatmentStats(treatments, r.scores, pm)
+      const stats = statsOf(r.scores, pm)
       const an = anovaFor(stats)
       const better = higherBetter(pm, measures)
       const ranked = stats.filter((s) => s.mean !== null).sort((a, b) => (better ? b.mean! - a.mean! : a.mean! - b.mean!))
       const unt = stats.find((s) => /untreated|nil|control/i.test(s.name)) ?? stats[0]
       const top = ranked.slice(0, 3)
-      return `<p><b>${esc(r.label)}, ${esc(labelOf(pm, measures))}</b>: untreated ${unt?.mean != null ? fmt(unt.mean) : '—'}; best ${top.map((s) => `${blind ? `T${s.n}` : esc(s.name)} ${fmt(s.mean!)}${an?.letters[`T${s.n}`] ? ` ${an.letters[`T${s.n}`]}` : ''}`).join(', ')}${an ? `. LSD 5% ${fmt(an.lsd05)}, CV ${fmt(an.cv, 0)}%.` : '. Plot means only (unbalanced, no LSD).'}</p>`
+      return `<p><b>${esc(r.label)}, ${esc(labelOf(pm, measures))}</b>: untreated ${unt?.mean != null ? fmt(unt.mean) : '—'}; best ${top.map((s) => `${blind ? `T${s.n}` : esc(s.name)} ${fmt(s.mean!)}${an?.letters[`T${s.n}`] ? ` ${an.letters[`T${s.n}`]}` : ''}`).join(', ')}${an ? `. LSD 5% ${fmt(an.lsd05)}, CV ${fmt(an.cv, 0)}%${an.missing ? `, ${an.missing} missing plot${an.missing === 1 ? '' : 's'} estimated` : ''}.` : '. Plot means only (unbalanced, no LSD).'}</p>`
     }).join('') : '<p class="muted">No assessment scores have synced for this trial.</p>'}
+    ${out.size ? `<p class="muted" style="margin-top:6px">${out.size} plot${out.size === 1 ? '' : 's'} excluded from the analysis (${[...out].sort((a, b) => a - b).join(', ')}); see the corrections log.</p>` : ''}
     ${trial.design?.notes?.length ? `<h2>Notes on the record</h2><ul style="margin:0;padding-left:18px;line-height:1.5">${trial.design.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     ${footerLine(trial)}`
 
@@ -398,17 +431,17 @@ export function trialReportHtml(d: ReportData): string {
     <div class="keep"><h2>Operations</h2>${applicationsHtml(d.operations ?? [], trial)}</div>
     <h2>Treatments</h2>
     <table><thead><tr><th>#</th><th>Treatment</th><th>Products and rates by timing</th><th>Plots</th></tr></thead><tbody>
-      ${treatments.map((t) => `<tr><td class="mono"><b>T${t.n}</b></td><td><b>${blind ? `T${t.n}` : esc(t.name)}</b></td><td>${blind ? '—' : recipe(t)}</td><td class="mono">${(t.components?.plots ?? []).join(' ')}</td></tr>`).join('')}
+      ${treatments.map((t) => `<tr><td class="mono"><b>T${t.n}</b></td><td><b>${blind ? `T${t.n}` : esc(t.name)}</b></td><td>${blind ? '—' : recipe(t)}</td><td class="mono">${(t.components?.plots ?? []).map((p) => (out.has(p) ? `<s style="color:#8A8C8A">${p}</s>` : String(p))).join(' ')}</td></tr>`).join('')}
     </tbody></table>${footerLine(trial)}`
 
   // results per round
   const results = rounds.map((r) => {
     const pm = o.primary && r.measures.includes(o.primary) ? o.primary : pickPrimary(r, measures)
     const better = higherBetter(pm, measures)
-    const primaryStats = treatmentStats(treatments, r.scores, pm)
+    const primaryStats = statsOf(r.scores, pm)
     const primaryAnova = anovaFor(primaryStats)
     const cols = r.measures
-    const statsBy = new Map(cols.map((m) => [m, treatmentStats(treatments, r.scores, m)]))
+    const statsBy = new Map(cols.map((m) => [m, statsOf(r.scores, m)]))
     const anovaBy = new Map(cols.map((m) => [m, anovaFor(statsBy.get(m)!)]))
     const plotsScored = new Set(r.scores.map((s) => s.plot)).size
     const method = [...new Set(cols.map((m) => measures.get(m)?.sample).filter(Boolean))].join('; ')
@@ -417,9 +450,9 @@ export function trialReportHtml(d: ReportData): string {
       <h2>Treatment means</h2>
       <table><thead><tr><th>#</th><th>Treatment</th>${cols.map((m) => `<th class="num" colspan="2">${esc(labelOf(m, measures))}${measures.get(m)?.unit ? `<br><span class="muted" style="font-weight:400">${esc(measures.get(m)!.unit!)}</span>` : ''}</th>`).join('')}</tr></thead><tbody>
         ${treatments.map((t) => `<tr><td class="mono">T${t.n}</td><td>${blind ? `T${t.n}` : esc(t.name)}</td>${cols.map((m) => { const s = statsBy.get(m)!.find((x) => x.n === t.n)!; const l = anovaBy.get(m)?.letters[`T${t.n}`] ?? ''; return `<td class="num"><b>${s.mean == null ? '—' : fmt(s.mean)}</b>${s.sd != null ? ` <span class="muted">±${fmt(s.sd)}</span>` : ''}${s.values.length && s.values.length !== s.plots.length ? ` <span class="muted">(${s.values.length}/${s.plots.length})</span>` : ''}</td><td style="width:28px;color:#58585B">${esc(l)}</td>` }).join('')}</tr>`).join('')}
-        <tr><th colspan="2">LSD 5% · CV</th>${cols.map((m) => { const a = anovaBy.get(m); return `<th class="num" colspan="2" style="font-weight:600">${a ? `${fmt(a.lsd05)} · ${a.cv > 200 ? 'CV n/a (near zero)' : `${fmt(a.cv, 0)}%`}` : '<span class="muted">unbalanced</span>'}</th>` }).join('')}</tr>
+        <tr><th colspan="2">LSD 5% · CV</th>${cols.map((m) => { const a = anovaBy.get(m); return `<th class="num" colspan="2" style="font-weight:600">${a ? `${fmt(a.lsd05)} · ${a.cv > 200 ? 'CV n/a (near zero)' : `${fmt(a.cv, 0)}%`}${a.missing ? `<br><span class="muted" style="font-weight:400">${a.missing} est.</span>` : ''}` : '<span class="muted">unbalanced</span>'}</th>` }).join('')}</tr>
       </tbody></table>
-      <p class="muted" style="margin-top:4px">Mean ± SD across reps. Letters from RCBD ANOVA with LSD at 5%: treatments sharing a letter do not differ. A fraction after a mean is plots scored of plots allocated.</p>
+      <p class="muted" style="margin-top:4px">Mean ± SD across reps. Letters from RCBD ANOVA with LSD at 5%: treatments sharing a letter do not differ. A fraction after a mean is plots scored of plots allocated.${[...anovaBy.values()].some((a) => a?.missing) ? ' Where plots are missing or excluded, the ANOVA fills them by Yates\' missing-plot estimate, drops one error df per estimate and widens the LSD for pairs involving an estimated plot; means shown are of the scored plots only.' : ''}</p>
       <div class="keep"><h2>Ranked · ${esc(labelOf(pm, measures))}</h2>
       ${barsSvg(primaryStats, primaryAnova, better, measures.get(pm)?.unit ?? '', blind)}</div>
       <div class="keep"><h2>Plot map · ${esc(labelOf(pm, measures))}</h2>

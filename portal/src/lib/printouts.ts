@@ -79,7 +79,8 @@ export function treatmentLines(t: TreatmentRow): TreatmentLine[] {
   }
   if (out.length) return out
   const str = (k: string) => (typeof c[k] === 'string' ? (c[k] as string) : null)
-  for (const [tm, s] of [['A', str('aTiming')], ['B', str('bTiming')]] as Array<[string, string | null]>) {
+  // imported trials keep one product string per timing (aTiming/bTiming, or A/B)
+  for (const [tm, s] of [['A', str('aTiming') ?? str('A')], ['B', str('bTiming') ?? str('B')], ['C', str('C')], ['D', str('D')]] as Array<[string, string | null]>) {
     if (!s) continue
     for (const part of s.split(/\s*\+\s*/)) {
       const m = RATE_RE.exec(part.trim())
@@ -89,8 +90,9 @@ export function treatmentLines(t: TreatmentRow): TreatmentLine[] {
   }
   if (out.length) return out
   if (t.recipe && !/untreated|water only|^nil/i.test(t.recipe)) {
-    for (const seg of t.recipe.split(/\s*·\s*/)) {
-      const m2 = /^([A-D]):\s*(.*)$/.exec(seg)
+    // "A (IBS): x + B (EPE/Post): y" carries the timing label in brackets
+    for (const seg of t.recipe.split(/\s*·\s*|\s*\+\s*(?=[A-D]\s*(?:\([^)]*\))?\s*:)/)) {
+      const m2 = /^([A-D])\s*(?:\([^)]*\))?\s*:\s*(.*)$/.exec(seg)
       const tm = m2 ? m2[1] : 'A'
       for (const part of (m2 ? m2[2] : seg).split(/\s*\+\s*/)) {
         const m = RATE_RE.exec(part.trim())

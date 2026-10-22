@@ -95,4 +95,8 @@ check('WHS pack lists the drawn power line, gate and hazard', whs.includes('SWER
 check('WHS register lists products with EXP status', whs.includes('Prosaro 420 SC') && whs.includes('unregistered, research permit'))
 check('WHS accreditation lists applicators', whs.includes('A. Rolfe'))
 check('WHS emergency plan has 000 and the poisons line', whs.includes('000') && whs.includes('13 11 26'))
+const imp = treatmentLines({ n: 15, name: 'Sakura + Syrexon 1300', recipe: 'A (IBS): Sakura 118 g/ha + B (EPE/Post): Syrexon 1300 mL/ha', b_spray: true, components: { A: 'Sakura 118 g/ha', B: 'Syrexon 1300 mL/ha', plots: [105, 602, 1006] } as never })
+check('imported A/B strings give one line per timing', imp.length === 2 && imp[0].timing === 'A' && imp[0].product === 'Sakura' && imp[0].rate === 118 && imp[1].timing === 'B' && imp[1].product === 'Syrexon' && imp[1].rate === 1300)
+const rec = treatmentLines({ n: 15, name: 'x', recipe: 'A (IBS): Sakura 118 g/ha + B (EPE/Post): Syrexon 1300 mL/ha', b_spray: true, components: { plots: [1] } })
+check('labelled recipe parses by timing', rec.length === 2 && rec[1].timing === 'B' && rec[1].product === 'Syrexon')
 console.log(`printouts: ${passed} checks passed`)
