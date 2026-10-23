@@ -363,7 +363,8 @@ function observationsHtml(rounds: Round[], trts: TreatmentRow[], corrections: Re
       if (!s.note || SYSTEM_NOTE_RE.test(s.note)) continue
       // keep the human part of the note, drop the plant readings prefix and office suffixes
       const text = s.note.replace(/^plants [^—|]*—\s*/, '').replace(/\s*\[voice transcript[^\]]*\]/g, '').replace(/;\s*(Derived in the office|Field count typed)[^;]*$/, '').trim()
-      if (!text || /^(Derived|Field count)/.test(text)) continue
+      // a bare plant-readings note ("plants 5/5/5") carries no observation
+      if (!text || /^(Derived|Field count)/.test(text) || /^plants\s[\d.\/na\s]+$/i.test(text)) continue
       const key = `${s.plot}:${text.toLowerCase()}`
       if (seen.has(key)) continue
       seen.add(key)

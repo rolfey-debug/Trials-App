@@ -66,4 +66,5 @@ rowsM.set('till_q1', { ...measures.get('dmg_f1')!, key: 'till_q1', part: 'quadra
 rowsM.set('till_m2', { ...measures.get('dmg_f1')!, key: 'till_m2', part: 'plot', group_key: 'weed' })
 const rr = splitRounds([sc(4, '2026-10-22', 101, 'till_q1', 3), sc(4, '2026-10-22', 101, 'till_m2', 40), sc(4, '2026-10-22', 102, 'till_q1', 1)], rowsM)
 check('per-plot measure beats the raw quadrat count as primary', pickPrimary(rr[0], rowsM) === 'till_m2')
+check('bare plant readings are not observations', !trialReportHtml({ ...d, scores: [...scores, sc(1, '2026-10-08', 102, 'dmg_f', 5, 'plants 5/5/5')] }).includes('plants 5/5/5'))
 console.log(`report: ${passed} checks passed`)
