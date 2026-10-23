@@ -358,18 +358,24 @@ function observationsHtml(rounds: Round[], trts: TreatmentRow[], corrections: Re
   for (const t of trts) for (const p of t.components?.plots ?? []) trtOf.set(p, t.n)
   const items: string[] = []
   for (const r of rounds) {
-    const seen = new Set<string>()
+    // one entry per plot and note; a note shared by many plots (an import remark) is listed once with its plots
+    const byText = new Map<string, { text: string; plots: number[] }>()
     for (const s of r.scores) {
       if (!s.note || SYSTEM_NOTE_RE.test(s.note)) continue
-      // keep the human part of the note, drop the plant readings prefix and office suffixes
-      const text = s.note.replace(/^plants [^—|]*—\s*/, '').replace(/\s*\[voice transcript[^\]]*\]/g, '').replace(/;\s*(Derived in the office|Field count typed)[^;]*$/, '').trim()
+      // keep the human part of the note, drop the plant readings prefix, office suffixes and the leaf-count method clause
+      const text = s.note.replace(/^plants [^—|]*—\s*/, '').replace(/\s*\[voice transcript[^\]]*\]/g, '').replace(/;\s*(Derived in the office|Field count typed)[^;]*$/, '').replace(/\s*\|\s*mean of \d+ of \d+ leaves[^|]*$/i, '').trim()
       // a bare plant-readings note ("plants 5/5/5") carries no observation
       if (!text || /^(Derived|Field count)/.test(text) || /^plants\s[\d.\/na\s]+$/i.test(text)) continue
-      const key = `${s.plot}:${text.toLowerCase()}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      items.push(`<li><span class="mono">${s.plot}</span>${blind ? '' : ` <span class="muted">T${trtOf.get(s.plot) ?? '?'}</span>`} · ${esc(r.label)}: ${esc(text)}${FLAG_RE.test(text) ? ' <span style="color:#A93414;font-weight:700">⚑</span>' : ''}</li>`)
+      const k = text.toLowerCase()
+      const e = byText.get(k) ?? { text, plots: [] }
+      if (!e.plots.includes(s.plot)) e.plots.push(s.plot)
+      byText.set(k, e)
     }
+    const flag = (t: string) => (FLAG_RE.test(t) ? ' <span style="color:#A93414;font-weight:700">⚑</span>' : '')
+    const shared = [...byText.values()].filter((e) => e.plots.length >= 4)
+    for (const e of shared) items.push(`<li><span class="mono">${e.plots.length} plots</span> · ${esc(r.label)}: ${esc(e.text)} <span class="muted">(${e.plots.sort((a, b) => a - b).join(', ')})</span></li>`)
+    const single = [...byText.values()].filter((e) => e.plots.length < 4).flatMap((e) => e.plots.map((p) => ({ p, text: e.text }))).sort((a, b) => a.p - b.p)
+    for (const { p, text } of single) items.push(`<li><span class="mono">${p}</span>${blind ? '' : ` <span class="muted">T${trtOf.get(p) ?? '?'}</span>`} · ${esc(r.label)}: ${esc(text)}${flag(text)}</li>`)
   }
   const corr = corrections.length ? `<p style="margin-top:8px"><b>${corrections.length} correction${corrections.length === 1 ? '' : 's'}</b> on the record${corrections.length <= 12 ? ': ' + corrections.map((c) => `${c.plot} ${c.kind}${c.measure ? ` ${c.measure}` : ''}${c.old_value != null && c.new_value != null ? ` ${fmt(c.old_value)} → ${fmt(c.new_value)}` : ''}`).join('; ') : ', listed in the audit log'}. Every change keeps the old value, the new value, who made it and why.</p>` : ''
   return (items.length ? `<ul style="margin:0;padding-left:18px;line-height:1.5">${items.join('')}</ul>` : '<p class="muted">No flagged plots.</p>') + corr
@@ -441,7 +447,9 @@ export function trialReportHtml(d: ReportData): string {
     const better = higherBetter(pm, measures)
     const primaryStats = statsOf(r.scores, pm)
     const primaryAnova = anovaFor(primaryStats)
-    const cols = r.measures
+    // a measure recorded on only a plot or two is a note, not a column
+    const scoredPlots = (m: string) => new Set(r.scores.filter((s) => s.measure === m).map((s) => s.plot)).size
+    const cols = r.measures.filter((m) => scoredPlots(m) >= Math.min(3, plotsN) && scoredPlots(m) >= plotsN * 0.1)
     const statsBy = new Map(cols.map((m) => [m, statsOf(r.scores, m)]))
     const anovaBy = new Map(cols.map((m) => [m, anovaFor(statsBy.get(m)!)]))
     const plotsScored = new Set(r.scores.map((s) => s.plot)).size

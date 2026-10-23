@@ -67,4 +67,7 @@ rowsM.set('till_m2', { ...measures.get('dmg_f1')!, key: 'till_m2', part: 'plot',
 const rr = splitRounds([sc(4, '2026-10-22', 101, 'till_q1', 3), sc(4, '2026-10-22', 101, 'till_m2', 40), sc(4, '2026-10-22', 102, 'till_q1', 1)], rowsM)
 check('per-plot measure beats the raw quadrat count as primary', pickPrimary(rr[0], rowsM) === 'till_m2')
 check('bare plant readings are not observations', !trialReportHtml({ ...d, scores: [...scores, sc(1, '2026-10-08', 102, 'dmg_f', 5, 'plants 5/5/5')] }).includes('plants 5/5/5'))
+const shared = trialReportHtml({ ...d, scores: [...scores, ...[101, 102, 103, 201].map((p) => sc(1, '2026-09-02', p, 'rust_a1', 1, 'sheet column X, confirm'))] })
+check('a note shared by four plots is listed once with its plots', (shared.match(/sheet column X, confirm/g) ?? []).length === 1 && shared.includes('4 plots') && shared.includes('(101, 102, 103, 201)'))
+check('a measure scored on one plot is not a results column', !trialReportHtml({ ...d, scores: [...scores, sc(1, '2026-09-02', 101, 'rust_a1', 1)] }).includes('<th class="num" colspan="2">rust_a1'))
 console.log(`report: ${passed} checks passed`)
