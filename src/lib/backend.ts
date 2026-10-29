@@ -221,7 +221,9 @@ async function pushTrial(
     // Org-partitioned path: migration 004 scopes the bucket policy on the
     // first segment, so blobs can only ever be read within their own org.
     storage_path: `${ORG_ID}/${trial_id}/${p.id}.jpg`,
-    taken_at: new Date().toISOString(),
+    // the moment the photo was taken (the id ends in its epoch ms), never the
+    // sync time: rows are upserted on every push
+    taken_at: new Date(Number(p.id.split('-').pop()) || Date.now()).toISOString(),
     meta: { flagged: p.flagged, trt: p.trt, sizeKB: p.sizeKB ?? null, label: p.date, lat: p.lat ?? null, lng: p.lng ?? null },
   }))
 
