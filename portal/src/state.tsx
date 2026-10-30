@@ -3,7 +3,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 import { BASE_TREATMENTS, type Treatment } from './data'
 import type { Design } from './lib/layout'
 
-export type Screen = 'trials' | 'wizard' | 'docs' | 'review' | 'map'
+export type Screen = 'trials' | 'wizard' | 'builder' | 'outputs' | 'docs' | 'review' | 'map' | 'planner' | 'plotmap' | 'results' | 'audit'
 export type Step = 'aim' | 'site' | 'treatments' | 'rand' | 'assess' | 'review'
 
 export interface AppState {
@@ -42,6 +42,8 @@ export interface AppState {
   showFills: boolean
   drone: 'None' | 'RGB ortho' | 'NDVI'
   droneOp: number
+  /** Trial opened for editing in the builder; null means a new trial. */
+  editTrialId: string | null
 }
 
 const initial: AppState = {
@@ -81,6 +83,7 @@ const initial: AppState = {
   showFills: false,
   drone: 'NDVI',
   droneOp: 65,
+  editTrialId: null,
 }
 
 export interface Store {

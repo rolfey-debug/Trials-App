@@ -31,7 +31,14 @@ export default function Picker() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#141414' }}>Add product — treatment {nextT}</div>
-              <div style={{ fontSize: 12, color: '#8A8C8A', marginTop: 2 }}>Registered products · search by product or active ingredient</div>
+              <div style={{ fontSize: 12, color: '#8A8C8A', marginTop: 2 }}>
+                Registered products · search by product or active ingredient ·{' '}
+                {/* CC-BY 3.0 AU requires visible attribution wherever the data is used */}
+                <a href="https://data.gov.au/data/dataset/0de37904-43e0-4814-b21b-5b64fafefe6f" target="_blank" rel="noreferrer" style={{ color: '#8A8C8A', textDecoration: 'underline' }}>
+                  APVMA PubCRIS
+                </a>{' '}
+                via data.gov.au (CC BY 3.0 AU)
+              </div>
             </div>
             <div onClick={() => set({ picker: false })} className="hv-close" style={{ width: 28, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 7, fontSize: 16, color: '#8A8C8A', cursor: 'pointer' }}>×</div>
           </div>
