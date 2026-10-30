@@ -70,4 +70,11 @@ check('bare plant readings are not observations', !trialReportHtml({ ...d, score
 const shared = trialReportHtml({ ...d, scores: [...scores, ...[101, 102, 103, 201].map((p) => sc(1, '2026-09-02', p, 'rust_a1', 1, 'sheet column X, confirm'))] })
 check('a note shared by four plots is listed once with its plots', (shared.match(/sheet column X, confirm/g) ?? []).length === 1 && shared.includes('4 plots') && shared.includes('(101, 102, 103, 201)'))
 check('a measure scored on one plot is not a results column', !trialReportHtml({ ...d, scores: [...scores, sc(1, '2026-09-02', 101, 'rust_a1', 1)] }).includes('<th class="num" colspan="2">rust_a1'))
+// the agronomist's read prints on the cover only when given
+const withRead = trialReportHtml({ ...d, options: { commentary: ['Two-pass programs held the ryegrass.', 'Check the <crop> safety on T4.'] } })
+check('commentary printed and escaped', withRead.includes("Agronomist's read") && withRead.includes('Two-pass programs held the ryegrass.') && withRead.includes('&lt;crop&gt;'))
+check('no commentary section without entries', !html.includes("Agronomist's read"))
+// an operation with no date yet prints as pending instead of crashing the report
+const pending = trialReportHtml({ ...d, operations: [...(d.operations ?? []), { kind: 'spray', timing: 'C', performed_at: null as unknown as string, detail: { note: 'third pass, date to come' }, conditions: {}, equipment_id: null }] })
+check('undated operation prints as pending', pending.includes('date pending') && pending.includes('third pass, date to come'))
 console.log(`report: ${passed} checks passed`)

@@ -31,6 +31,8 @@ export interface ReportOptions {
   primary?: string
   /** Who signs the report. */
   author?: string
+  /** The agronomist's read of the results, one point per entry, printed on the cover under the summary. */
+  commentary?: string[]
 }
 
 export interface ReportData {
@@ -339,10 +341,11 @@ function applicationsHtml(ops: OperationRow[], trial: LiveTrial): string {
     if (o.kind === 'fertilise') return `Fertiliser${tl ? ` (${tl})` : ''}`
     return `${o.kind.charAt(0).toUpperCase()}${o.kind.slice(1)}${tl ? ` (${tl})` : ''}`
   }
-  for (const o of ops.filter((x) => x.kind !== 'sow').sort((a, b) => a.performed_at.localeCompare(b.performed_at))) {
+  // an operation entered before it is done has no date yet; it sorts last and prints as pending
+  for (const o of ops.filter((x) => x.kind !== 'sow').sort((a, b) => (a.performed_at ?? '9').localeCompare(b.performed_at ?? '9'))) {
     const cond = Object.entries(o.conditions ?? {}).filter(([k]) => k !== 'Date').map(([k, v]) => `${k} ${v}`).join(', ')
     const planned = o.timing ? trial.spraying?.timings?.[o.timing] : undefined
-    rows.push(`<tr><td>${esc(kindLabel(o))}</td><td>${esc(planned?.applied ? dateAu(planned.applied) : dateAu(o.performed_at))}</td><td>${esc([o.detail?.sprayed?.length ? `${o.detail.sprayed.length} plots` : null, o.detail?.note ?? null, cond || null, o.equipment_id?.name ?? null].filter(Boolean).join(' · '))}</td></tr>`)
+    rows.push(`<tr><td>${esc(kindLabel(o))}</td><td>${esc(planned?.applied ? dateAu(planned.applied) : o.performed_at ? dateAu(o.performed_at) : 'date pending')}</td><td>${esc([o.detail?.sprayed?.length ? `${o.detail.sprayed.length} plots` : null, o.detail?.note ?? null, cond || null, o.equipment_id?.name ?? null].filter(Boolean).join(' · '))}</td></tr>`)
   }
   if (!rows.length) return '<p class="muted">No operations on the record.</p>'
   return `<table><thead><tr><th style="width:18%">Operation</th><th style="width:16%">Date</th><th>Detail</th></tr></thead><tbody>${rows.join('')}</tbody></table>
@@ -428,7 +431,7 @@ export function trialReportHtml(d: ReportData): string {
       return `<p><b>${esc(r.label)}, ${esc(labelOf(pm, measures))}</b>: untreated ${unt?.mean != null ? fmt(unt.mean) : '—'}; best ${top.map((s) => `${blind ? `T${s.n}` : esc(s.name)} ${fmt(s.mean!)}${an?.letters[`T${s.n}`] ? ` ${an.letters[`T${s.n}`]}` : ''}`).join(', ')}${an ? `. LSD 5% ${fmt(an.lsd05)}, CV ${fmt(an.cv, 0)}%${an.missing ? `, ${an.missing} missing plot${an.missing === 1 ? '' : 's'} estimated` : ''}.` : '. Plot means only (unbalanced, no LSD).'}</p>`
     }).join('') : '<p class="muted">No assessment scores have synced for this trial.</p>'}
     ${out.size ? `<p class="muted" style="margin-top:6px">${out.size} plot${out.size === 1 ? '' : 's'} excluded from the analysis (${[...out].sort((a, b) => a - b).join(', ')}); see the corrections log.</p>` : ''}
-    ${trial.design?.notes?.length ? `<h2>Notes on the record</h2><ul style="margin:0;padding-left:18px;line-height:1.5">${trial.design.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+    ${o.commentary?.length ? `<h2>Agronomist's read</h2><ul style="margin:0;padding-left:18px;line-height:1.5">${o.commentary.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     ${footerLine(trial)}`
 
   // site and season
@@ -471,6 +474,7 @@ export function trialReportHtml(d: ReportData): string {
 
   const obs = `${hdr('Field observations and data notes')}
     <h2>Flagged plots</h2>${observationsHtml(rounds, treatments, d.corrections ?? [], blind)}
+    ${trial.design?.notes?.length ? `<h2>Notes on the record</h2><ul style="margin:0;padding-left:18px;line-height:1.5">${trial.design.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     ${d.photosByPlot && Object.keys(d.photosByPlot).length ? `<h2>Photos</h2><p>${Object.values(d.photosByPlot).reduce((a, b) => a + b, 0)} plot photos on the record across ${Object.keys(d.photosByPlot).length} plots; available on request or through the office portal.</p>` : ''}
     <h2>How to read this report</h2>
     <ul style="margin:0;padding-left:18px;line-height:1.5">
