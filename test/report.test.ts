@@ -77,4 +77,9 @@ check('no commentary section without entries', !html.includes("Agronomist's read
 // an operation with no date yet prints as pending instead of crashing the report
 const pending = trialReportHtml({ ...d, operations: [...(d.operations ?? []), { kind: 'spray', timing: 'C', performed_at: null as unknown as string, detail: { note: 'third pass, date to come' }, conditions: {}, equipment_id: null }] })
 check('undated operation prints as pending', pending.includes('date pending') && pending.includes('third pass, date to come'))
+// photo pages: latest photo per plot, treatment order, plot and rep captions; none without photos
+const withPhotos = trialReportHtml({ ...d, photos: [{ plot: 101, url: 'data:image/jpeg;base64,AAAA', takenAt: '2026-10-01T00:00:00Z' }, { plot: 101, url: 'data:image/jpeg;base64,BBBB', takenAt: '2026-10-30T00:00:00Z', label: 'flagged' }, { plot: 303, url: 'data:image/jpeg;base64,CCCC', takenAt: '2026-10-30T00:00:00Z' }] })
+check('photo page present with the latest photo per plot', withPhotos.includes('Plot photos · 1 to 2 of 2') && withPhotos.includes('base64,BBBB') && !withPhotos.includes('base64,AAAA') && withPhotos.includes('base64,CCCC'))
+check('photo captions carry plot, rep, date and label', /<b>101<\/b> · rep 1 · 30 Oct 2026/.test(withPhotos) && withPhotos.includes('flagged'))
+check('no photo page without photos', !html.includes('Plot photos ·') && html.includes('available on request'))
 console.log(`report: ${passed} checks passed`)

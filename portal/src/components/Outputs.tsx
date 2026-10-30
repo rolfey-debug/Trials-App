@@ -3,8 +3,8 @@
  * blank assessment sheets. Preview on the right, print (or save as PDF)
  * from the browser's dialog. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadOrgSettings, loadPeople, loadPlots, loadScores, loadSiteFeatures, loadSiteWeather, loadTreatments, loadTrialCorrections, loadTrialPhotos, markDocumentDrive, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OperationRow, type OrgSettings, type PersonRow, type PlotRow, type PrintKind, type ScoreRow, type SiteFeatureRow, type TreatmentRow, type WeatherDay } from '../lib/db'
-import { trialReportHtml, type ReportCorrection } from '../lib/report'
+import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadOrgSettings, loadPeople, loadPlots, loadScores, loadSiteFeatures, loadSiteWeather, loadTreatments, loadTrialCorrections, loadTrialPhotos, markDocumentDrive, photoDataUrl, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OperationRow, type OrgSettings, type PersonRow, type PlotRow, type PrintKind, type ScoreRow, type SiteFeatureRow, type TreatmentRow, type WeatherDay } from '../lib/db'
+import { trialReportHtml, type ReportCorrection, type ReportPhoto } from '../lib/report'
 import { forgetDriveToken, pushPrintoutToDrive } from '../lib/gdrive'
 import { agreementHtml, assessmentSheetHtml, documentHtml, growerInfoHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, whsPackHtml, type DocsData } from '../lib/printouts'
 import { MONO, useApp } from '../state'
@@ -50,6 +50,10 @@ export default function Outputs() {
   const [plots, setPlots] = useState<PlotRow[]>([])
   const [reportDraft, setReportDraft] = useState(true)
   const [reportBlind, setReportBlind] = useState(false)
+  const [reportPhotos, setReportPhotos] = useState(false)
+  const [photoRows, setPhotoRows] = useState<Array<{ plot: number; storage_path: string; taken_at: string; label?: string | null }>>([])
+  const [photos, setPhotos] = useState<ReportPhoto[]>([])
+  const [photoProgress, setPhotoProgress] = useState('')
   const [reportPrimary, setReportPrimary] = useState('')
   const [kind, setKind] = useState<Kind>('plan')
   const [timing, setTiming] = useState('A')
@@ -112,6 +116,9 @@ export default function Outputs() {
       for (const p of ph ?? []) counts[p.plot] = (counts[p.plot] ?? 0) + 1
       setPhotosByPlot(counts)
       setPhotoPoints((ph ?? []).filter((p) => p.meta?.lat != null && p.meta?.lng != null).map((p) => ({ plot: p.plot, lat: Number(p.meta!.lat), lng: Number(p.meta!.lng) })))
+      setPhotoRows((ph ?? []).map((p) => ({ plot: p.plot, storage_path: p.storage_path, taken_at: p.taken_at, label: p.meta?.label ?? null })))
+      setPhotos([])
+      setPhotoProgress('')
       setPlots(pl ?? [])
       setSheetN(as?.[0]?.n ?? 1)
     })()
@@ -121,6 +128,32 @@ export default function Outputs() {
   useEffect(() => {
     if (trial?.spraying?.waterRateLPerHa) setWater(trial.spraying.waterRateLPerHa)
   }, [trial])
+
+  // the latest photo of each plot, downsized and inlined, once the report asks for photos
+  useEffect(() => {
+    if (!reportPhotos || kind !== 'report' || photos.length || !photoRows.length) return
+    let cancelled = false
+    void (async () => {
+      const token = await portalToken()
+      if (!token) return
+      const latest = new Map<number, (typeof photoRows)[number]>()
+      for (const p of photoRows) if (!latest.has(p.plot) || p.taken_at > latest.get(p.plot)!.taken_at) latest.set(p.plot, p)
+      const todo = [...latest.values()].sort((a, b) => a.plot - b.plot)
+      const out: ReportPhoto[] = []
+      for (let i = 0; i < todo.length; i++) {
+        if (cancelled) return
+        setPhotoProgress(`Preparing photos ${i + 1} of ${todo.length}`)
+        const url = await photoDataUrl(todo[i].storage_path, token)
+        if (url) out.push({ plot: todo[i].plot, url, takenAt: todo[i].taken_at, label: todo[i].label })
+      }
+      if (cancelled) return
+      setPhotos(out)
+      setPhotoProgress(out.length ? `${out.length} plot photos in the report` : 'No photos could be loaded')
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [reportPhotos, kind, photoRows]) // eslint-disable-line react-hooks/exhaustive-deps
   const timings = useMemo(() => timingsOf(trts), [trts])
   useEffect(() => {
     if (timings.length && !timings.includes(timing)) setTiming(timings[0])
@@ -131,7 +164,7 @@ export default function Outputs() {
     const d: DocsData = { trial, treatments: trts, assessments: assess, measures, features, applicators: people.filter((p) => ['admin', 'agronomist', 'team'].includes(p.role)).map((p) => ({ name: p.name, role: p.role })) }
     switch (kind) {
       case 'report':
-        return documentHtml(`${trial.name} — trial report`, trialReportHtml({ trial, treatments: trts, scores, measures, weather, operations: ops, corrections, photosByPlot, photoPoints, plots, features, options: { draft: reportDraft, blind: reportBlind, primary: reportPrimary || undefined } }))
+        return documentHtml(`${trial.name} — trial report`, trialReportHtml({ trial, treatments: trts, scores, measures, weather, operations: ops, corrections, photosByPlot, photoPoints, plots, features, photos: reportPhotos ? photos : [], options: { draft: reportDraft, blind: reportBlind, primary: reportPrimary || undefined } }))
       case 'plan':
         return documentHtml(`${trial.name} — trial plan`, trialPlanHtml(d))
       case 'spray':
@@ -151,7 +184,7 @@ export default function Outputs() {
         return a ? documentHtml(`${trial.name} — assessment ${a.n}`, assessmentSheetHtml(d, a)) : documentHtml(trial.name, '<p class="muted">No assessment timings on this trial yet. Add them in the builder or the trial editor.</p>')
       }
     }
-  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, photoPoints, plots, reportDraft, reportBlind, reportPrimary, kind, timing, water, overage, signSize, repOne, blind, sheetN])
+  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, photoPoints, plots, photos, reportPhotos, reportDraft, reportBlind, reportPrimary, kind, timing, water, overage, signSize, repOne, blind, sheetN])
 
   useEffect(() => {
     setSaveState('idle')
@@ -263,6 +296,11 @@ export default function Outputs() {
             <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: '#3E403E', marginBottom: 8 }}>
               <input type="checkbox" checked={reportBlind} onChange={(e) => setReportBlind(e.target.checked)} /> Treatment codes only (blind copy)
             </label>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: '#3E403E', marginBottom: 2 }}>
+              <input type="checkbox" checked={reportPhotos} onChange={(e) => setReportPhotos(e.target.checked)} disabled={!photoRows.length} /> Plot photos (latest of each plot, {Object.keys(photosByPlot).length} plots)
+            </label>
+            {reportPhotos && photoProgress && <div style={{ fontSize: 11, color: '#58585B', margin: '0 0 8px 24px' }}>{photoProgress}</div>}
+            {!reportPhotos && <div style={{ height: 6 }} />}
             <div style={{ ...sectionLabel, fontSize: 9.5 }}>RANK AND MAP BY</div>
             <select value={reportPrimary} onChange={(e) => setReportPrimary(e.target.value)} style={inputStyle}>
               <option value="">Auto (fullest disease measure per round)</option>

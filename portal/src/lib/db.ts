@@ -311,6 +311,31 @@ export async function photoObjectUrl(path: string): Promise<string | null> {
   return blob ? URL.createObjectURL(blob) : null
 }
 
+/** A plot photo downsized to `maxPx` on its long side as a JPEG data URL, so a
+ * report can carry its photos inline (prints without a live sign-in and keeps
+ * them in a saved copy). Null when the object is missing or the browser cannot
+ * decode it. */
+export async function photoDataUrl(path: string, token: string, maxPx = 900, quality = 0.78): Promise<string | null> {
+  const blob = await fetchObject('photos', path, token)
+  if (!blob) return null
+  try {
+    const bmp = await createImageBitmap(blob)
+    const k = Math.min(1, maxPx / Math.max(bmp.width, bmp.height))
+    const w = Math.max(1, Math.round(bmp.width * k))
+    const h = Math.max(1, Math.round(bmp.height * k))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(bmp, 0, 0, w, h)
+    bmp.close()
+    return canvas.toDataURL('image/jpeg', quality)
+  } catch {
+    return null
+  }
+}
+
 /** Write machine-derived plot values (e.g. drone NDVI) as scores, beside the
  * assessor's eye scores, never in place of them. Deterministic ids (same
  * scheme as the field app: trial/round/plot/measure) make re-running an

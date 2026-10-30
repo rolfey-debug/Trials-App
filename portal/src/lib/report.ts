@@ -50,7 +50,18 @@ export interface ReportData {
   photoPoints?: Array<{ plot: number; lat: number; lng: number }>
   /** Gates, tracks, hazards and the like, drawn on the map. */
   features?: SiteFeatureRow[]
+  /** Plot photos to print, one tile each (the office portal passes the latest photo per plot, downsized). */
+  photos?: ReportPhoto[]
   options?: ReportOptions
+}
+
+export interface ReportPhoto {
+  plot: number
+  /** Image source: a data URL from the portal, or any URL the printing browser can load. */
+  url: string
+  takenAt: string
+  /** A field label from the phone (e.g. a flag), printed under the plot. */
+  label?: string | null
 }
 
 export interface Round {
@@ -475,7 +486,7 @@ export function trialReportHtml(d: ReportData): string {
   const obs = `${hdr('Field observations and data notes')}
     <h2>Flagged plots</h2>${observationsHtml(rounds, treatments, d.corrections ?? [], blind)}
     ${trial.design?.notes?.length ? `<h2>Notes on the record</h2><ul style="margin:0;padding-left:18px;line-height:1.5">${trial.design.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
-    ${d.photosByPlot && Object.keys(d.photosByPlot).length ? `<h2>Photos</h2><p>${Object.values(d.photosByPlot).reduce((a, b) => a + b, 0)} plot photos on the record across ${Object.keys(d.photosByPlot).length} plots; available on request or through the office portal.</p>` : ''}
+    ${d.photosByPlot && Object.keys(d.photosByPlot).length ? `<h2>Photos</h2><p>${Object.values(d.photosByPlot).reduce((a, b) => a + b, 0)} plot photos on the record across ${Object.keys(d.photosByPlot).length} plots; ${d.photos?.length ? `the latest photo of each plot follows, in treatment order` : 'available on request or through the office portal'}.</p>` : ''}
     <h2>How to read this report</h2>
     <ul style="margin:0;padding-left:18px;line-height:1.5">
       <li>Scores are the assessor's plot readings as synced from the field, with corrections applied and logged. Machine measures (photo green cover, NDVI, yield map) are shown beside them and never replace them.</li>
@@ -485,7 +496,8 @@ export function trialReportHtml(d: ReportData): string {
     </ul>
     ${footerLine(trial)}`
 
-  return [page(cover), page(season), ...results.map(page), obs].join('')
+  const photoPages = photoPagesHtml(d.photos ?? [], treatments, blind, hdr)
+  return [page(cover), page(season), ...results.map(page), photoPages.length ? page(obs) : obs, ...photoPages.map((b, i) => (i === photoPages.length - 1 ? b : page(b)))].join('')
 }
 
 function recipe(t: TreatmentRow): string {
@@ -497,3 +509,30 @@ function recipe(t: TreatmentRow): string {
 }
 
 const footerLine = (trial: LiveTrial) => `<div class="foot"><span>${esc(trial.name)} · AGnVET Trial Work</span><span>Report generated ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>`
+
+/** Photo tiles in treatment order, 24 to a page (4 across, 6 down on A4), with the plot, rep and date under each. */
+function photoPagesHtml(photos: ReportPhoto[], trts: TreatmentRow[], blind: boolean, hdr: (kind: string) => string): string[] {
+  if (!photos.length) return []
+  const trtOf = new Map<number, { n: number; name: string; rep: number }>()
+  for (const t of trts) (t.components?.plots ?? []).forEach((p, i) => trtOf.set(p, { n: t.n, name: t.name, rep: i + 1 }))
+  const latest = new Map<number, ReportPhoto>()
+  for (const ph of photos) {
+    const cur = latest.get(ph.plot)
+    if (!cur || ph.takenAt > cur.takenAt) latest.set(ph.plot, ph)
+  }
+  const ordered = [...latest.values()].sort((a, b) => (trtOf.get(a.plot)?.n ?? 999) - (trtOf.get(b.plot)?.n ?? 999) || (trtOf.get(a.plot)?.rep ?? 0) - (trtOf.get(b.plot)?.rep ?? 0) || a.plot - b.plot)
+  const tile = (ph: ReportPhoto) => {
+    const t = trtOf.get(ph.plot)
+    const who = t ? (blind ? `T${t.n}` : `T${t.n} ${t.name}`) : 'unallocated'
+    return `<div class="keep" style="break-inside:avoid"><div style="aspect-ratio:4/3;background:#EEF0EE;border-radius:4px;overflow:hidden"><img src="${esc(ph.url)}" alt="Plot ${ph.plot}" style="width:100%;height:100%;object-fit:cover;display:block"></div><div style="font-size:9.5px;line-height:1.3;margin-top:3px"><b>${ph.plot}</b>${t ? ` · rep ${t.rep}` : ''} · ${dateAu(ph.takenAt)}<br><span style="color:#3E403E">${esc(who)}</span>${ph.label ? `<br><span class="muted">${esc(ph.label)}</span>` : ''}</div></div>`
+  }
+  const per = 24
+  const pages: string[] = []
+  for (let i = 0; i < ordered.length; i += per) {
+    const chunk = ordered.slice(i, i + per)
+    pages.push(`${hdr(`Plot photos · ${i + 1} to ${i + chunk.length} of ${ordered.length}`)}
+      <p class="muted" style="margin:0 0 8px">Latest photo of each plot as synced from the field app, in treatment order. Photos are the assessor's record of the plot on the day and are not scored.</p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px 10px">${chunk.map(tile).join('')}</div>`)
+  }
+  return pages
+}
