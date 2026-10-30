@@ -55,6 +55,7 @@ export default function Outputs() {
   const [photos, setPhotos] = useState<ReportPhoto[]>([])
   const [photoProgress, setPhotoProgress] = useState('')
   const [reportPrimary, setReportPrimary] = useState('')
+  const [reportRead, setReportRead] = useState('')
   const [kind, setKind] = useState<Kind>('plan')
   const [timing, setTiming] = useState('A')
   const [water, setWater] = useState(100)
@@ -119,6 +120,7 @@ export default function Outputs() {
       setPhotoRows((ph ?? []).map((p) => ({ plot: p.plot, storage_path: p.storage_path, taken_at: p.taken_at, label: p.meta?.label ?? null })))
       setPhotos([])
       setPhotoProgress('')
+      setReportRead((trials.find((x) => x.id === trialId)?.design?.commentary ?? []).join('\n'))
       setPlots(pl ?? [])
       setSheetN(as?.[0]?.n ?? 1)
     })()
@@ -164,7 +166,7 @@ export default function Outputs() {
     const d: DocsData = { trial, treatments: trts, assessments: assess, measures, features, applicators: people.filter((p) => ['admin', 'agronomist', 'team'].includes(p.role)).map((p) => ({ name: p.name, role: p.role })) }
     switch (kind) {
       case 'report':
-        return documentHtml(`${trial.name} — trial report`, trialReportHtml({ trial, treatments: trts, scores, measures, weather, operations: ops, corrections, photosByPlot, photoPoints, plots, features, photos: reportPhotos ? photos : [], options: { draft: reportDraft, blind: reportBlind, primary: reportPrimary || undefined } }))
+        return documentHtml(`${trial.name} — trial report`, trialReportHtml({ trial, treatments: trts, scores, measures, weather, operations: ops, corrections, photosByPlot, photoPoints, plots, features, photos: reportPhotos ? photos : [], options: { draft: reportDraft, blind: reportBlind, primary: reportPrimary || undefined, commentary: reportRead.split('\n').map((x) => x.trim()).filter(Boolean) } }))
       case 'plan':
         return documentHtml(`${trial.name} — trial plan`, trialPlanHtml(d))
       case 'spray':
@@ -184,7 +186,7 @@ export default function Outputs() {
         return a ? documentHtml(`${trial.name} — assessment ${a.n}`, assessmentSheetHtml(d, a)) : documentHtml(trial.name, '<p class="muted">No assessment timings on this trial yet. Add them in the builder or the trial editor.</p>')
       }
     }
-  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, photoPoints, plots, photos, reportPhotos, reportDraft, reportBlind, reportPrimary, kind, timing, water, overage, signSize, repOne, blind, sheetN])
+  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, photoPoints, plots, photos, reportPhotos, reportDraft, reportBlind, reportPrimary, reportRead, kind, timing, water, overage, signSize, repOne, blind, sheetN])
 
   useEffect(() => {
     setSaveState('idle')
@@ -301,6 +303,8 @@ export default function Outputs() {
             </label>
             {reportPhotos && photoProgress && <div style={{ fontSize: 11, color: '#58585B', margin: '0 0 8px 24px' }}>{photoProgress}</div>}
             {!reportPhotos && <div style={{ height: 6 }} />}
+            <div style={{ ...sectionLabel, fontSize: 9.5 }}>AGRONOMIST'S READ</div>
+            <textarea value={reportRead} onChange={(e) => setReportRead(e.target.value)} rows={6} placeholder="One point per line. Prints on the cover under the summary of results. Blank for none." style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', fontSize: 12, lineHeight: 1.4, resize: 'vertical', marginBottom: 8 }} />
             <div style={{ ...sectionLabel, fontSize: 9.5 }}>RANK AND MAP BY</div>
             <select value={reportPrimary} onChange={(e) => setReportPrimary(e.target.value)} style={inputStyle}>
               <option value="">Auto (fullest disease measure per round)</option>

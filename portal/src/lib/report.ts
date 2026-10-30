@@ -510,7 +510,9 @@ function recipe(t: TreatmentRow): string {
 
 const footerLine = (trial: LiveTrial) => `<div class="foot"><span>${esc(trial.name)} · AGnVET Trial Work</span><span>Report generated ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>`
 
-/** Photo tiles in treatment order, 24 to a page (4 across, 6 down on A4), with the plot, rep and date under each. */
+/** Photo tiles in treatment order as one flowing grid, four across, each tile kept whole across page
+ * breaks, with the plot, rep and date under each. A flowing grid prints the same from the portal's
+ * print dialog and from a headless renderer, where fixed pages of tiles spill differently. */
 function photoPagesHtml(photos: ReportPhoto[], trts: TreatmentRow[], blind: boolean, hdr: (kind: string) => string): string[] {
   if (!photos.length) return []
   const trtOf = new Map<number, { n: number; name: string; rep: number }>()
@@ -521,18 +523,15 @@ function photoPagesHtml(photos: ReportPhoto[], trts: TreatmentRow[], blind: bool
     if (!cur || ph.takenAt > cur.takenAt) latest.set(ph.plot, ph)
   }
   const ordered = [...latest.values()].sort((a, b) => (trtOf.get(a.plot)?.n ?? 999) - (trtOf.get(b.plot)?.n ?? 999) || (trtOf.get(a.plot)?.rep ?? 0) - (trtOf.get(b.plot)?.rep ?? 0) || a.plot - b.plot)
+  // the phone labels a photo with its day; that is already in the caption
+  const DAY_LABEL = /^\d{1,2} [A-Za-z]{3,9}( \d{4})?$/
   const tile = (ph: ReportPhoto) => {
     const t = trtOf.get(ph.plot)
     const who = t ? (blind ? `T${t.n}` : `T${t.n} ${t.name}`) : 'unallocated'
-    return `<div class="keep" style="break-inside:avoid"><div style="aspect-ratio:4/3;background:#EEF0EE;border-radius:4px;overflow:hidden"><img src="${esc(ph.url)}" alt="Plot ${ph.plot}" style="width:100%;height:100%;object-fit:cover;display:block"></div><div style="font-size:9.5px;line-height:1.3;margin-top:3px"><b>${ph.plot}</b>${t ? ` · rep ${t.rep}` : ''} · ${dateAu(ph.takenAt)}<br><span style="color:#3E403E">${esc(who)}</span>${ph.label ? `<br><span class="muted">${esc(ph.label)}</span>` : ''}</div></div>`
+    const label = ph.label && !DAY_LABEL.test(ph.label.trim()) ? ph.label.trim() : ''
+    return `<div class="keep" style="width:calc(25% - 7.5px);break-inside:avoid;page-break-inside:avoid"><div style="aspect-ratio:4/3;background:#EEF0EE;border-radius:4px;overflow:hidden"><img src="${esc(ph.url)}" alt="Plot ${ph.plot}" style="width:100%;height:100%;object-fit:cover;display:block"></div><div style="font-size:9.5px;line-height:1.3;margin-top:3px;margin-bottom:8px"><b>${ph.plot}</b>${t ? ` · rep ${t.rep}` : ''} · ${dateAu(ph.takenAt)}<br><span style="color:#3E403E">${esc(who)}</span>${label ? `<br><span class="muted">${esc(label)}</span>` : ''}</div></div>`
   }
-  const per = 24
-  const pages: string[] = []
-  for (let i = 0; i < ordered.length; i += per) {
-    const chunk = ordered.slice(i, i + per)
-    pages.push(`${hdr(`Plot photos · ${i + 1} to ${i + chunk.length} of ${ordered.length}`)}
-      <p class="muted" style="margin:0 0 8px">Latest photo of each plot as synced from the field app, in treatment order. Photos are the assessor's record of the plot on the day and are not scored.</p>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px 10px">${chunk.map(tile).join('')}</div>`)
-  }
-  return pages
+  return [`${hdr(`Plot photos · ${ordered.length} plots`)}
+    <p class="muted" style="margin:0 0 8px">Latest photo of each plot as synced from the field app, in treatment order. Photos are the assessor's record of the plot on the day and are not scored.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:0 10px">${ordered.map(tile).join('')}</div>`]
 }

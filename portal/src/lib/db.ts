@@ -59,6 +59,8 @@ export interface LiveTrial {
     sparePlots?: number[]
     /** Plots taken out of the trial (damage, drift); never scored or analysed from then on. */
     outPlots?: number[]
+    /** The agronomist's read for the trial report, one point per entry; editable before printing. */
+    commentary?: string[]
   } | null
   spraying: {
     waterRateLPerHa?: number
