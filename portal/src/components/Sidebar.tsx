@@ -273,6 +273,9 @@ export default function Sidebar() {
       <NavItem active={s.screen === 'results'} onClick={() => nav('results')} icon={icons.results}>
         Results
       </NavItem>
+      <NavItem active={s.screen === 'harvest'} onClick={() => nav('harvest')} icon={icons.results}>
+        Harvest
+      </NavItem>
       <NavItem active={s.screen === 'map'} onClick={() => nav('map')} icon={icons.map}>
         Map
       </NavItem>

@@ -28,6 +28,8 @@ check('derived yield for bucket with moisture', near(y(101)!.value, 3.32) && /11
 check('derived yield without moisture says so', near(y(102)!.value, 4) && /as weighed/.test(y(102)!.note ?? ''))
 check('a real yield score is left alone', y(103)!.value === 3.5 && y(103)!.id === '4-103-yield_t_ha')
 check('other scores untouched, ids deterministic', out.length === scores.length + 2 && y(101)!.id === 'derived-yield-4-101' && y(101)!.assessment === 4)
+const perPlot = deriveYield([row(4, 101, 'plot_weight_kg', 7.85), row(4, 101, 'harvest_area_m2', 18)], wheat)
+check('per-plot harvested area overrides the default', near(perPlot.find((s) => s.measure === 'yield_t_ha')!.value, 4.36) && /over 18 m²/.test(perPlot[2].note ?? ''))
 check('no buckets: same array back', deriveYield([row(2, 101, 'rust_plot', 20)], wheat).length === 1)
 
 // --- phone keypad fixed point --------------------------------------------------

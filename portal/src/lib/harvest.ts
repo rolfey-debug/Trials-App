@@ -9,6 +9,8 @@ import type { ScoreRow } from './db'
 export const BUCKET_KEY = 'plot_weight_kg'
 export const MOISTURE_KEY = 'grain_moisture_pct'
 export const YIELD_KEY = 'yield_t_ha'
+/** Per-plot harvested area, recorded only where a plot differs from the trial default. */
+export const AREA_KEY = 'harvest_area_m2'
 
 export interface HarvestSettings {
   /** Header cut width, when narrower than the plot (m). */
@@ -56,11 +58,12 @@ export function yieldFromBucket(kg: number, areaM2: number, moisturePct: number 
 export function deriveYield(scores: ScoreRow[], t: HarvestTrial): ScoreRow[] {
   const buckets = scores.filter((s) => s.measure === BUCKET_KEY)
   if (!buckets.length) return scores
-  const area = harvestedAreaM2(t)
+  const defaultArea = harvestedAreaM2(t)
   const std = t.design?.harvest?.moistureStdPct ?? moistureStandard(t.crop)
   const key = (a: number, p: number) => `${a}:${p}`
   const real = new Set(scores.filter((s) => s.measure === YIELD_KEY).map((s) => key(s.assessment, s.plot)))
   const moisture = new Map(scores.filter((s) => s.measure === MOISTURE_KEY).map((s) => [key(s.assessment, s.plot), Number(s.value)]))
+  const areas = new Map(scores.filter((s) => s.measure === AREA_KEY && Number(s.value) > 0).map((s) => [key(s.assessment, s.plot), Number(s.value)]))
   const derived: ScoreRow[] = []
   for (const b of buckets) {
     const k = key(b.assessment, b.plot)
@@ -68,6 +71,7 @@ export function deriveYield(scores: ScoreRow[], t: HarvestTrial): ScoreRow[] {
     const m = moisture.get(k)
     const kg = Number(b.value)
     if (!Number.isFinite(kg)) continue
+    const area = areas.get(k) ?? defaultArea
     const value = yieldFromBucket(kg, area, m, std)
     const note = m !== undefined ? `Derived: ${kg} kg at ${m}% moisture, corrected to ${std}%, over ${area} m²` : `Derived: ${kg} kg over ${area} m², as weighed (no moisture reading)`
     derived.push({ id: `derived-yield-${b.assessment}-${b.plot}`, assessment: b.assessment, plot: b.plot, measure: YIELD_KEY, value, note, recorded_at: b.recorded_at })

@@ -378,6 +378,52 @@ export async function saveMachineScores(
   )
 }
 
+/** Office-entered plot values for one round (harvest bucket weights typed in
+ * from the labels). Same deterministic ids as the phone, so a plot the phone
+ * already synced is the same row: callers correct those through correctScore
+ * (audit trail) and only insert here where nothing exists yet. */
+export async function saveOfficeScores(
+  trialId: string,
+  assessment: number,
+  rows: Array<{ plot: number; measure: string; value: number; note: string | null }>,
+  token: string
+): Promise<boolean> {
+  if (!rows.length) return true
+  return insert(
+    'scores',
+    rows.map((r) => ({
+      id: stableId(trialId, assessment, String(r.plot), r.measure),
+      trial_id: trialId,
+      assessment,
+      plot: r.plot,
+      measure: r.measure,
+      value: r.value,
+      note: r.note,
+      assessor: jwtSub(token),
+      recorded_at: new Date().toISOString(),
+    })),
+    token,
+    { upsert: true }
+  )
+}
+
+/** The trial's harvest settings (cut width, harvested length, moisture
+ * standard) live in design.harvest; the rest of the design is kept as is. */
+export async function saveHarvestSettings(trialId: string, design: LiveTrial['design'], harvest: NonNullable<LiveTrial['design']>['harvest'], token: string): Promise<boolean> {
+  return update('trials', `id=eq.${trialId}`, { design: { ...(design ?? {}), harvest } }, token)
+}
+
+/** The harvest round: the assessment whose timing says harvest, created as
+ * the next round number when the plan has none. */
+export async function ensureHarvestRound(trialId: string, assessments: AssessmentRow[], usedRounds: number[], token: string): Promise<AssessmentRow | null> {
+  const found = assessments.find((a) => /harvest/i.test(a.timing ?? ''))
+  if (found) return found
+  const n = Math.max(0, ...assessments.map((a) => a.n), ...usedRounds) + 1
+  const row: AssessmentRow = { n, timing: 'Harvest', measures: ['plot_weight_kg', 'grain_moisture_pct'], blind: false }
+  const ok = await insert('assessments', [{ trial_id: trialId, ...row }], token)
+  return ok ? row : null
+}
+
 // --- Audit log --------------------------------------------------------------
 
 export interface CorrectionRow {

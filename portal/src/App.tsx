@@ -10,6 +10,7 @@ import LiveMap from './components/LiveMap'
 import SitePlanner from './components/SitePlanner'
 import MapScreen from './components/MapScreen'
 import Results from './components/Results'
+import Harvest from './components/Harvest'
 import AuditLog from './components/AuditLog'
 import { useApp } from './state'
 
@@ -29,6 +30,7 @@ export default function App() {
         {s.screen === 'planner' && <SitePlanner />}
         {s.screen === 'plotmap' && <MapScreen />}
         {s.screen === 'results' && <Results />}
+        {s.screen === 'harvest' && <Harvest />}
         {s.screen === 'audit' && <AuditLog />}
       </div>
       <Picker />
