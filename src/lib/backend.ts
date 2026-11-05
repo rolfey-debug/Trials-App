@@ -134,7 +134,9 @@ export async function pushToBackend(st: AppState): Promise<boolean> {
     const trial_id = trialUuid(localId)
     const ts = st.trialState[localId]
     if (!trial_id || !ts) continue
-    const counts = await pushTrial(trial_id, ts, token, st.trials[localId])
+    // one trial's push dying on a dropped connection (paddock signal) must
+    // not take the rest of the trials, or the sync_log row, down with it
+    const counts = await pushTrial(trial_id, ts, token, st.trials[localId]).catch(() => null)
     if (!counts) {
       results.push(false)
       continue
