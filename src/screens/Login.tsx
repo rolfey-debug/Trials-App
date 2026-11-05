@@ -6,7 +6,7 @@ import { login } from '../lib/backend'
 
 export function Login() {
   const { mut } = useApp()
-  const [email, setEmail] = useState('andrew.rolfe@agnvet.com.au')
+  const [email, setEmail] = useState('andrewrolfe@agnvet.com.au')
   const [pw, setPw] = useState('')
   const [linkFlash, setLinkFlash] = useState(false)
   const [busy, setBusy] = useState(false)

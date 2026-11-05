@@ -1,0 +1,142 @@
+/** Office-side export: everything the phones have synced for one trial,
+ * straight from Postgres to a real .xlsx — no phone required. Reuses the
+ * field app's pure spreadsheet writer. */
+import { downloadBlob, writeXlsx, type SheetSpec } from '../../../src/exports/xlsxWrite'
+import { select } from '../../../shared/supa'
+import type { LiveTrial, MeasureDef } from './db'
+
+interface ScoreRow {
+  plot: number
+  assessment: number
+  measure: string
+  value: number
+  note: string | null
+  recorded_at: string
+}
+interface OpRow {
+  timing: string | null
+  kind: string
+  detail: { mixLog?: Record<string, string>; sprayLog?: Record<string, string> } | null
+  conditions: Record<string, string | number> | null
+  performed_at: string
+}
+interface PhotoRow {
+  plot: number
+  storage_path: string
+  taken_at: string
+  meta: { flagged?: boolean; trt?: number; label?: string } | null
+}
+
+const when = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
+
+export async function exportTrialData(trial: LiveTrial, token: string): Promise<'ok' | 'empty' | 'failed'> {
+  const filter = `trial_id=eq.${trial.id}`
+  const [scores, ops, photos] = await Promise.all([
+    select<ScoreRow>('scores', `select=plot,assessment,measure,value,note,recorded_at&${filter}&order=assessment.asc,plot.asc,measure.asc`, token),
+    select<OpRow>('operations', `select=timing,kind,detail,conditions,performed_at&${filter}&order=performed_at.asc`, token),
+    select<PhotoRow>('photos', `select=plot,storage_path,taken_at,meta&${filter}&order=plot.asc`, token),
+  ])
+  if (scores === null) return 'failed'
+  if (!scores.length && !(ops ?? []).length && !(photos ?? []).length) return 'empty'
+
+  const sheets: SheetSpec[] = [
+    {
+      name: 'Scores',
+      colWidths: [8, 12, 16, 10, 34, 18],
+      rows: [
+        ['Plot', 'Assessment', 'Measure', 'Value', 'Note', 'Recorded'],
+        ...scores.map((s): (string | number | null)[] => [s.plot, s.assessment, s.measure, s.value, s.note, when(s.recorded_at)]),
+      ],
+    },
+  ]
+
+  const sprayRows: (string | number | null)[][] = []
+  const condRows: (string | number | null)[][] = []
+  for (const o of ops ?? []) {
+    const trts = new Set([...Object.keys(o.detail?.mixLog ?? {}), ...Object.keys(o.detail?.sprayLog ?? {})])
+    for (const t of [...trts].map(Number).sort((a, b) => a - b)) {
+      sprayRows.push([o.timing ?? '', t, o.detail?.mixLog?.[t] ?? '', o.detail?.sprayLog?.[t] ?? ''])
+    }
+    for (const [k, v] of Object.entries(o.conditions ?? {})) condRows.push([o.timing ?? '', k, v])
+  }
+  if (sprayRows.length)
+    sheets.push({ name: 'Spray records', colWidths: [8, 8, 22, 22], rows: [['Timing', 'Trt #', 'Mixed', 'Sprayed'], ...sprayRows] })
+  if (condRows.length)
+    sheets.push({ name: 'Conditions', colWidths: [8, 16, 24], rows: [['Timing', 'Field', 'Value'], ...condRows] })
+  if ((photos ?? []).length)
+    sheets.push({
+      name: 'Photos',
+      colWidths: [8, 8, 10, 20, 30, 18],
+      rows: [
+        ['Plot', 'Trt', 'Flagged', 'Label', 'Storage path', 'Taken'],
+        ...(photos ?? []).map((p): (string | number | null)[] => [p.plot, p.meta?.trt ?? null, p.meta?.flagged ? 'Yes' : '', p.meta?.label ?? '', p.storage_path, when(p.taken_at)]),
+      ],
+    })
+
+  const safe = trial.name.replace(/[\\/:*?"<>|]+/g, ' ').trim()
+  downloadBlob(writeXlsx(sheets), `${safe} — synced field data.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  return 'ok'
+}
+
+/** Export the Results view: treatment means with letters, plot values, and
+ * the plant-level notes — the table AgLink gets. */
+export function exportResults(
+  trialName: string,
+  measures: string[],
+  labelOf: (m: string) => string,
+  rows: Array<{ n: number; name: string; recipe: string; plots: number[]; cells: Record<string, { mean: number; sd: number | null } | null> }>,
+  letters: Record<string, Record<string, string>>,
+  lsdLine: Record<string, { lsd05: number; cv: number } | undefined>,
+  plotRows: Array<{ plot: number; trt: string; values: Record<string, number>; note: string }>,
+  defs: Array<MeasureDef | null> = []
+) {
+  const meanSheet: SheetSpec = {
+    name: 'Treatment means',
+    colWidths: [6, 30, ...measures.flatMap(() => [10, 6, 8])],
+    rows: [
+      ['Trt', 'Treatment', ...measures.flatMap((m) => [labelOf(m), 'sig', '±SD'])],
+      ...rows.map((r) => [
+        `T${r.n}`,
+        r.name,
+        ...measures.flatMap((m) => {
+          const c = r.cells[m]
+          return c ? [Number(c.mean.toFixed(2)), letters[m]?.[`T${r.n}`] ?? '', c.sd === null ? '' : Number(c.sd.toFixed(2))] : ['', '', '']
+        }),
+      ]),
+      [],
+      ['RCBD ANOVA, LSD 5%. Treatments sharing a letter do not differ.'],
+      ...measures.filter((m) => lsdLine[m]).map((m) => [`${labelOf(m)}: LSD ${lsdLine[m]!.lsd05.toFixed(2)} · CV ${lsdLine[m]!.cv.toFixed(0)}%`]),
+    ],
+  }
+  const plotSheet: SheetSpec = {
+    name: 'Plots',
+    colWidths: [8, 26, ...measures.map(() => 12), 70],
+    rows: [
+      ['Plot', 'Treatment', ...measures.map(labelOf), 'Field notes'],
+      ...plotRows.map((p) => [p.plot, p.trt, ...measures.map((m) => p.values[m] ?? ''), p.note]),
+    ],
+  }
+  /** The standard names behind each column, so another company can read the
+   * file without our key list: EPPO code and scientific name of the target,
+   * rating type, unit, plant part and sampling rule. */
+  const measureSheet: SheetSpec | null = defs.some(Boolean)
+    ? {
+        name: 'Measures',
+        colWidths: [18, 40, 12, 32, 22, 14, 12, 10, 30, 10, 16],
+        rows: [
+          ['Key', 'Measure', 'EPPO code', 'Target (scientific)', 'Target (common)', 'Rating', 'Unit', 'Part', 'Sample', 'Better', 'Same as'],
+          ...measures.map((m, i): (string | number | null)[] => {
+            const d = defs[i]
+            return d
+              ? [d.key, d.label, d.target ?? '', d.taxa?.scientific ?? '', d.taxa?.common ?? '', d.rating, d.unit ?? '', d.part ?? '', d.sample ?? '', d.higher_better ? 'higher' : 'lower', d.canonical ?? '']
+              : [m, labelOf(m), '', '', '', '', '', '', 'not in the shared library yet', '', '']
+          }),
+          [],
+          ['EPPO codes: https://gd.eppo.int/ — rating types: count, pct_control (% of untreated), pct_severity (% area affected), pct_lai (% leaf area), pct_incidence (% plants), score, index, yield, dry_matter.'],
+        ],
+      }
+    : null
+  const safe = trialName.replace(/[\\/:*?"<>|]/g, '·')
+  downloadBlob(writeXlsx(measureSheet ? [meanSheet, plotSheet, measureSheet] : [meanSheet, plotSheet]), `${safe} — results.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+}

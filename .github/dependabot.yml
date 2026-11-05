@@ -1,0 +1,20 @@
+# Dependency vulnerability + freshness monitoring (SCA) per ITSP 11.0
+# "DevSecOps & CI/CD pipeline" and "Development Tools" (latest toolsets).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Australia/Sydney
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        dependency-type: development
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Australia/Sydney
