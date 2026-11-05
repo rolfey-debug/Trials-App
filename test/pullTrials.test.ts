@@ -1,6 +1,7 @@
 /** Office → phone mapping: a builder-made trial and a workbook-shaped one
  * both become a usable TrialDoc; stored plot polygons become a locate grid. */
-import { measureLibFor, plotList, storedPlotsFrom, trialDocFromOffice, isUuid, type OfficeMeasure, type OfficeTrial } from '../src/lib/pullTrials'
+import { isStripNumbered, measureLibFor, plotList, storedPlotsFrom, trialDocFromOffice, isUuid, type OfficeMeasure, type OfficeTrial } from '../src/lib/pullTrials'
+import { officePlot, plotLabel, assessmentOrder } from '../src/lib/trial'
 
 let passed = 0
 function check(name: string, cond: boolean) {
@@ -97,4 +98,33 @@ check('centre inside', stored[0].centre.lat > -34.71992 && stored[0].centre.lat 
 // --- assessment plan rides along for the phone's round picker ----------------
 check('assessment plan carried in round order', doc.assessments?.map((a) => `${a.n}:${a.timing}:${a.measures.join('+')}`).join(' ') === '1:GS39:rust_plot+vigour 2:harvest:yield_t_ha' && doc.assessments?.[0].blind === true)
 check('no plan gives an empty list', wd.assessments?.length === 0)
+
+// --- strip demo: office plots numbered 1..n (plot = strip number) -----------
+const strips: OfficeTrial = {
+  ...builder,
+  id: '00000000-0000-0000-0000-000000002009',
+  name: 'Rutherglen Forage Trial',
+  trial_type: 'demonstration',
+  design: { type: 'unreplicated variety strips', plot: { widthM: 2, lengthM: 12, areaM2: 24 }, notes: ['Plot number = treatment number'] },
+  spraying: null,
+  treatments: [
+    { n: 1, name: 'Tetila', recipe: null, b_spray: false, components: { plots: { '1': 1 } } },
+    { n: 2, name: 'Barberia', recipe: null, b_spray: false, components: { plots: { '1': 2 } } },
+    { n: 50, name: 'Ford', recipe: null, b_spray: false, components: { plots: { '1': 50 } } },
+    { n: 64, name: 'Blend', recipe: null, b_spray: false, components: { plots: { '1': 64 } } },
+  ],
+  assessments: [],
+}
+check('strip numbering detected', isStripNumbered([1, 2, 50, 64]) && !isStripNumbered([101, 205]) && !isStripNumbered([]))
+const sd = trialDocFromOffice(strips, lib)
+check('strips lie along the front edge as one row', sd.trial.grid.rows === 1 && sd.trial.grid.positions === 64)
+check('phone ids are 100 + strip', sd.treatments.map((x) => x.plots.join()).join(' ') === '101 102 150 164' && sd.cells['150'] === 50 && sd.cells['151'] === undefined)
+check('labels carry the office plot numbers', plotLabel(sd, 150) === '50' && plotLabel(sd, 164) === '64' && plotLabel(doc, 203) === '203')
+check('sync writes the office plot number', officePlot(sd, 150) === 50 && officePlot(sd, '101') === 1 && officePlot(doc, '203') === 203 && officePlot(undefined, 305) === 305)
+check('walk is strip order, gaps skipped', assessmentOrder(sd).join() === '101,102,150,164')
+check('one rep, single band', sd.trial.reps === 1 && JSON.stringify(sd.trial.repBands) === JSON.stringify({ '1': [1] }))
+check('strip rule and walk text', /strip number/.test(sd.plotIdRule ?? '') && /strip order/.test(sd.walkOrders.assessment))
+check('normal trials carry no labels', doc.plotLabels === undefined && wd.plotLabels === undefined)
+const sp = storedPlotsFrom([{ plot: 50, geojson: { type: 'Polygon', coordinates: [[[146.315, -36.172], [146.31502, -36.172], [146.31502, -36.17189], [146.315, -36.17189], [146.315, -36.172]]] } }], sd)
+check('stored polygons re-keyed to phone ids', sp.length === 1 && sp[0].pid === 150)
 console.log(`pullTrials: ${passed} checks passed`)

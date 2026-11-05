@@ -155,8 +155,17 @@ function repBandsFor(t: OfficeTrial, rows: number, reps: number): Record<string,
   return { '1': Array.from({ length: rows }, (_, i) => i + 1) }
 }
 
+/** Office plots numbered 1..99 (plot = strip number, no rep × 100 + position
+ * rule) are laid along the front edge as row 1: phone id 100 + plot. */
+export function isStripNumbered(plots: number[]): boolean {
+  return plots.length > 0 && plots.every((p) => p >= 1 && p < 100)
+}
+
 /** Build the phone's TrialDoc from an office trial row. */
 export function trialDocFromOffice(t: OfficeTrial, lib: OfficeMeasure[]): TrialDoc {
+  const officePlots = t.treatments.flatMap((tr) => plotList(tr.components))
+  const strips = isStripNumbered(officePlots)
+  const pidOf = (p: number) => (strips ? 100 + p : p)
   const treatments: Treatment[] = t.treatments
     .slice()
     .sort((a, b) => a.n - b.n)
@@ -165,20 +174,22 @@ export function trialDocFromOffice(t: OfficeTrial, lib: OfficeMeasure[]): TrialD
       name: tr.name,
       recipe: tr.recipe ?? '',
       bSpray: tr.b_spray,
-      plots: plotList(tr.components),
+      plots: plotList(tr.components).map(pidOf),
       ...(Array.isArray(tr.components?.perBatchMl) ? { perBatchMl: tr.components!.perBatchMl as number[] } : {}),
     }))
   const allPlots = treatments.flatMap((x) => x.plots)
   const d = t.design ?? {}
-  const rows = d.grid?.rows ?? Math.max(1, ...allPlots.map((p) => Math.floor(p / 100)))
-  const positions = d.grid?.positions ?? Math.max(1, ...allPlots.map((p) => p % 100))
+  const rows = strips ? 1 : d.grid?.rows ?? Math.max(1, ...allPlots.map((p) => Math.floor(p / 100)))
+  const positions = strips ? Math.max(...officePlots) : d.grid?.positions ?? Math.max(1, ...allPlots.map((p) => p % 100))
   const plot = d.plot ?? { widthM: 2, lengthM: 12, areaM2: 24 }
   const reps = d.reps ?? Math.max(1, ...treatments.map((x) => x.plots.length))
   const cells: TrialDoc['cells'] = {}
   for (const tr of treatments) for (const p of tr.plots) cells[String(p)] = tr.n
-  for (const p of d.reservePlots ?? []) cells[String(p)] ??= 'reserve'
-  for (const p of d.sparePlots ?? []) cells[String(p)] ??= 'spare'
-  for (const p of d.outPlots ?? []) cells[String(p)] = 'out'
+  for (const p of d.reservePlots ?? []) cells[String(pidOf(p))] ??= 'reserve'
+  for (const p of d.sparePlots ?? []) cells[String(pidOf(p))] ??= 'spare'
+  for (const p of d.outPlots ?? []) cells[String(pidOf(p))] = 'out'
+  const plotLabels: Record<string, number> = {}
+  if (strips) for (const p of officePlots) plotLabels[String(pidOf(p))] = p
   const s = t.spraying ?? {}
   const waterRateLPerHa = s.waterRateLPerHa ?? 100
   const sprayVolumePerPlotMl = s.sprayVolumePerPlotMl ?? Math.round((waterRateLPerHa * plot.areaM2) / 10)
@@ -205,12 +216,13 @@ export function trialDocFromOffice(t: OfficeTrial, lib: OfficeMeasure[]): TrialD
     },
     treatments,
     cells,
-    marginalPlots: d.marginalPlots ?? [],
-    plotIdRule: 'plot = rep × 100 + position',
+    marginalPlots: (d.marginalPlots ?? []).map(pidOf),
+    plotIdRule: strips ? 'plot = strip number (office plots 1–99 laid along the front edge)' : 'plot = rep × 100 + position',
     walkOrders: {
-      assessment: 'Serpentine by position: pos 1 rows 1→n, pos 2 rows n→1, … treatment plots only.',
-      fieldDay: d.type === 'Demo' ? 'Walk the single row in treatment order.' : 'Rep 1 display walk across the front rows.',
+      assessment: strips ? 'Along the front edge in strip order.' : 'Serpentine by position: pos 1 rows 1→n, pos 2 rows n→1, … treatment plots only.',
+      fieldDay: d.type === 'Demo' || strips ? 'Walk the single row in treatment order.' : 'Rep 1 display walk across the front rows.',
     },
+    ...(strips ? { plotLabels } : {}),
     measures: measureLibFor(t, lib),
     notes: [...(t.aim ? [`Aim: ${t.aim}`] : []), ...(d.notes ?? [])],
     assessments: t.assessments
@@ -242,14 +254,15 @@ export function siteInfoFromOffice(t: OfficeTrial): { cooperator: [string, strin
 }
 
 /** Stored plot polygons (from the office site planner) as the phone's shape. */
-export function storedPlotsFrom(rows: OfficePlot[]): StoredPlot[] {
+export function storedPlotsFrom(rows: OfficePlot[], doc?: Pick<TrialDoc, 'plotLabels'>): StoredPlot[] {
+  const byOffice = new Map(Object.entries(doc?.plotLabels ?? {}).map(([pid, plot]) => [plot, Number(pid)]))
   const out: StoredPlot[] = []
   for (const r of rows) {
     const ring = ringFromGeoJson(r.geojson)
     if (ring.length < 4) continue
     const corners: LatLng[] = ring.slice(0, 4).map((p) => ({ lat: p.lat, lng: p.lng }))
     const centre = { lat: corners.reduce((a, c) => a + c.lat, 0) / 4, lng: corners.reduce((a, c) => a + c.lng, 0) / 4 }
-    out.push({ pid: r.plot, corners, centre })
+    out.push({ pid: byOffice.get(r.plot) ?? r.plot, corners, centre })
   }
   return out
 }

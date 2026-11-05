@@ -3,7 +3,7 @@ import { C, MONO } from '../theme'
 import { useApp } from '../store/store'
 import { useGps } from '../gps/useGps'
 import { PulseDot, ScreenTitle } from '../components/bits'
-import { fieldDayStops, posOf, rowOf, treatmentByN } from '../lib/trial'
+import { fieldDayStops, plotLabel, posOf, rowOf, treatmentByN } from '../lib/trial'
 import { SAMPLE_SEV } from '../lib/results'
 import { gridFromCorners, gridFromStored, locate } from '../gps/geo'
 
@@ -41,7 +41,7 @@ export function Walk() {
           <span style={{ font: `600 10px ${MONO}`, color: C.muted, letterSpacing: '.08em' }}>
             STOP {wi + 1} OF {stops.length}
           </span>
-          <span style={{ font: `700 15px ${MONO}`, color: C.green }}>{pid}</span>
+          <span style={{ font: `700 15px ${MONO}`, color: C.green }}>{plotLabel(doc, pid)}</span>
         </div>
         <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.15, letterSpacing: -0.3 }}>{t?.name}</div>
         <div style={{ fontSize: 12.5, color: C.grey, margin: '4px 0 14px' }}>{t?.recipe}</div>

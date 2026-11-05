@@ -6,10 +6,11 @@ import { analyzeCanopyPhoto } from '../lib/lai'
 import { idb } from '../store/idb'
 import { photoUrl, saveAllWatermarked, saveWatermarked } from '../lib/photo'
 import type { PhotoMeta } from '../store/types'
+import { plotLabel } from '../lib/trial'
 
 const STRIPES = 'repeating-linear-gradient(45deg,#DCE4DE 0 8px,#D0DAD3 8px 16px)'
 
-function Tile({ p, trialName, onFlag }: { p: PhotoMeta; trialName: string; onFlag: () => void }) {
+function Tile({ p, label, trialName, onFlag }: { p: PhotoMeta; label: string; trialName: string; onFlag: () => void }) {
   const [url, setUrl] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
@@ -40,7 +41,7 @@ function Tile({ p, trialName, onFlag }: { p: PhotoMeta; trialName: string; onFla
       <div style={{ marginTop: 'auto', background: 'rgba(20,20,20,.72)', padding: '4px 7px', display: 'flex', alignItems: 'center' }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ font: `600 10px ${MONO}`, color: '#fff' }}>
-            {p.pid} · T{p.trt}
+            {label} · T{p.trt}
           </div>
           <div style={{ font: `400 9px ${MONO}`, color: 'rgba(255,255,255,.75)' }}>{p.date}</div>
         </div>
@@ -165,6 +166,7 @@ export function Photos() {
           <Tile
             key={p.id}
             p={p}
+            label={plotLabel(doc, p.pid)}
             trialName={doc.trial.name.split('—')[0].trim()}
             onFlag={() =>
               mutTrial(null, (t) => {

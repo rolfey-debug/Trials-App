@@ -3,7 +3,7 @@ import { C, MONO, SANS } from '../theme'
 import { useApp } from '../store/store'
 import { useGps } from '../gps/useGps'
 import { fetchRecheckList, type RecheckItem } from '../lib/backend'
-import { assessmentOrder, capFor, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf } from '../lib/trial'
+import { assessmentOrder, capFor, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf, plotLabel } from '../lib/trial'
 import { analyzeCanopyPhoto, laiBackspace, laiKeyDigit, type CanopyAnalysis } from '../lib/lai'
 import { gridFromCorners, gridFromStored, locate } from '../gps/geo'
 import { compressAndStore } from '../lib/photo'
@@ -208,7 +208,7 @@ export function Assess() {
   }
 
   const onSave = () =>
-    mutTrial({ kind: 'assessment', label: `Assessment 1 · plot ${pid}` }, (t) => {
+    mutTrial({ kind: 'assessment', label: `Assessment 1 · plot ${plotLabel(doc, pid)}` }, (t) => {
       if (!t.scores[pid]) t.scores[pid] = { v: {}, photoIds: [], ts: Date.now(), by: st.session.name }
       foldPlants(t)
       t.assessIdx = Math.min(idx + 1, order.length - 1)
@@ -227,7 +227,7 @@ export function Assess() {
     const id = `ph-${pid}-${Date.now()}`
     try {
       const { sizeKB } = await compressAndStore(id, f)
-      mutTrial({ kind: 'photo', label: `Photo · plot ${pid}` }, (t) => {
+      mutTrial({ kind: 'photo', label: `Photo · plot ${plotLabel(doc, pid)}` }, (t) => {
         const cur = t.scores[pid] ?? { v: {}, photoIds: [], ts: Date.now(), by: st.session.name }
         cur.photoIds = [...cur.photoIds, id]
         t.scores[pid] = cur
@@ -319,7 +319,7 @@ export function Assess() {
       <div style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 14, padding: '12px 14px 11px', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div onClick={() => setPickOpen(true)} style={{ font: `700 32px ${MONO}`, letterSpacing: -1, cursor: 'pointer' }}>
-            {pid}
+            {plotLabel(doc, pid)}
             <span style={{ fontSize: 14, color: C.grey, marginLeft: 6, verticalAlign: 'middle' }}>▾</span>
           </div>
           <div
@@ -722,7 +722,7 @@ export function Assess() {
             <div style={{ font: `600 10px ${MONO}`, color: C.grey, letterSpacing: '.08em', marginBottom: 2 }}>JUMP TO PLOT</div>
             <div style={{ fontSize: 11.5, color: C.grey, marginBottom: 10 }}>Tap the plot you’re standing at — scored plots are green.</div>
             {Array.from({ length: doc.trial.grid.rows }, (_, ri) => ri + 1).map((r) => (
-              <div key={r} style={{ display: 'grid', gridTemplateColumns: `repeat(${doc.trial.grid.positions}, 1fr)`, gap: 4, marginBottom: 4 }}>
+              <div key={r} style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(doc.trial.grid.positions, 8)}, 1fr)`, gap: 4, marginBottom: 4 }}>
                 {Array.from({ length: doc.trial.grid.positions }, (_, pi) => pi + 1).map((p) => {
                   const cellPid = r * 100 + p
                   const live = typeof doc.cells[cellPid] === 'number'
@@ -744,7 +744,7 @@ export function Assess() {
                         cursor: live ? 'pointer' : 'default',
                       }}
                     >
-                      {cellPid}
+                      {plotLabel(doc, cellPid)}
                     </div>
                   )
                 })}

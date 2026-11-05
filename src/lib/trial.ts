@@ -3,6 +3,12 @@ import type { CellKind, MeasureDef, MeasureLib, TrialDoc } from '../store/types'
 export const rowOf = (pid: number) => Math.floor(pid / 100)
 export const posOf = (pid: number) => pid % 100
 
+/** What to call a plot on screen: the office's own plot number for a
+ * strip-numbered trial, otherwise the phone id (which is the plot number). */
+export const plotLabel = (doc: TrialDoc, pid: number) => String(doc.plotLabels?.[pid] ?? pid)
+/** The plot number the office knows a phone plot id by (see TrialDoc.plotLabels). */
+export const officePlot = (doc: Pick<TrialDoc, 'plotLabels'> | undefined, pid: number | string) => doc?.plotLabels?.[String(pid)] ?? Number(pid)
+
 export function repOf(doc: TrialDoc, pid: number): number {
   if (doc.trial.blocking === 'row') {
     // Row-blocked trials (Ringwood): the allocation list is authoritative —

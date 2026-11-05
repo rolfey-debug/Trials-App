@@ -66,7 +66,7 @@ export function AddTrial() {
     const token = await activeToken()
     const plots = token ? await loadOfficePlots(t.id, token) : null
     const doc = trialDocFromOffice(t, office.measures)
-    officeExtras.current = { site: siteInfoFromOffice(t), plots: storedPlotsFrom(plots ?? []) }
+    officeExtras.current = { site: siteInfoFromOffice(t), plots: storedPlotsFrom(plots ?? [], doc) }
     const placed = officeExtras.current.plots.length
     finishParse(doc, `${t.status} · ${t.assessments.length} assessment timing${t.assessments.length === 1 ? '' : 's'}${placed ? ` · ${placed} plots placed on the site map` : ' · no plot map yet, mark the corners at pegging'}`)
   }

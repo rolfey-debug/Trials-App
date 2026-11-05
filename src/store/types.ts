@@ -68,6 +68,11 @@ export interface TrialDoc {
   notes?: string[]
   /** The assessment plan from the office: timing and measures per round. */
   assessments?: Array<{ n: number; timing: string; measures: string[]; blind?: boolean }>
+  /** Office plot number per phone plot id, for trials whose office plots are
+   * not numbered rep × 100 + position (strip demos where plot = strip number).
+   * The phone keeps its own ids for the grid; screens show these and sync
+   * writes them, so the office never sees a renumbered plot. */
+  plotLabels?: Record<string, number>
 }
 
 export interface Score {

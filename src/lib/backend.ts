@@ -5,7 +5,8 @@
  */
 import { insert, refresh, select, signInOrUp, stableId, updatePassword, uploadObject, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
 import { idb } from '../store/idb'
-import type { AppState, TrialState } from '../store/types'
+import type { AppState, TrialDoc, TrialState } from '../store/types'
+import { officePlot } from './trial'
 
 const KEY = 'tw.supaSession'
 
@@ -133,7 +134,7 @@ export async function pushToBackend(st: AppState): Promise<boolean> {
     const trial_id = trialUuid(localId)
     const ts = st.trialState[localId]
     if (!trial_id || !ts) continue
-    const counts = await pushTrial(trial_id, ts, token)
+    const counts = await pushTrial(trial_id, ts, token, st.trials[localId])
     if (!counts) {
       results.push(false)
       continue
@@ -161,7 +162,11 @@ async function pushTrial(
   trial_id: string,
   ts: TrialState,
   token: string,
+  doc?: Pick<TrialDoc, 'plotLabels'>,
 ): Promise<{ scores: number; corrections: number; photos: number; spray: number } | null> {
+  // rows carry the plot number the office knows (strip demos number plots
+  // 1..n; the phone's grid id for those is 100 + n)
+  const plotOf = (pid: number | string) => officePlot(doc, pid)
   // Scores sync under their round: the round being scored now (ts.round,
   // 1 when the install predates rounds) plus every finished round stashed in
   // ts.rounds. assessIdx is the WALK POSITION, never the round.
@@ -183,10 +188,10 @@ async function pushTrial(
       const plants = sc.plants?.[measure]
       const note = [plants?.length ? `plants ${plants.join('/')}` : null, sc.note || null].filter(Boolean).join(' — ') || null
       scoreRows.push({
-        id: stableId(trial_id, assessment, pid, measure),
+        id: stableId(trial_id, assessment, plotOf(pid), measure),
         trial_id,
         assessment,
-        plot: Number(pid),
+        plot: plotOf(pid),
         measure,
         value,
         note,
@@ -198,17 +203,17 @@ async function pushTrial(
 
   const correctionRows: unknown[] = [
     ...Object.entries(ts.relabel).map(([pid, t]) => ({
-      id: stableId(trial_id, 'relabel', pid),
+      id: stableId(trial_id, 'relabel', plotOf(pid)),
       trial_id,
-      plot: Number(pid),
+      plot: plotOf(pid),
       kind: 'relabel',
       effective_t: t,
       made_at: new Date().toISOString(),
     })),
     ...ts.excluded.map((pid) => ({
-      id: stableId(trial_id, 'exclude', pid),
+      id: stableId(trial_id, 'exclude', plotOf(pid)),
       trial_id,
-      plot: pid,
+      plot: plotOf(pid),
       kind: 'exclude',
       made_at: new Date().toISOString(),
     })),
@@ -217,7 +222,7 @@ async function pushTrial(
   const photoRows = ts.photos.map((p) => ({
     id: stableId(trial_id, 'photo', p.id),
     trial_id,
-    plot: p.pid,
+    plot: plotOf(p.pid),
     // Org-partitioned path: migration 004 scopes the bucket policy on the
     // first segment, so blobs can only ever be read within their own org.
     storage_path: `${ORG_ID}/${trial_id}/${p.id}.jpg`,
