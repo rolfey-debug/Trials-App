@@ -370,6 +370,75 @@ export function plotSignsHtml(d: PlanData, o: SignOpts): string {
 
 export const signCss = SIGN_CSS
 
+// --- 3b. Harvest labels --------------------------------------------------------
+
+export interface HarvestLabelOpts {
+  /** Plot numbers only: no treatment on the label. */
+  blind: boolean
+}
+
+const HARVEST_CSS = `
+  body { padding: 0; }
+  .hsheet { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 1fr); page-break-after: always; padding: 10mm 6mm; gap: 0; height: 297mm; width: 210mm; box-sizing: border-box; }
+  .hl { border: 1px dashed #8A8C8A; padding: 4mm 5mm 3mm; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .hl .top { display: flex; justify-content: space-between; font-size: 9.5px; color: #58585B; }
+  .hl .plot { font: 700 44px 'IBM Plex Mono', monospace; color: #007749; line-height: 1; margin: 3px 0 2px; }
+  .hl .t { font-size: 11.5px; font-weight: 800; color: #141414; line-height: 1.2; }
+  .hl .t span { color: #58585B; font-weight: 700; margin-right: 4px; }
+  .hl .boxes { margin-top: auto; display: flex; gap: 6px; font-size: 9.5px; color: #3E403E; }
+  .hl .box { flex: 1; border: 1px solid #141414; border-radius: 3px; padding: 2px 5px; height: 9mm; }
+  .hl .box b { display: block; font-size: 8.5px; color: #58585B; font-weight: 700; letter-spacing: .04em; }
+  @media print { .hsheet { height: auto; min-height: 277mm; } }
+`
+export const harvestCss = HARVEST_CSS
+
+/** One label per harvested plot, in the order the harvester runs the plots
+ * (down position 1, back up position 2, and so on), 8 per A4 so they print
+ * on a 2 × 4 label sheet or cut from plain paper. The boxes take the bucket
+ * weight and moisture in pen on the day as the backup to the phone. */
+export function harvestLabelsHtml(d: PlanData, o: HarvestLabelOpts): string {
+  const { trial, treatments } = d
+  const trtOf = new Map<number, TreatmentRow>()
+  const repOf = new Map<number, string>()
+  for (const t of treatments) {
+    for (const p of t.components?.plots ?? []) trtOf.set(p, t)
+    for (const [rep, p] of Object.entries(t.components?.plotsByRep ?? {})) repOf.set(Number(p), rep)
+    // plots sprayed as this treatment beyond the design (spare positions
+    // brought in on spray day) are harvested too, labelled "extra"
+    for (const p of ((t.components as { extraPlots?: number[] } | null)?.extraPlots ?? [])) {
+      if (!trtOf.has(p)) {
+        trtOf.set(p, t)
+        repOf.set(p, 'extra')
+      }
+    }
+  }
+  const plots = serpentine([...trtOf.keys()])
+  if (!plots.length) return '<p class="muted">No plots allocated yet.</p>'
+  const harvestedArea = (() => {
+    const h = (trial.design as { harvest?: { areaM2?: number; cutWidthM?: number; lengthM?: number } } | null)?.harvest ?? {}
+    const plot = trial.design?.plot
+    const w = h.cutWidthM ?? plot?.widthM
+    const l = h.lengthM ?? plot?.lengthM
+    return h.areaM2 ?? (w && l ? +(w * l).toFixed(2) : plot?.areaM2)
+  })()
+  const sheets: string[] = []
+  for (let i = 0; i < plots.length; i += 8) {
+    const labels = plots.slice(i, i + 8).map((plot, j) => {
+      const t = trtOf.get(plot)!
+      const rep = repOf.get(plot)
+      return `<div class="hl">
+        <div class="top"><span>${esc(trial.name)}</span><span>${i + j + 1} of ${plots.length}</span></div>
+        <div class="plot">${plot}</div>
+        ${o.blind ? '' : `<div class="t"><span>T${t.n}</span>${esc(t.name)}${rep ? ` <span style="margin-left:6px">${rep === 'extra' ? 'extra plot' : `rep ${esc(rep)}`}</span>` : ''}</div>`}
+        <div class="boxes"><div class="box"><b>HARVESTED</b></div><div class="box"><b>BUCKET kg</b></div><div class="box"><b>MOISTURE %</b></div></div>
+        <div class="top" style="margin-top:2mm"><span>${esc([trial.site?.property, trial.season].filter(Boolean).join(' · '))}${harvestedArea ? ` · ${harvestedArea} m² harvested` : ''}</span><span>AGnVET Trial Work</span></div>
+      </div>`
+    })
+    sheets.push(`<div class="hsheet">${labels.join('')}</div>`)
+  }
+  return sheets.join('')
+}
+
 export function siteSignHtml(d: PlanData, lsdNote = true): string {
   const { trial, treatments } = d
   const rows = treatments.map((t) => `<tr><td class="mono" style="font-size:14px"><b>T${t.n}</b></td><td style="font-size:14px"><b>${esc(t.name)}</b></td><td style="font-size:12px">${recipeByTiming(treatmentLines(t), t)}</td></tr>`).join('')

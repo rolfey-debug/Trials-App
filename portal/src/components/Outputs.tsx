@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadAssessments, loadLiveTrials, loadMeasureLibrary, loadOperations, loadOrgSettings, loadPeople, loadPlots, loadScores, loadSiteFeatures, loadSiteWeather, loadTreatments, loadTrialCorrections, loadTrialPhotos, markDocumentDrive, photoDataUrl, portalToken, saveOrgSettings, savePrintout, type AssessmentRow, type LiveTrial, type MeasureDef, type OperationRow, type OrgSettings, type PersonRow, type PlotRow, type PrintKind, type ScoreRow, type SiteFeatureRow, type TreatmentRow, type WeatherDay } from '../lib/db'
 import { trialReportHtml, type ReportCorrection, type ReportPhoto } from '../lib/report'
 import { forgetDriveToken, pushPrintoutToDrive } from '../lib/gdrive'
-import { agreementHtml, assessmentSheetHtml, documentHtml, growerInfoHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, whsPackHtml, type DocsData } from '../lib/printouts'
+import { agreementHtml, assessmentSheetHtml, documentHtml, growerInfoHtml, harvestCss, harvestLabelsHtml, plotSignsHtml, signCss, siteSignHtml, sprayPlanHtml, timingsOf, trialPlanHtml, whsPackHtml, type DocsData } from '../lib/printouts'
 import { MONO, useApp } from '../state'
 
 const GREEN = '#007749'
@@ -14,12 +14,13 @@ const GREY = '#8A8C8A'
 const INK = '#141414'
 const HAIR = '#E4E4E6'
 
-type Kind = 'report' | 'plan' | 'spray' | 'signs' | 'site' | 'sheet' | 'agreement' | 'grower' | 'whs'
+type Kind = 'report' | 'plan' | 'spray' | 'signs' | 'harvest' | 'site' | 'sheet' | 'agreement' | 'grower' | 'whs'
 const KINDS: Array<{ id: Kind; label: string; blurb: string }> = [
   { id: 'report', label: 'Trial report', blurb: 'results per assessment with LSD letters, ranked bars, plot map, season, observations' },
   { id: 'plan', label: 'Trial plan', blurb: 'aim, site, treatments, plot plan, assessment schedule' },
   { id: 'spray', label: 'Spray and mixing plan', blurb: 'batch volumes and product amounts per treatment, tick boxes, application record' },
   { id: 'signs', label: 'Plot signs', blurb: 'one per plot or rep 1 only, 2 or 4 per A4 sheet' },
+  { id: 'harvest', label: 'Harvest labels', blurb: 'one per plot in harvester order, 8 per A4, with bucket weight and moisture boxes' },
   { id: 'site', label: 'Site sign', blurb: 'A4 or A3 board at the gate: aim, treatments, LSD note' },
   { id: 'sheet', label: 'Assessment sheet', blurb: 'pen-and-paper scoring sheet in walk order, per timing' },
   { id: 'agreement', label: 'Trial site agreement (draft)', blurb: 'parties, access, obligations, unregistered products, compensation, data, signatures' },
@@ -173,6 +174,8 @@ export default function Outputs() {
         return documentHtml(`${trial.name} — spray plan ${timing}`, sprayPlanHtml(d, { timing, waterRateLPerHa: water, overage: overage / 100 }))
       case 'signs':
         return documentHtml(`${trial.name} — plot signs`, plotSignsHtml(d, { size: signSize, repOneOnly: repOne, blind }), signCss)
+      case 'harvest':
+        return documentHtml(`${trial.name} — harvest labels`, harvestLabelsHtml(d, { blind }), harvestCss)
       case 'site':
         return documentHtml(`${trial.name} — site sign`, siteSignHtml(d))
       case 'agreement':
@@ -200,9 +203,9 @@ export default function Outputs() {
       setSaveState('failed')
       return
     }
-    const kindOf: Record<Kind, PrintKind> = { report: 'report', plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet', agreement: 'agreement', grower: 'grower-info', whs: 'whs' }
+    const kindOf: Record<Kind, PrintKind> = { report: 'report', plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', harvest: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet', agreement: 'agreement', grower: 'grower-info', whs: 'whs' }
     const label = kind === 'spray' ? `Spray plan ${timing}` : kind === 'sheet' ? `Assessment sheet A${sheetN}` : KINDS.find((k) => k.id === kind)?.label ?? kind
-    const options = kind === 'report' ? { draft: reportDraft, blind: reportBlind, primary: reportPrimary || null } : kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'sheet' ? { assessment: sheetN } : {}
+    const options = kind === 'report' ? { draft: reportDraft, blind: reportBlind, primary: reportPrimary || null } : kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'harvest' ? { harvest: true, blind } : kind === 'sheet' ? { assessment: sheetN } : {}
     const filename = `${label} · ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.html`
     const docId = await savePrintout(trial.id, kindOf[kind], filename, html, options, token)
     if (!docId) {
@@ -353,6 +356,15 @@ export default function Outputs() {
             <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: '#3E403E' }}>
               <input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} /> Plot numbers only (blind assessment)
             </label>
+          </div>
+        )}
+        {kind === 'harvest' && (
+          <div style={card}>
+            <div style={sectionLabel}>LABEL OPTIONS</div>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: '#3E403E', marginBottom: 8 }}>
+              <input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} /> Plot numbers only (no treatment on the label)
+            </label>
+            <div style={{ fontSize: 11, color: GREY, lineHeight: 1.4 }}>Labels run in the order the harvester takes the plots: down position 1, back up position 2. One goes with each bucket; the boxes are the pen backup to the phone's Harvest round. Yield in t/ha is worked out in the office from the bucket weight, the harvested area and moisture.</div>
           </div>
         )}
         {kind === 'sheet' && (

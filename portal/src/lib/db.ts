@@ -1,6 +1,7 @@
 /** Live trial data for the portal — reads/writes the real backend as the
  * signed-in user (RLS scopes everything to the org). The session is the one
  * the sidebar sign-in (or the field app, same origin) saved to localStorage. */
+import { deriveYield } from './harvest'
 import { fetchObject, insert, refresh, remove, rpc, select, stableId, update, uploadObject, upsertOn, ORG_ID, SUPA_URL, type Session } from '../../../shared/supa'
 import { blockPlots, lineWkt, pointWkt, polygonWkt, type BlockCell, type BlockSpec, type LatLng } from '../../../shared/geometry'
 
@@ -61,6 +62,8 @@ export interface LiveTrial {
     outPlots?: number[]
     /** The agronomist's read for the trial report, one point per entry; editable before printing. */
     commentary?: string[]
+    /** Harvested area and moisture standard for deriving yield from bucket weights (lib/harvest.ts). */
+    harvest?: { cutWidthM?: number; lengthM?: number; areaM2?: number; moistureStdPct?: number }
   } | null
   spraying: {
     waterRateLPerHa?: number
@@ -199,8 +202,16 @@ export interface PhotoRow {
   meta: { flagged?: boolean; trt?: number; label?: string; lat?: number | null; lng?: number | null } | null
 }
 
-export function loadScores(trialId: string, token: string): Promise<ScoreRow[] | null> {
-  return select<ScoreRow>('scores', `select=id,assessment,plot,measure,value,note,recorded_at&trial_id=eq.${trialId}&order=assessment.asc,plot.asc`, token)
+/** Scores as synced, plus grain yield derived from bucket weights where the
+ * phone recorded a harvest (lib/harvest.ts); the derived rows are never
+ * stored, so a corrected weight or area flows straight through. */
+export async function loadScores(trialId: string, token: string): Promise<ScoreRow[] | null> {
+  const [rows, trial] = await Promise.all([
+    select<ScoreRow>('scores', `select=id,assessment,plot,measure,value,note,recorded_at&trial_id=eq.${trialId}&order=assessment.asc,plot.asc`, token),
+    select<{ crop: string | null; design: LiveTrial['design'] }>('trials', `select=crop,design&id=eq.${trialId}`, token),
+  ])
+  if (!rows) return null
+  return deriveYield(rows.map((r) => ({ ...r, value: Number(r.value) })), trial?.[0] ?? {})
 }
 
 export async function loadTreatments(trialId: string, token: string): Promise<TreatmentRow[] | null> {

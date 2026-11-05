@@ -1,6 +1,6 @@
 /** Printouts: treatment-line parsing across record shapes, mixing maths,
  * serpentine walk order and the HTML carrying the right facts. */
-import { agreementHtml, assessmentSheetHtml, batchFor, growerInfoHtml, whsPackHtml, normaliseUnit, plotSignsHtml, productInBatch, serpentine, sprayPlanHtml, timingsOf, treatmentLines, trialPlanHtml, type PlanData } from '../portal/src/lib/printouts'
+import { agreementHtml, assessmentSheetHtml, batchFor, growerInfoHtml, harvestLabelsHtml, whsPackHtml, normaliseUnit, plotSignsHtml, productInBatch, serpentine, sprayPlanHtml, timingsOf, treatmentLines, trialPlanHtml, type PlanData } from '../portal/src/lib/printouts'
 import type { LiveTrial, MeasureDef, TreatmentRow } from '../portal/src/lib/db'
 
 let passed = 0
@@ -99,4 +99,14 @@ const imp = treatmentLines({ n: 15, name: 'Sakura + Syrexon 1300', recipe: 'A (I
 check('imported A/B strings give one line per timing', imp.length === 2 && imp[0].timing === 'A' && imp[0].product === 'Sakura' && imp[0].rate === 118 && imp[1].timing === 'B' && imp[1].product === 'Syrexon' && imp[1].rate === 1300)
 const rec = treatmentLines({ n: 15, name: 'x', recipe: 'A (IBS): Sakura 118 g/ha + B (EPE/Post): Syrexon 1300 mL/ha', b_spray: true, components: { plots: [1] } })
 check('labelled recipe parses by timing', rec.length === 2 && rec[1].timing === 'B' && rec[1].product === 'Syrexon')
+
+// --- harvest labels ----------------------------------------------------------
+const hl = harvestLabelsHtml(d, { blind: false })
+check('one label per treatment plot, one sheet of 8', (hl.match(/class="hl"/g) ?? []).length === 8 && (hl.match(/class="hsheet"/g) ?? []).length === 1)
+check('labels in harvester (serpentine) order', hl.indexOf('>101<') < hl.indexOf('>301<') && hl.indexOf('>301<') < hl.indexOf('>202<') && hl.indexOf('>202<') < hl.indexOf('>102<'))
+check('label carries treatment, rep, count and boxes', hl.includes('Prosaro then Aviator') && hl.includes('rep 2') && hl.includes('1 of 8') && hl.includes('BUCKET kg') && hl.includes('24 m² harvested'))
+const hlx = harvestLabelsHtml({ ...d, treatments: [{ ...untreated, components: { ...untreated.components, extraPlots: [104] } }] }, { blind: false })
+check('extra sprayed plots get a label', (hlx.match(/class="hl"/g) ?? []).length === 4 && hlx.includes('extra plot'))
+const hlb = harvestLabelsHtml(d, { blind: true })
+check('blind labels show no treatment', !hlb.includes('Prosaro') && hlb.includes('>101<'))
 console.log(`printouts: ${passed} checks passed`)

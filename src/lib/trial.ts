@@ -95,13 +95,35 @@ export function measureFlat(lib: MeasureLib): Record<string, MeasureDef> {
 /** Value cap while keying scores: % measures cap at 100, counts at 999,
  * LAI at 9.9 (one decimal — see src/lib/lai.ts for the entry scheme). */
 export function capFor(m: MeasureDef): number {
-  return m[2] === '/m2' || m[2] === '/m²' ? 999 : m[2] === 'GS' ? 99 : m[2] === 'LAI' ? 9.9 : 100
+  return m[2] === '/m2' || m[2] === '/m²' ? 999 : m[2] === 'GS' ? 99 : m[2] === 'LAI' ? 9.9 : m[2] === 'kg/plot' ? 999.99 : 100
+}
+
+/** Decimal places the keypad enters as fixed point: the measure's own
+ * setting from the office library, LAI's tenths, else whole numbers. */
+export function decimalsFor(m: MeasureDef): number {
+  return m[3] ?? (m[2] === 'LAI' ? 1 : m[2] === 'kg/plot' ? 2 : 0)
+}
+
+/** Fixed-point keypad: with 2 decimals "7", "8", "5" reads 7.85 — the way a
+ * scale display fills from the right. */
+export function fixedKeyDigit(cur: number | undefined, d: number, dp: number, cap: number): number {
+  const scale = 10 ** dp
+  const units = Math.round((cur ?? 0) * scale)
+  return Math.min(cap, (units * 10 + d) / scale)
+}
+
+export function fixedBackspace(cur: number | undefined, dp: number): number | undefined {
+  const scale = 10 ** dp
+  const units = Math.round((cur ?? 0) * scale)
+  const next = Math.floor(units / 10)
+  return next > 0 ? next / scale : undefined
 }
 
 /** Score value as the assessor should read it — LAI always shows one decimal. */
 export function fmtVal(m: MeasureDef, v: number | undefined): string {
   if (v === undefined) return '–'
-  return m[2] === 'LAI' ? v.toFixed(1) : String(v)
+  const dp = decimalsFor(m)
+  return dp > 0 ? v.toFixed(dp) : String(v)
 }
 
 /** Per-batch mixing note for the Mix checklist, derived from recipe + perBatchMl. */

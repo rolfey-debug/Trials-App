@@ -3,7 +3,7 @@ import { C, MONO, SANS } from '../theme'
 import { useApp } from '../store/store'
 import { useGps } from '../gps/useGps'
 import { fetchRecheckList, type RecheckItem } from '../lib/backend'
-import { assessmentOrder, capFor, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf, plotLabel } from '../lib/trial'
+import { assessmentOrder, capFor, decimalsFor, fixedBackspace, fixedKeyDigit, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf, plotLabel } from '../lib/trial'
 import { analyzeCanopyPhoto, laiBackspace, laiKeyDigit, type CanopyAnalysis } from '../lib/lai'
 import { gridFromCorners, gridFromStored, locate } from '../gps/geo'
 import { compressAndStore } from '../lib/photo'
@@ -147,12 +147,18 @@ export function Assess() {
   }
 
   const isLai = flat[field][2] === 'LAI'
+  const dp = decimalsFor(flat[field])
   const keyDigit = (d: string) => {
     setFlash('')
     setScore(null, (v) => {
       if (isLai) {
         // one-decimal fixed point: "3" then "4" reads 3.4 (see lib/lai.ts)
         v[field] = laiKeyDigit(v[field], Number(d))
+        return
+      }
+      if (dp > 0) {
+        // fixed point from the right, like a scale display: 7, 8, 5 → 7.85 kg
+        v[field] = fixedKeyDigit(v[field], Number(d), dp, capFor(flat[field]))
         return
       }
       const curStr = String(v[field] ?? '')
@@ -162,8 +168,8 @@ export function Assess() {
   }
   const backspace = () =>
     setScore(null, (v) => {
-      if (isLai) {
-        const next = laiBackspace(v[field])
+      if (isLai || dp > 0) {
+        const next = isLai ? laiBackspace(v[field]) : fixedBackspace(v[field], dp)
         if (next === undefined) delete v[field]
         else v[field] = next
         return
@@ -539,6 +545,11 @@ export function Assess() {
           {isLai && !laiRes && !flash && (
             <div style={{ fontSize: 10.5, color: C.muted, margin: '0 2px 6px' }}>
               Keypad enters tenths — 3 then 4 reads 3.4. Or point the camera straight down over the row.
+            </div>
+          )}
+          {!isLai && dp > 0 && !flash && (
+            <div style={{ fontSize: 10.5, color: C.muted, margin: '0 2px 6px' }}>
+              {dp === 2 ? 'Type it as the scale shows it — 7, 8, 5 reads 7.85.' : 'Keypad enters tenths — 1, 1, 2 reads 11.2.'}
             </div>
           )}
           {flash && <div style={{ fontSize: 11.5, color: C.greenDark, margin: '0 2px 6px' }}>{flash}</div>}

@@ -27,7 +27,9 @@ export interface Treatment {
   plots: number[]
 }
 
-export type MeasureDef = [key: string, label: string, unit: string]
+/** Optional 4th element: decimal places the keypad enters as fixed point
+ * (bucket weight 2, grain moisture 1). LAI is always 1. */
+export type MeasureDef = [key: string, label: string, unit: string, decimals?: number]
 
 export interface MeasureLib {
   disease: MeasureDef[]

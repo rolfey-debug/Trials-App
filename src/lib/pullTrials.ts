@@ -70,6 +70,7 @@ export interface OfficeMeasure {
   unit: string | null
   group_key: string | null
   canonical: string | null
+  decimals?: number | null
 }
 
 export interface OfficePlot {
@@ -89,7 +90,7 @@ export function listOfficeTrials(token: string): Promise<OfficeTrial[] | null> {
 }
 
 export function loadOfficeMeasures(token: string): Promise<OfficeMeasure[] | null> {
-  return select<OfficeMeasure>('measures', 'select=key,label,unit,group_key,canonical&active=is.true&order=label.asc', token)
+  return select<OfficeMeasure>('measures', 'select=key,label,unit,group_key,canonical,decimals&active=is.true&order=label.asc', token)
 }
 
 export function loadOfficePlots(trialId: string, token: string): Promise<OfficePlot[] | null> {
@@ -112,7 +113,7 @@ export function plotList(c: OfficeTreatment['components']): number[] {
 export function measureLibFor(t: OfficeTrial, lib: OfficeMeasure[]): MeasureLib {
   const planned = [...new Set(t.assessments.slice().sort((a, b) => a.n - b.n).flatMap((a) => a.measures ?? []))]
   const byKey = new Map(lib.map((m) => [m.key, m]))
-  const def = (m: OfficeMeasure): MeasureDef => [m.key, m.label, m.unit ?? '']
+  const def = (m: OfficeMeasure): MeasureDef => (m.decimals ? [m.key, m.label, m.unit ?? '', m.decimals] : [m.key, m.label, m.unit ?? ''])
   const grouped = (keys: string[]): MeasureLib => {
     const out: MeasureLib = { disease: [], weeds: [], crop: [], defaultActive: [] }
     for (const k of keys) {
