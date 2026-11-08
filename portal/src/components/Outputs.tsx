@@ -63,6 +63,7 @@ export default function Outputs() {
   const [overage, setOverage] = useState(30)
   const [signSize, setSignSize] = useState<'a6' | 'a5'>('a6')
   const [repOne, setRepOne] = useState(false)
+  const [labelOrder, setLabelOrder] = useState<'harvester' | 'plot'>('harvester')
   const [blind, setBlind] = useState(false)
   const [sheetN, setSheetN] = useState(1)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
@@ -175,7 +176,7 @@ export default function Outputs() {
       case 'signs':
         return documentHtml(`${trial.name} — plot signs`, plotSignsHtml(d, { size: signSize, repOneOnly: repOne, blind }), signCss)
       case 'harvest':
-        return documentHtml(`${trial.name} — harvest labels`, harvestLabelsHtml(d, { blind }), harvestCss)
+        return documentHtml(`${trial.name} — harvest labels`, harvestLabelsHtml(d, { blind, order: labelOrder }), harvestCss)
       case 'site':
         return documentHtml(`${trial.name} — site sign`, siteSignHtml(d))
       case 'agreement':
@@ -189,7 +190,7 @@ export default function Outputs() {
         return a ? documentHtml(`${trial.name} — assessment ${a.n}`, assessmentSheetHtml(d, a)) : documentHtml(trial.name, '<p class="muted">No assessment timings on this trial yet. Add them in the builder or the trial editor.</p>')
       }
     }
-  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, photoPoints, plots, photos, reportPhotos, reportDraft, reportBlind, reportPrimary, reportRead, kind, timing, water, overage, signSize, repOne, blind, sheetN])
+  }, [trial, trts, assess, measures, features, people, scores, weather, ops, corrections, photosByPlot, photoPoints, plots, photos, reportPhotos, reportDraft, reportBlind, reportPrimary, reportRead, kind, timing, water, overage, signSize, repOne, blind, labelOrder, sheetN])
 
   useEffect(() => {
     setSaveState('idle')
@@ -205,7 +206,7 @@ export default function Outputs() {
     }
     const kindOf: Record<Kind, PrintKind> = { report: 'report', plan: 'trial-plan', spray: 'spray-plan', signs: 'plot-signs', harvest: 'plot-signs', site: 'site-sign', sheet: 'assessment-sheet', agreement: 'agreement', grower: 'grower-info', whs: 'whs' }
     const label = kind === 'spray' ? `Spray plan ${timing}` : kind === 'sheet' ? `Assessment sheet A${sheetN}` : KINDS.find((k) => k.id === kind)?.label ?? kind
-    const options = kind === 'report' ? { draft: reportDraft, blind: reportBlind, primary: reportPrimary || null } : kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'harvest' ? { harvest: true, blind } : kind === 'sheet' ? { assessment: sheetN } : {}
+    const options = kind === 'report' ? { draft: reportDraft, blind: reportBlind, primary: reportPrimary || null } : kind === 'spray' ? { timing, waterRateLPerHa: water, overagePct: overage } : kind === 'signs' ? { size: signSize, repOneOnly: repOne, blind } : kind === 'harvest' ? { harvest: true, blind, order: labelOrder } : kind === 'sheet' ? { assessment: sheetN } : {}
     const filename = `${label} · ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}.html`
     const docId = await savePrintout(trial.id, kindOf[kind], filename, html, options, token)
     if (!docId) {
@@ -361,6 +362,11 @@ export default function Outputs() {
         {kind === 'harvest' && (
           <div style={card}>
             <div style={sectionLabel}>LABEL OPTIONS</div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              {(['harvester', 'plot'] as const).map((s) => (
+                <span key={s} onClick={() => setLabelOrder(s)} style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 99, cursor: 'pointer', border: `1.5px solid ${labelOrder === s ? GREEN : HAIR}`, color: labelOrder === s ? GREEN : '#3E403E', background: labelOrder === s ? '#E3F1EA' : '#fff' }}>{s === 'harvester' ? 'Harvester order' : 'Plot number order'}</span>
+              ))}
+            </div>
             <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: '#3E403E', marginBottom: 8 }}>
               <input type="checkbox" checked={blind} onChange={(e) => setBlind(e.target.checked)} /> Plot numbers only (no treatment on the label)
             </label>

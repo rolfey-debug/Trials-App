@@ -375,6 +375,8 @@ export const signCss = SIGN_CSS
 export interface HarvestLabelOpts {
   /** Plot numbers only: no treatment on the label. */
   blind: boolean
+  /** 'harvester' = down position 1 and back up position 2 (default); 'plot' = ascending plot number. */
+  order?: 'harvester' | 'plot'
 }
 
 const HARVEST_CSS = `
@@ -412,7 +414,7 @@ export function harvestLabelsHtml(d: PlanData, o: HarvestLabelOpts): string {
       }
     }
   }
-  const plots = serpentine([...trtOf.keys()])
+  const plots = o.order === 'plot' ? [...trtOf.keys()].sort((a, b) => a - b) : serpentine([...trtOf.keys()])
   if (!plots.length) return '<p class="muted">No plots allocated yet.</p>'
   const harvestedArea = (() => {
     const h = (trial.design as { harvest?: { areaM2?: number; cutWidthM?: number; lengthM?: number } } | null)?.harvest ?? {}
@@ -461,7 +463,10 @@ export function siteSignHtml(d: PlanData, lsdNote = true): string {
 
 /** Serpentine order: position 1 rows 1→n, position 2 rows n→1, and so on. */
 export function serpentine(plots: number[]): number[] {
+  if (!plots.length) return []
   const rows = Math.max(...plots.map((p) => Math.floor(p / 100)))
+  // strip-numbered plots (plot = strip number, no row) run in plot order
+  if (rows < 1) return [...plots].sort((a, b) => a - b)
   const positions = Math.max(...plots.map((p) => p % 100))
   const set = new Set(plots)
   const out: number[] = []
