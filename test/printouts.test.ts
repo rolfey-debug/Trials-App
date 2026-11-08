@@ -1,6 +1,6 @@
 /** Printouts: treatment-line parsing across record shapes, mixing maths,
  * serpentine walk order and the HTML carrying the right facts. */
-import { agreementHtml, assessmentSheetHtml, batchFor, growerInfoHtml, harvestLabelsHtml, whsPackHtml, normaliseUnit, plotSignsHtml, productInBatch, serpentine, sprayPlanHtml, timingsOf, treatmentLines, trialPlanHtml, type PlanData } from '../portal/src/lib/printouts'
+import { agreementHtml, assessmentSheetHtml, batchFor, growerInfoHtml, harvestDayRecordHtml, harvestLabelsHtml, harvestRecordHtml, sampleRegisterHtml, whsPackHtml, normaliseUnit, plotSignsHtml, productInBatch, serpentine, sprayPlanHtml, timingsOf, treatmentLines, trialPlanHtml, type PlanData } from '../portal/src/lib/printouts'
 import type { LiveTrial, MeasureDef, TreatmentRow } from '../portal/src/lib/db'
 
 let passed = 0
@@ -112,4 +112,14 @@ check('plot-number order on request', hlp.indexOf('>101<') < hlp.indexOf('>102<'
 check('strip-numbered plots run in plot order', serpentine([3, 1, 2]).join() === '1,2,3' && serpentine([]).length === 0)
 const hlb = harvestLabelsHtml(d, { blind: true })
 check('blind labels show no treatment', !hlb.includes('Prosaro') && hlb.includes('>101<'))
+
+// --- harvest records ---------------------------------------------------------
+const hr = harvestRecordHtml(d)
+check('harvest record: one row per plot in harvester order with the columns', (hr.match(/<tr><td class="mono muted">/g) ?? []).length === 8 && hr.includes('Bucket kg') && hr.includes('Moisture %') && hr.indexOf('>101<') < hr.indexOf('>301<'))
+const sr = sampleRegisterHtml(d)
+check('sample register: one row per plot, plot order', (sr.match(/<td style="height:20px">/g) ?? []).length === 8 && sr.includes('Bag #') && sr.indexOf('>101<') < sr.indexOf('>102<'))
+const hd = harvestDayRecordHtml(d)
+check('harvest day record carries plot count and checks', hd.includes('All 8 plots harvested') && hd.includes('Cut width') && hd.includes('Moisture meter'))
+const sheetX = assessmentSheetHtml({ ...d, treatments: [{ ...untreated, components: { ...untreated.components, extraPlots: [104] } }] }, { n: 4, timing: 'Harvest', measures: ['rust_plot'], blind: false })
+check('assessment sheet lists extra sprayed plots', sheetX.includes('<b>104</b>'))
 console.log(`printouts: ${passed} checks passed`)

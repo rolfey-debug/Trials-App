@@ -194,7 +194,7 @@ export interface PlanData {
 
 function gridHtml(trial: LiveTrial, trts: TreatmentRow[], small = false): string {
   const trtOf = new Map<number, number>()
-  for (const t of trts) for (const p of t.components?.plots ?? []) trtOf.set(p, t.n)
+  for (const [p, t] of harvestPlots(trts).trtOf) trtOf.set(p, t.n)
   const plots = [...trtOf.keys()]
   if (!plots.length) return '<p class="muted">No plot allocation on the record yet.</p>'
   const rows = trial.design?.grid?.rows ?? Math.max(...plots.map((p) => Math.floor(p / 100)))
@@ -370,7 +370,26 @@ export function plotSignsHtml(d: PlanData, o: SignOpts): string {
 
 export const signCss = SIGN_CSS
 
-// --- 3b. Harvest labels --------------------------------------------------------
+// --- 3b. Harvest labels and records --------------------------------------------
+
+/** Every plot carrying a treatment: the design allocation plus plots sprayed
+ * as a treatment beyond it (spare positions brought in on spray day), which
+ * the record marks 'extra'. */
+export function harvestPlots(treatments: TreatmentRow[]): { trtOf: Map<number, TreatmentRow>; repOf: Map<number, string> } {
+  const trtOf = new Map<number, TreatmentRow>()
+  const repOf = new Map<number, string>()
+  for (const t of treatments) {
+    for (const p of t.components?.plots ?? []) trtOf.set(p, t)
+    for (const [rep, p] of Object.entries(t.components?.plotsByRep ?? {})) repOf.set(Number(p), rep)
+    for (const p of ((t.components as { extraPlots?: number[] } | null)?.extraPlots ?? [])) {
+      if (!trtOf.has(p)) {
+        trtOf.set(p, t)
+        repOf.set(p, 'extra')
+      }
+    }
+  }
+  return { trtOf, repOf }
+}
 
 export interface HarvestLabelOpts {
   /** Plot numbers only: no treatment on the label. */
@@ -400,20 +419,7 @@ export const harvestCss = HARVEST_CSS
  * weight and moisture in pen on the day as the backup to the phone. */
 export function harvestLabelsHtml(d: PlanData, o: HarvestLabelOpts): string {
   const { trial, treatments } = d
-  const trtOf = new Map<number, TreatmentRow>()
-  const repOf = new Map<number, string>()
-  for (const t of treatments) {
-    for (const p of t.components?.plots ?? []) trtOf.set(p, t)
-    for (const [rep, p] of Object.entries(t.components?.plotsByRep ?? {})) repOf.set(Number(p), rep)
-    // plots sprayed as this treatment beyond the design (spare positions
-    // brought in on spray day) are harvested too, labelled "extra"
-    for (const p of ((t.components as { extraPlots?: number[] } | null)?.extraPlots ?? [])) {
-      if (!trtOf.has(p)) {
-        trtOf.set(p, t)
-        repOf.set(p, 'extra')
-      }
-    }
-  }
+  const { trtOf, repOf } = harvestPlots(treatments)
   const plots = o.order === 'plot' ? [...trtOf.keys()].sort((a, b) => a - b) : serpentine([...trtOf.keys()])
   if (!plots.length) return '<p class="muted">No plots allocated yet.</p>'
   const harvestedArea = (() => {
@@ -459,6 +465,87 @@ export function siteSignHtml(d: PlanData, lsdNote = true): string {
   </div>`
 }
 
+const line = (w = 120) => `<span style="display:inline-block;min-width:${w}px;border-bottom:1px solid #141414">&nbsp;</span>`
+
+/** Pen record for harvest day, in harvester order: bucket weight, moisture,
+ * a length and width column for trimmed plots, notes. The backup to the
+ * phone's Harvest round; the office types it into the Harvest screen. */
+export function harvestRecordHtml(d: PlanData, o: { order?: 'harvester' | 'plot' } = {}): string {
+  const { trial, treatments } = d
+  const { trtOf, repOf } = harvestPlots(treatments)
+  const plots = o.order === 'plot' ? [...trtOf.keys()].sort((a, b) => a - b) : serpentine([...trtOf.keys()])
+  if (!plots.length) return '<p class="muted">No plots allocated yet.</p>'
+  const h = (trial.design as { harvest?: { cutWidthM?: number; lengthM?: number } } | null)?.harvest ?? {}
+  const w = h.cutWidthM ?? trial.design?.plot?.widthM
+  const l = h.lengthM ?? trial.design?.plot?.lengthM
+  const rows = plots.map((p, i) => {
+    const t = trtOf.get(p)!
+    const rep = repOf.get(p)
+    return `<tr><td class="mono muted">${i + 1}</td><td class="mono"><b>${p}</b></td><td class="mono">T${t.n}</td><td>${esc(t.name)}${rep === 'extra' ? ' <span class="muted">extra</span>' : ''}</td><td style="height:21px"></td><td></td><td></td><td></td><td></td></tr>`
+  }).join('')
+  return `${header(trial, 'Harvest record')}
+  <div class="kv"><b>Date</b><span>${line()}</span><b>Harvester / cut width</b><span>${line(90)} / ${line(50)} m</span><b>Weighed by</b><span>${line()}</span><b>Scale check</b><span>known ${line(40)} kg read ${line(40)} kg · bucket tare ${line(40)} kg</span></div>
+  <p class="muted" style="margin:8px 0">Order is ${o.order === 'plot' ? 'by plot number' : 'the harvester run: down position 1, back up position 2'}. Default harvested size ${w ?? '—'} × ${l ?? '—'} m; write a length or width only where a plot was cut short. Weigh with the bucket tared. Blank moisture means not read.</p>
+  <table><thead><tr><th>#</th><th>Plot</th><th>Trt</th><th>Treatment</th><th style="width:13%">Bucket kg</th><th style="width:10%">Moisture %</th><th style="width:8%">Length m</th><th style="width:8%">Width m</th><th style="width:18%">Notes</th></tr></thead><tbody>${rows}</tbody></table>
+  ${footer(trial, 'Harvest record')}`
+}
+
+/** Grain sample register: one line per plot for bags kept for protein,
+ * screenings and test weight, filled in as results come back. */
+export function sampleRegisterHtml(d: PlanData): string {
+  const { trial, treatments } = d
+  const { trtOf, repOf } = harvestPlots(treatments)
+  const plots = [...trtOf.keys()].sort((a, b) => a - b)
+  if (!plots.length) return '<p class="muted">No plots allocated yet.</p>'
+  const rows = plots.map((p) => {
+    const t = trtOf.get(p)!
+    return `<tr><td class="mono"><b>${p}</b></td><td class="mono">T${t.n}</td><td>${esc(t.name)}${repOf.get(p) === 'extra' ? ' <span class="muted">extra</span>' : ''}</td><td style="height:20px"></td><td></td><td></td><td></td><td></td><td></td></tr>`
+  }).join('')
+  return `${header(trial, 'Grain sample register')}
+  <div class="kv"><b>Sampled</b><span>${line()}</span><b>Tested at</b><span>${line(200)}</span><b>Date sent / returned</b><span>${line(80)} / ${line(80)}</span></div>
+  <p class="muted" style="margin:8px 0">Bag number written on the bag and here. Composite = reps of one treatment pooled into one bag; write the plots it holds in the notes. Results are typed into the Harvest round in the portal as protein_pct, screenings_pct and test_weight.</p>
+  <table><thead><tr><th>Plot</th><th>Trt</th><th>Treatment</th><th style="width:9%">Bag #</th><th style="width:7%">Kept</th><th style="width:9%">Protein %</th><th style="width:9%">Screenings %</th><th style="width:9%">Test wt kg/hL</th><th style="width:16%">Notes</th></tr></thead><tbody>${rows}</tbody></table>
+  ${footer(trial, 'Sample register')}`
+}
+
+/** Harvest day record: the operation record the SOP asks for (date, time,
+ * people, machine, conditions), plus the checks that make the weights
+ * trustworthy. Typed into the operations record afterwards. */
+export function harvestDayRecordHtml(d: PlanData): string {
+  const { trial, treatments } = d
+  const { trtOf } = harvestPlots(treatments)
+  const n = trtOf.size
+  const h = (trial.design as { harvest?: { cutWidthM?: number; lengthM?: number; moistureStdPct?: number } } | null)?.harvest ?? {}
+  const row = (k: string, v = line(300)) => `<tr><td style="width:32%"><b>${k}</b></td><td>${v}</td></tr>`
+  const tick = (items: string[]) => items.map((i) => `<div style="margin:3px 0"><span class="tick"></span> ${i}</div>`).join('')
+  return `${header(trial, 'Harvest day record')}
+  <h2>Day</h2>
+  <table><tbody>
+  ${row('Date', `${line(100)} start ${line(50)} finish ${line(50)}`)}
+  ${row('People on site (names, roles)')}
+  ${row('Grower notified', `${line(100)} by ${line(100)}`)}
+  ${row('Weather', `temp ${line(40)} °C · wind ${line(40)} km/h from ${line(40)} · RH ${line(40)} % · fire danger rating ${line(90)}`)}
+  ${row('Crop condition', `grain moisture at start ${line(40)} % · lodging / weeds / damage ${line(160)}`)}
+  </tbody></table>
+  <h2>Machine and measurement</h2>
+  <table><tbody>
+  ${row('Harvester (make, model, owner)')}
+  ${row('Cut width', `${line(50)} m (measured on the day; default on record ${h.cutWidthM ?? trial.design?.plot?.widthM ?? '—'} m)`)}
+  ${row('Harvested length', `${line(50)} m full plot (default ${h.lengthM ?? trial.design?.plot?.lengthM ?? '—'} m); trimmed plots listed on the harvest record`)}
+  ${row('Scale (make, resolution)', `${line(160)} · known weight ${line(40)} kg read ${line(40)} kg`)}
+  ${row('Bucket tare', `${line(50)} kg · re-checked at ${line(60)}`)}
+  ${row('Moisture meter', `${line(140)} · calibration ${line(80)} · check reading ${line(40)} %`)}
+  ${row('Clean-out between plots', 'method ' + line(240))}
+  ${row('Buffer run before first plot', `done ${line(40)} · cut width confirmed ${line(40)}`)}
+  </tbody></table>
+  <h2>Checks</h2>
+  ${tick([`All ${n} plots harvested and weighed (${n} labels back)`, 'Plots cut short or part-harvested written on the harvest record with their length', 'Plots not harvested listed with the reason (damage, lodging, out)', 'Phone synced or record sheets photographed before leaving', 'Samples kept: see sample register', 'Grain disposed of as agreed with the grower', 'Pegs and signs pulled (if the trial is finished) · gate left as found'])}
+  <h2>Incidents, deviations, notes</h2>
+  <div style="border:1px solid #D8DAD8;border-radius:4px;height:110px"></div>
+  <div class="kv" style="margin-top:14px"><b>Recorded by</b><span>${line(200)}</span><b>Signed</b><span>${line(200)}</span></div>
+  ${footer(trial, 'Harvest day record')}`
+}
+
 // --- 4. Assessment sheet -----------------------------------------------------
 
 /** Serpentine order: position 1 rows 1→n, position 2 rows n→1, and so on. */
@@ -481,7 +568,7 @@ export function serpentine(plots: number[]): number[] {
 export function assessmentSheetHtml(d: PlanData, a: AssessmentRow): string {
   const { trial, treatments, measures } = d
   const trtOf = new Map<number, number>()
-  for (const t of treatments) for (const p of t.components?.plots ?? []) trtOf.set(p, t.n)
+  for (const [p, t] of harvestPlots(treatments).trtOf) trtOf.set(p, t.n)
   const plots = serpentine([...trtOf.keys()])
   const cols = a.measures.map((k) => {
     const m = measures.get(k)
