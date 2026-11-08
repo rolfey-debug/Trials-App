@@ -3,10 +3,31 @@
  * cache-first for hashed build assets and fonts. Everything a signed-in
  * user has touched keeps working with no signal.
  */
-const CACHE = 'trialwork-v1'
+const CACHE = 'trialwork-v2'
+
+/* Precached at install so the very first offline load already has the shell
+ * and the brand faces. Font filenames come from shared/fonts/build-fonts.mjs —
+ * if that script's naming changes, change these too. The latin-ext subsets are
+ * left to fill on demand; almost nothing here needs them. */
+const SHELL = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './icon.svg',
+  './fonts/fonts.css',
+  './fonts/mulish-400-900-latin.woff2',
+  './fonts/plex-mono-400-latin.woff2',
+  './fonts/plex-mono-500-latin.woff2',
+  './fonts/plex-mono-600-latin.woff2',
+  './fonts/plex-mono-700-latin.woff2',
+]
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])))
+  // One bad URL fails the whole addAll, taking the install with it — cache each
+  // entry on its own so a renamed font can never break the app shell.
+  e.waitUntil(
+    caches.open(CACHE).then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {}))))
+  )
   self.skipWaiting()
 })
 
@@ -34,9 +55,9 @@ self.addEventListener('fetch', (e) => {
     return
   }
 
-  // Assets (same-origin + font CDNs): cache first, fill cache from network.
-  const cacheable = url.origin === location.origin || url.hostname.endsWith('gstatic.com') || url.hostname.endsWith('googleapis.com')
-  if (!cacheable) return
+  // Assets: cache first, fill cache from network. Same-origin only — the fonts
+  // are self-hosted now, so nothing legitimate is fetched cross-origin.
+  if (url.origin !== location.origin) return
   e.respondWith(
     caches.match(req).then(
       (hit) =>
