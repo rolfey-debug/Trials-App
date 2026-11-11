@@ -5,7 +5,7 @@ import { useApp } from '../store/store'
 import { login } from '../lib/backend'
 
 export function Login() {
-  const { mut } = useApp()
+  const { mut, go } = useApp()
   const [email, setEmail] = useState('andrew.rolfe@agnvet.com.au')
   const [pw, setPw] = useState('')
   const [linkFlash, setLinkFlash] = useState(false)
@@ -105,6 +105,16 @@ export function Login() {
       <div style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 12, padding: '11px 14px', fontSize: 11.5, color: C.grey, lineHeight: 1.55, marginBottom: 8 }}>
         Your login sets what you see — <b style={{ color: C.ink }}>trials team</b> gets everything, <b style={{ color: C.ink }}>growers</b> their
         own site, <b style={{ color: C.ink }}>chem reps</b> a limited view you control.
+      </div>
+      <div
+        onClick={() => go('base')}
+        style={{ background: '#fff', border: `1px solid ${C.hairline}`, borderRadius: 12, padding: '11px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 800 }}>GPS base station</div>
+          <div style={{ fontSize: 11, color: C.grey, lineHeight: 1.45 }}>Second phone? Park it here to sharpen the sprayer bike's guidance — no sign-in needed.</div>
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: C.green }}>›</div>
       </div>
       <div style={{ fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 'auto' }}>
         Works offline once signed in — syncs when you're back in signal

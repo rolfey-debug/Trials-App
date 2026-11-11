@@ -23,6 +23,7 @@ npm run build      # type-check + production build → dist/
 npm run preview    # serve the production build
 npm test           # parser + geometry tests against the real fixtures
 node test/walkthrough.mjs   # Playwright end-to-end walkthrough (needs `npm run preview` running)
+node test/guidance-drive.mjs  # scripted bike + second phone drive the guidance screen (needs preview running)
 ```
 
 Deploy `dist/` to any static host. The service worker caches the app shell + assets on first visit; everything after that works with no signal. Install to home screen from the browser menu.
@@ -48,6 +49,20 @@ Deploy `dist/` to any static host. The service worker caches the app shell + ass
 | **Reports & export** | Blind-codes toggle; ranked-control preview flips from labelled SAMPLE DATA to live means once enough real scores exist; **Excel export** is a real `.xlsx` matching `fixtures/Junee_Field_Assessment.xlsx` (Plot #, Block, Trt #, Treatment, App A/B, measure columns, Assessor, Photo?, Notes + Treatment Data + Correction Log tabs); client PDF report + field-day handout render to print views (print → save as PDF) |
 | **Field-day walk** | Rep 1 walk (24 stops), severity comparison vs untreated, % control strip, GPS position line |
 
+## Bike guidance (Spray → Bike guidance)
+
+Swath guidance for the sprayer bike — **6 m rear boom** and **2 m shielded front boom** (widths, boom positions and lap are editable under ⚙). Lightbar + cross-track readout, pass counter, speed-hold tile (boom sprayers without a rate controller apply ∝ 1/speed, so the tile shows the L/ha actually going on), heading-up swath map, and an as-applied sprayed map with area and double-spray tally. On a pinned trial the plot grid is drawn underneath, the plot under the active boom is named with its treatment, and with a *treatment in the tank* selected the badge turns red over any other plot.
+
+A phone is a ±2–4 m position source; a 6 m boom needs better than that pass-to-pass. What the screen does about it, cheapest first:
+
+1. **Doppler-aided track filter** — the receiver's speed/course (cm/s-grade) carries the position between fixes and the noisy fixes only trim it. Cross-track jitter drops ≥2× in simulation, and the lightbar looks ahead (default 1.2 s) and animates at 20 fps off a 1 Hz receiver.
+2. **Best-fit AB line** — mark A, drive the first pass, mark B: the line is a least-squares fit through every fix of the pass, not a ruler between two noisy points (≈3× tighter heading on a 120 m run).
+3. **Second phone as a base station** — any phone opens the app → *GPS base station* on the sign-in screen (no account) → enters the bike's six-digit pair code. Parked, it knows it isn't moving, so the movement its GPS reports is error; it broadcasts that over Supabase Realtime (Starlink Wi-Fi or mobile data) and the bike subtracts the shared part. Phones expose positions, not raw satellite data, so how much two phones share is **measured, not assumed**: whenever the bike is parked (every refill) its own wander is regressed against the base's, and only the fitted fraction is applied. Phones that don't wander together ⇒ gain → 0, base ignored. The Accuracy sheet reports the measured cut.
+4. **"I'm on the line"** — at the start of a pass, line up on the last pass's edge by eye and tap: zeroes whatever drift is left. ± 10 cm nudges alongside.
+5. **RTK-ready** — a Bluetooth RTK receiver set as the phone's mock-location source (NTRIP over the Starlink) flows through unchanged: the filter steps aside when reported accuracy is ≪ 1 m.
+
+The base link needs the Supabase project awake — free-tier projects pause after a week idle (guidance itself runs fine without it; the chip reads *BASE · NO LINK*).
+
 ## Architecture
 
 ```
@@ -63,6 +78,12 @@ src/
     geo.ts             haversine/bearing/destination, two-corner grid layout,
                        point-in-polygon locate with row-level confidence
     useGps.tsx         watchPosition + fix averaging; simulated ±4 m fallback
+  guidance/
+    engine.ts          pure maths: local frame, swaths/steer, line fit, Doppler track
+                       filter, base-station differential (self-tuning gain), coverage raster
+    link.ts            base ⇄ rover channel (Supabase Realtime broadcast, zero-dep)
+    useGuidance.ts     GPS watch + engine + job persistence for the screen
+    job.ts / sim.ts    boom settings + resumable job (localStorage); demo drive
   lib/                 walk orders, measure library, batch math, photo compression,
                        ranked-control results
   parsers/             pdfText (Flate/ASCII85 streams → text items), sprayMapPdf,
@@ -74,6 +95,10 @@ test/
   parsers.test.ts      fixture-validated: PDF parse ≡ matong-trial.json, mixing
                        plan volumes, export round-trip, grid locate
   walkthrough.mjs      Playwright drive-through of every screen and key flow
+  guidance.test.ts     simulated bike + GPS error: filter, line fit, two-phone
+                       differential (helps when shared, backs off when not), coverage
+  guidance-drive.mjs   Playwright: two passes, reload, pair a second "phone" as base,
+                       trial plots under the boom (LIVE_LINK=1 pairs over real Realtime)
 ```
 
 **Offline-first**: all writes land in IndexedDB immediately; the sync queue tracks what still needs the portal. **Backend**: not wired — the queue shape, role model and entity types are laid out for the handoff's recommended Supabase/Postgres backend (auth, row-level security, file storage); `syncNow()` is the single integration point. Conflict policy per the spec: last-write-wins per field with full history.
