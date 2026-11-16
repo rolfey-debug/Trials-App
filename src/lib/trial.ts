@@ -33,7 +33,13 @@ export function repOf(doc: TrialDoc, pid: number): number {
 
 export const isTreatmentCell = (v: CellKind | undefined): v is number => typeof v === 'number'
 
-/** Serpentine assessment order: pos 1 rows 1→12, pos 2 rows 12→1, … treatment cells only. */
+/** A plot that can take a score: a treatment plot, or one crossed out on
+ * the plan ('out'). Out plots stay in the walk so a bucket weight or a
+ * photo can still go on the record; the office keeps them out of the
+ * analysis. Spare, skip and reserve cells have nothing to score. */
+export const isScorableCell = (v: CellKind | undefined): boolean => typeof v === 'number' || v === 'out'
+
+/** Serpentine assessment order: pos 1 rows 1→12, pos 2 rows 12→1, … treatment and out cells. */
 export function assessmentOrder(doc: TrialDoc): number[] {
   const { rows, positions } = doc.trial.grid
   const order: number[] = []
@@ -42,7 +48,7 @@ export function assessmentOrder(doc: TrialDoc): number[] {
     if (pos % 2 === 0) rr = rr.reverse()
     for (const r of rr) {
       const pid = r * 100 + pos
-      if (isTreatmentCell(doc.cells[pid])) order.push(pid)
+      if (isScorableCell(doc.cells[pid])) order.push(pid)
     }
   }
   return order

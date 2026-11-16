@@ -3,7 +3,7 @@ import { C, MONO, SANS } from '../theme'
 import { useApp } from '../store/store'
 import { useGps } from '../gps/useGps'
 import { fetchRecheckList, type RecheckItem } from '../lib/backend'
-import { assessmentOrder, capFor, decimalsFor, fixedBackspace, fixedKeyDigit, fmtVal, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf, plotLabel } from '../lib/trial'
+import { assessmentOrder, capFor, decimalsFor, fixedBackspace, fixedKeyDigit, fmtVal, isScorableCell, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf, plotLabel } from '../lib/trial'
 import { analyzeCanopyPhoto, laiBackspace, laiKeyDigit, type CanopyAnalysis } from '../lib/lai'
 import { gridFromCorners, gridFromStored, locate } from '../gps/geo'
 import { compressAndStore } from '../lib/photo'
@@ -74,7 +74,8 @@ export function Assess() {
   const row = rowOf(pid)
   const pos = posOf(pid)
   const rep = repOf(doc, pid)
-  const trtN = (ts.relabel[pid] ?? doc.cells[pid]) as number
+  const isOut = doc.cells[pid] === 'out' && ts.relabel[pid] === undefined
+  const trtN = isOut ? 0 : ((ts.relabel[pid] ?? doc.cells[pid]) as number)
   const tinfo = treatmentByN(doc, trtN)
   const sc = ts.scores[pid]
   const nextPid = order[idx + 1]
@@ -345,7 +346,11 @@ export function Assess() {
             </span>
           ))}
         </div>
-        {blind ? (
+        {isOut ? (
+          <div style={{ background: C.burntTint, borderRadius: 8, padding: '8px 10px', fontSize: 12, color: C.burntDark }}>
+            Crossed out on the plan — anything scored here stays on the record but is kept out of the analysis
+          </div>
+        ) : blind ? (
           <div style={{ background: C.chipBg, borderRadius: 8, padding: '8px 10px', fontSize: 12, color: C.grey }}>
             Treatment hidden — blind scoring on
           </div>
@@ -736,7 +741,8 @@ export function Assess() {
               <div key={r} style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(doc.trial.grid.positions, 8)}, 1fr)`, gap: 4, marginBottom: 4 }}>
                 {Array.from({ length: doc.trial.grid.positions }, (_, pi) => pi + 1).map((p) => {
                   const cellPid = r * 100 + p
-                  const live = typeof doc.cells[cellPid] === 'number'
+                  const out = doc.cells[cellPid] === 'out'
+                  const live = isScorableCell(doc.cells[cellPid])
                   const done = live && !!ts.scores[cellPid]
                   const here = cellPid === pid
                   return (
@@ -750,8 +756,9 @@ export function Assess() {
                       style={{
                         textAlign: 'center', padding: '8px 0', borderRadius: 7, font: `600 10.5px ${MONO}`,
                         border: here ? `2px solid ${C.ink}` : `1px solid ${C.hairline}`,
-                        background: !live ? C.chipBg : done ? C.greenTint : '#fff',
-                        color: !live ? C.muted : done ? C.greenDark : C.body,
+                        background: !live ? C.chipBg : done ? C.greenTint : out ? C.burntTint : '#fff',
+                        color: !live ? C.muted : done ? C.greenDark : out ? C.burntDark : C.body,
+                        textDecoration: out ? 'line-through' : 'none',
                         cursor: live ? 'pointer' : 'default',
                       }}
                     >

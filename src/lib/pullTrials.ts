@@ -18,6 +18,7 @@ export interface OfficeTreatment {
     plots?: number[] | Record<string, number>
     plotsByRep?: Record<string, number>
     perBatchMl?: number[] | null
+    extraPlots?: number[]
     [k: string]: unknown
   } | null
 }
@@ -102,9 +103,11 @@ export const isUuid = (s: string) => UUID.test(s)
 
 export function plotList(c: OfficeTreatment['components']): number[] {
   const p = c?.plots
-  if (Array.isArray(p)) return [...p].map(Number).filter((x) => Number.isFinite(x)).sort((a, b) => a - b)
-  if (p && typeof p === 'object') return Object.values(p).map(Number).filter((x) => Number.isFinite(x)).sort((a, b) => a - b)
-  return []
+  // plots sprayed as this treatment beyond the design (spare or out
+  // positions brought in on spray day) are this treatment's plots too
+  const extra = Array.isArray(c?.extraPlots) ? (c!.extraPlots as unknown[]).map(Number).filter((x) => Number.isFinite(x)) : []
+  const base = Array.isArray(p) ? [...p].map(Number) : p && typeof p === 'object' ? Object.values(p).map(Number) : []
+  return [...new Set([...base.filter((x) => Number.isFinite(x)), ...extra])].sort((a, b) => a - b)
 }
 
 /** The phone's measure library for this trial: the assessment plan's keys
@@ -188,7 +191,7 @@ export function trialDocFromOffice(t: OfficeTrial, lib: OfficeMeasure[]): TrialD
   for (const tr of treatments) for (const p of tr.plots) cells[String(p)] = tr.n
   for (const p of d.reservePlots ?? []) cells[String(pidOf(p))] ??= 'reserve'
   for (const p of d.sparePlots ?? []) cells[String(pidOf(p))] ??= 'spare'
-  for (const p of d.outPlots ?? []) cells[String(pidOf(p))] = 'out'
+  for (const p of d.outPlots ?? []) cells[String(pidOf(p))] ??= 'out'
   const plotLabels: Record<string, number> = {}
   if (strips) for (const p of officePlots) plotLabels[String(pidOf(p))] = p
   const s = t.spraying ?? {}
