@@ -269,6 +269,7 @@ export default function Results() {
   const trtOf = useMemo(() => {
     const m = new Map<number, TreatmentRow>()
     for (const t of trts) for (const p of t.components?.plots ?? []) m.set(p, t)
+    for (const t of trts) for (const p of ((t.components as { extraPlots?: number[] } | null)?.extraPlots ?? [])) if (!m.has(p)) m.set(p, t)
     return m
   }, [trts])
   const grid = useMemo(() => {

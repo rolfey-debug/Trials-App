@@ -1,5 +1,5 @@
 /** RCBD ANOVA + LSD letters against a hand-computed example. */
-import { rcbdAnova, tCrit05 } from '../portal/src/lib/stats'
+import { lsdBetween, rcbdAnova, tCrit05 } from '../portal/src/lib/stats'
 
 let passed = 0
 function check(name: string, cond: boolean) {
@@ -48,4 +48,5 @@ check('t(4) = 2.776', near(tCrit05(4), 2.776, 0.001))
 check('t(46) ≈ 2.013', near(tCrit05(46), 2.013, 0.01))
 check('t(very large) → 1.96', near(tCrit05(5000), 1.96, 0.005))
 
+check('LSD between unequal n uses the pooled error', near(lsdBetween({ msError: 0.14216, dfError: 41 }, 4, 15), 0.428, 0.002) && near(lsdBetween({ msError: 0.14216, dfError: 41 }, 4, 4), 0.538, 0.002))
 console.log(`${passed} stats checks passed`)

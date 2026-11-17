@@ -30,6 +30,13 @@ export function tCrit05(df: number): number {
   return 1.96
 }
 
+/** LSD(5%) between two means with nA and nB plots on the analysis's pooled
+ * error: used for a treatment with extra plots beyond the design (filler
+ * plots counted as untreated) against a design treatment. */
+export function lsdBetween(a: Pick<Anova, 'msError' | 'dfError'>, nA: number, nB: number): number {
+  return tCrit05(a.dfError) * Math.sqrt(a.msError * (1 / nA + 1 / nB))
+}
+
 export interface Anova {
   ssTrt: number
   ssBlock: number

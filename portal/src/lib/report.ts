@@ -5,7 +5,7 @@
  * test/report.test.ts; the Plans and signs screen previews and prints it.
  * Numbers are plot means and RCBD ANOVA with LSD at 5%, nothing fancier. */
 import { cellColors } from './layout'
-import { rcbdAnova, type Anova } from './stats'
+import { lsdBetween, rcbdAnova, type Anova } from './stats'
 import { esc, treatmentLines } from './printouts'
 import { fitGrid, type GeoPoint } from './geofit'
 import { satelliteMapHtml, type MapOptions, type MapPolygon } from './sitemap'
@@ -143,6 +143,10 @@ export interface TrtStat {
   n: number
   name: string
   plots: number[]
+  /** Plots carrying this treatment beyond the design (filler plots counted
+   * as untreated, spare positions sprayed on the day): in the mean, not in
+   * the RCBD. */
+  extraPlots: number[]
   values: number[]
   mean: number | null
   sd: number | null
@@ -155,11 +159,12 @@ export function treatmentStats(trts: TreatmentRow[], scores: ScoreRow[], measure
   for (const s of scores) if (s.measure === measure && s.value != null && !excluded?.has(s.plot)) byPlot.set(s.plot, Number(s.value))
   return trts.map((t) => {
     const plots = t.components?.plots ?? []
+    const extraPlots = ((t.components as { extraPlots?: number[] } | null)?.extraPlots ?? []).filter((p) => !plots.includes(p))
     const byBlock = plots.map((p) => byPlot.get(p) ?? null)
-    const values = byBlock.filter((v): v is number => v !== null)
+    const values = [...byBlock.filter((v): v is number => v !== null), ...extraPlots.map((p) => byPlot.get(p)).filter((v): v is number => v !== undefined)]
     const mean = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
     const sd = values.length > 1 && mean !== null ? Math.sqrt(values.reduce((a, v) => a + (v - mean) ** 2, 0) / (values.length - 1)) : null
-    return { n: t.n, name: t.name, plots, values, byBlock, mean, sd }
+    return { n: t.n, name: t.name, plots, extraPlots, values, byBlock, mean, sd }
   })
 }
 
@@ -439,7 +444,8 @@ export function trialReportHtml(d: ReportData): string {
       const ranked = stats.filter((s) => s.mean !== null).sort((a, b) => (better ? b.mean! - a.mean! : a.mean! - b.mean!))
       const unt = stats.find((s) => /untreated|nil|control/i.test(s.name)) ?? stats[0]
       const top = ranked.slice(0, 3)
-      return `<p><b>${esc(r.label)}, ${esc(labelOf(pm, measures))}</b>: untreated ${unt?.mean != null ? fmt(unt.mean) : '—'}; best ${top.map((s) => `${blind ? `T${s.n}` : esc(s.name)} ${fmt(s.mean!)}${an?.letters[`T${s.n}`] ? ` ${an.letters[`T${s.n}`]}` : ''}`).join(', ')}${an ? `. LSD 5% ${fmt(an.lsd05)}, CV ${fmt(an.cv, 0)}%${an.missing ? `, ${an.missing} missing plot${an.missing === 1 ? '' : 's'} estimated` : ''}.` : '. Plot means only (unbalanced, no LSD).'}</p>`
+      const untExtra = unt && unt.extraPlots.length && an ? lsdBetween(an, unt.plots.length, unt.values.length) : null
+      return `<p><b>${esc(r.label)}, ${esc(labelOf(pm, measures))}</b>: untreated ${unt?.mean != null ? fmt(unt.mean) : '—'}${unt?.extraPlots.length ? ` (${unt.values.length} plots, ${unt.extraPlots.length} beyond the design)` : ''}; best ${top.map((s) => `${blind ? `T${s.n}` : esc(s.name)} ${fmt(s.mean!)}${an?.letters[`T${s.n}`] ? ` ${an.letters[`T${s.n}`]}` : ''}`).join(', ')}${an ? `. LSD 5% ${fmt(an.lsd05)}${untExtra ? ` (${fmt(untExtra)} against the untreated with its extra plots)` : ''}, CV ${fmt(an.cv, 0)}%${an.missing ? `, ${an.missing} missing plot${an.missing === 1 ? '' : 's'} estimated` : ''}.` : '. Plot means only (unbalanced, no LSD).'}</p>`
     }).join('') : '<p class="muted">No assessment scores have synced for this trial.</p>'}
     ${out.size ? `<p class="muted" style="margin-top:6px">${out.size} plot${out.size === 1 ? '' : 's'} excluded from the analysis (${[...out].sort((a, b) => a - b).join(', ')}); see the corrections log.</p>` : ''}
     ${o.commentary?.length ? `<h2>Agronomist's read</h2><ul style="margin:0;padding-left:18px;line-height:1.5">${o.commentary.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
@@ -472,10 +478,10 @@ export function trialReportHtml(d: ReportData): string {
       <p class="muted">${plotsScored} of ${plotsN} plots scored · ${cols.map((m) => esc(labelOf(m, measures))).join(', ')}${method ? ` · ${esc(method)}` : ''}</p>
       <h2>Treatment means</h2>
       <table><thead><tr><th>#</th><th>Treatment</th>${cols.map((m) => `<th class="num" colspan="2">${esc(labelOf(m, measures))}${measures.get(m)?.unit ? `<br><span class="muted" style="font-weight:400">${esc(measures.get(m)!.unit!)}</span>` : ''}</th>`).join('')}</tr></thead><tbody>
-        ${treatments.map((t) => `<tr><td class="mono">T${t.n}</td><td>${blind ? `T${t.n}` : esc(t.name)}</td>${cols.map((m) => { const s = statsBy.get(m)!.find((x) => x.n === t.n)!; const l = anovaBy.get(m)?.letters[`T${t.n}`] ?? ''; return `<td class="num"><b>${s.mean == null ? '—' : fmt(s.mean)}</b>${s.sd != null ? ` <span class="muted">±${fmt(s.sd)}</span>` : ''}${s.values.length && s.values.length !== s.plots.length ? ` <span class="muted">(${s.values.length}/${s.plots.length})</span>` : ''}</td><td style="width:28px;color:#58585B">${esc(l)}</td>` }).join('')}</tr>`).join('')}
+        ${treatments.map((t) => `<tr><td class="mono">T${t.n}</td><td>${blind ? `T${t.n}` : esc(t.name)}</td>${cols.map((m) => { const s = statsBy.get(m)!.find((x) => x.n === t.n)!; const l = anovaBy.get(m)?.letters[`T${t.n}`] ?? ''; return `<td class="num"><b>${s.mean == null ? '—' : fmt(s.mean)}</b>${s.sd != null ? ` <span class="muted">±${fmt(s.sd)}</span>` : ''}${s.values.length && s.values.length !== s.plots.length ? ` <span class="muted">(${s.values.length}/${s.plots.length + s.extraPlots.length})</span>` : ''}</td><td style="width:28px;color:#58585B">${esc(l)}</td>` }).join('')}</tr>`).join('')}
         <tr><th colspan="2">LSD 5% · CV</th>${cols.map((m) => { const a = anovaBy.get(m); return `<th class="num" colspan="2" style="font-weight:600">${a ? `${fmt(a.lsd05)} · ${a.cv > 200 ? 'CV n/a (near zero)' : `${fmt(a.cv, 0)}%`}${a.missing ? `<br><span class="muted" style="font-weight:400">${a.missing} est.</span>` : ''}` : '<span class="muted">unbalanced</span>'}</th>` }).join('')}</tr>
       </tbody></table>
-      <p class="muted" style="margin-top:4px">Mean ± SD across reps. Letters from RCBD ANOVA with LSD at 5%: treatments sharing a letter do not differ. A fraction after a mean is plots scored of plots allocated.${[...anovaBy.values()].some((a) => a?.missing) ? ' Where plots are missing or excluded, the ANOVA fills them by Yates\' missing-plot estimate, drops one error df per estimate and widens the LSD for pairs involving an estimated plot; means shown are of the scored plots only.' : ''}</p>
+      <p class="muted" style="margin-top:4px">Mean ± SD across reps. Letters from RCBD ANOVA with LSD at 5%: treatments sharing a letter do not differ. A fraction after a mean is plots scored of plots allocated, extra plots beyond the design included in the mean but not in the ANOVA.${[...anovaBy.values()].some((a) => a?.missing) ? ' Where plots are missing or excluded, the ANOVA fills them by Yates\' missing-plot estimate, drops one error df per estimate and widens the LSD for pairs involving an estimated plot; means shown are of the scored plots only.' : ''}</p>
       <div class="keep"><h2>Ranked · ${esc(labelOf(pm, measures))}</h2>
       ${barsSvg(primaryStats, primaryAnova, better, measures.get(pm)?.unit ?? '', blind)}</div>
       <div class="keep"><h2>Plot map · ${esc(labelOf(pm, measures))}</h2>

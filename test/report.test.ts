@@ -40,6 +40,8 @@ check('means per treatment', st[0].mean === 45 && st[1].mean === 12 && st[2].mea
 const an = anovaFor(st)
 check('balanced data gives an ANOVA with letters', an !== null && an.letters.T1 !== an.letters.T2)
 check('unbalanced measure gives no ANOVA', anovaFor(treatmentStats(trts, rounds[1].scores, 'pgreen')) === null)
+const withExtra = treatmentStats([{ ...trts[0], components: { ...trts[0].components, extraPlots: [104] } }, trts[1], trts[2]], [...rounds[0].scores, sc(1, '2026-09-02', 104, 'sept_a1', 61)], 'sept_a1')
+check('extra plots join the mean but not the RCBD', withExtra[0].mean === 49 && withExtra[0].values.length === 4 && withExtra[0].byBlock.length === 3 && withExtra[0].extraPlots.join() === '104' && anovaFor(withExtra) !== null)
 check('primary measure is the fuller disease one', pickPrimary(rounds[1], measures) === 'dmg_f1')
 
 const trial: LiveTrial = { id: 't', site_id: 's', client_id: null, approved_by: null, group_id: null, protocol_id: null, name: 'Report Test <2026>', season: 2026, status: 'active', trial_type: 'plot', crop: 'Wheat', variety: 'Scepter', sown_date: '2026-05-01', aim: 'Test aim.', design: { type: 'RCBD', reps: 3, grid: { rows: 3, positions: 3 }, plot: { widthM: 2, lengthM: 12, areaM2: 24 }, notes: ['a record note'] }, spraying: { waterRateLPerHa: 100 }, site: { id: 's', property: 'Glenview', town: 'Matong', lat: -34.8, lng: 146.9, boundary_geojson: null, planned: false }, client: { name: 'G. Hamilton', contact: null }, layout: null, scores: 0, plotsScored: 0, sprayTicks: 0, lastActivity: null }
