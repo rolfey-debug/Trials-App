@@ -85,4 +85,6 @@ check('photo page present with the latest photo per plot', withPhotos.includes('
 check('photo captions carry plot, rep, date and label', /<b>101<\/b> · rep 1 · 30 Oct 2026/.test(withPhotos) && withPhotos.includes('flagged'))
 check('a day label from the phone is not repeated under the date', !withPhotos.includes('<span class="muted">30 Oct</span>'))
 check('no photo page without photos', !html.includes('Plot photos ·') && html.includes('available on request'))
+const exclHtml = trialReportHtml({ ...d, corrections: [{ plot: 303, kind: 'exclude', measure: 'sept_a1', old_value: null, new_value: null, reason: 'test', made_at: '2026-10-09T00:00:00Z' }] })
+check('measure-scoped exclusion is noted and drops the plot from that measure only', exclHtml.includes('Excluded from one measure only') && exclHtml.includes('plot 303'))
 console.log(`report: ${passed} checks passed`)

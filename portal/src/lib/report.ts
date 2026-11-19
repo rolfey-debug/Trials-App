@@ -405,10 +405,23 @@ function observationsHtml(rounds: Round[], trts: TreatmentRow[], corrections: Re
 export function trialReportHtml(d: ReportData): string {
   const { trial, scores, measures } = d
   // plots taken out of the trial carry no weight in means or letters; they
-  // stay in the allocation so the block structure holds for the ANOVA
+  // stay in the allocation so the block structure holds for the ANOVA.
+  // design.outPlots and an 'exclude' correction without a measure take the
+  // plot out of everything; an 'exclude' correction naming a measure takes
+  // it out of that measure only (and of yield derived from a bucket weight).
   const out = new Set(trial.design?.outPlots ?? [])
+  const outByMeasure = new Map<string, Set<number>>()
+  for (const c of d.corrections ?? []) {
+    if (c.kind !== 'exclude') continue
+    if (!c.measure) out.add(c.plot)
+    else {
+      const keys = c.measure === 'plot_weight_kg' ? [c.measure, 'yield_t_ha'] : [c.measure]
+      for (const k of keys) (outByMeasure.get(k) ?? outByMeasure.set(k, new Set()).get(k)!).add(c.plot)
+    }
+  }
+  const outFor = (m: string) => (outByMeasure.has(m) ? new Set([...out, ...outByMeasure.get(m)!]) : out)
   const treatments = d.treatments
-  const statsOf = (sc: ScoreRow[], m: string) => treatmentStats(treatments, sc, m, out)
+  const statsOf = (sc: ScoreRow[], m: string) => treatmentStats(treatments, sc, m, outFor(m))
   const o = d.options ?? {}
   const blind = !!o.blind
   const rounds = splitRounds(scores, measures)
@@ -448,6 +461,7 @@ export function trialReportHtml(d: ReportData): string {
       return `<p><b>${esc(r.label)}, ${esc(labelOf(pm, measures))}</b>: untreated ${unt?.mean != null ? fmt(unt.mean) : '—'}${unt?.extraPlots.length ? ` (${unt.values.length} plots, ${unt.extraPlots.length} beyond the design)` : ''}; best ${top.map((s) => `${blind ? `T${s.n}` : esc(s.name)} ${fmt(s.mean!)}${an?.letters[`T${s.n}`] ? ` ${an.letters[`T${s.n}`]}` : ''}`).join(', ')}${an ? `. LSD 5% ${fmt(an.lsd05)}${untExtra ? ` (${fmt(untExtra)} against the untreated with its extra plots)` : ''}, CV ${fmt(an.cv, 0)}%${an.missing ? `, ${an.missing} missing plot${an.missing === 1 ? '' : 's'} estimated` : ''}.` : '. Plot means only (unbalanced, no LSD).'}</p>`
     }).join('') : '<p class="muted">No assessment scores have synced for this trial.</p>'}
     ${out.size ? `<p class="muted" style="margin-top:6px">${out.size} plot${out.size === 1 ? '' : 's'} excluded from the analysis (${[...out].sort((a, b) => a - b).join(', ')}); see the corrections log.</p>` : ''}
+    ${outByMeasure.size ? `<p class="muted" style="margin-top:6px">Excluded from one measure only: ${[...outByMeasure.entries()].filter(([m]) => m !== 'yield_t_ha' || !outByMeasure.has('plot_weight_kg')).map(([m, s]) => `${esc(labelOf(m, measures))} plot${s.size === 1 ? '' : 's'} ${[...s].sort((a, b) => a - b).join(', ')}`).join('; ')}; see the corrections log.</p>` : ''}
     ${o.commentary?.length ? `<h2>Agronomist's read</h2><ul style="margin:0;padding-left:18px;line-height:1.5">${o.commentary.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     ${footerLine(trial)}`
 
