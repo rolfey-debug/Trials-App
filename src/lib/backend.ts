@@ -3,8 +3,10 @@
  * back to the offline demo path — the app's offline-first promise is that
  * nothing here ever blocks field work.
  */
-import { insert, refresh, signInOrUp, stableId, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
-import type { AppState, TrialState } from '../store/types'
+import { insert, refresh, select, signInOrUp, stableId, updatePassword, uploadObject, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
+import { idb } from '../store/idb'
+import type { AppState, TrialDoc, TrialState } from '../store/types'
+import { officePlot } from './trial'
 
 const KEY = 'tw.supaSession'
 
@@ -36,6 +38,13 @@ export function logout() {
   persist(null)
 }
 
+/** 'ok' | 'offline' (no online session / unreachable) | 'failed' (rejected). */
+export async function changePassword(pw: string): Promise<'ok' | 'offline' | 'failed'> {
+  const token = await activeToken()
+  if (!token) return 'offline'
+  return (await updatePassword(token, pw)) ? 'ok' : 'failed'
+}
+
 /** Valid access token, refreshing when close to expiry; null = not signed in online. */
 export async function activeToken(): Promise<string | null> {
   let s = savedSession()
@@ -49,11 +58,16 @@ export async function activeToken(): Promise<string | null> {
   return s.access_token
 }
 
-/** Map a local trial id to its seeded backend uuid (locally-added trials stay local). */
+/** Map a local trial id to its seeded backend uuid (locally-added trials stay
+ * local). Staged rollout — a trial syncs once its rows exist in Sydney, since
+ * pushing an unmapped trial would fail its foreign keys and mark the whole
+ * sync red. Re-add lines here as trials go live. */
 function trialUuid(localId: string): string | null {
+  // Trials pulled from the office portal are keyed by their backend uuid.
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(localId)) return localId
   const k = localId.toLowerCase()
   if (k.includes('matong')) return TRIAL_IDS.matong
-  if (k.includes('ganmain')) return TRIAL_IDS.ganmain
+  if (k.includes('flutriafol')) return TRIAL_IDS.flutriafol
   if (k.includes('ringwood')) return TRIAL_IDS.ringwood
   return null
 }
@@ -63,6 +77,54 @@ function trialUuid(localId: string): string | null {
  * are deterministic, upserts are last-write-wins — safe to call after every
  * change or after days offline. Best-effort by design.
  */
+/** Upload photo files that haven't reached the org bucket yet (F24). Returns
+ * the local photo ids that landed, so the store can mark them uploaded.
+ * Sequential and best-effort: a dropped connection just leaves the remainder
+ * for the next sync. */
+export interface RecheckItem {
+  plot: number
+  measure: string
+  value: number
+  note: string
+}
+
+/** Scores flagged for a field recheck — provisional values, marginal plots
+ * and plot-damage notes live in the score notes on the server (transcript
+ * parsing writes them there). Online-only; null means offline or signed out,
+ * and the Assess screen just hides the pill. */
+export async function fetchRecheckList(localId: string): Promise<RecheckItem[] | null> {
+  const token = await activeToken()
+  const trial_id = trialUuid(localId)
+  if (!token || !trial_id) return null
+  return select<RecheckItem>(
+    'scores',
+    `select=plot,measure,value,note&trial_id=eq.${trial_id}&or=(note.ilike.*PROVISIONAL*,note.ilike.*MARGINAL*,note.ilike.*PLOT%20DAMAGE*)&order=plot.asc`,
+    token
+  )
+}
+
+export async function uploadPendingPhotos(st: AppState): Promise<string[]> {
+  const token = await activeToken()
+  if (!token) return []
+  const done: string[] = []
+  for (const [localId, ts] of Object.entries(st.trialState)) {
+    const trial_id = trialUuid(localId)
+    if (!trial_id) continue
+    for (const p of ts.photos) {
+      if (!p.stored || p.uploaded) continue
+      try {
+        const blob = await idb.getPhoto(p.id)
+        if (!blob) continue
+        const ok = await uploadObject('photos', `${ORG_ID}/${trial_id}/${p.id}.jpg`, blob, token)
+        if (ok) done.push(p.id)
+      } catch {
+        /* next sync retries */
+      }
+    }
+  }
+  return done
+}
+
 export async function pushToBackend(st: AppState): Promise<boolean> {
   const token = await activeToken()
   if (!token) return false
@@ -72,7 +134,9 @@ export async function pushToBackend(st: AppState): Promise<boolean> {
     const trial_id = trialUuid(localId)
     const ts = st.trialState[localId]
     if (!trial_id || !ts) continue
-    const counts = await pushTrial(trial_id, ts, token)
+    // one trial's push dying on a dropped connection (paddock signal) must
+    // not take the rest of the trials, or the sync_log row, down with it
+    const counts = await pushTrial(trial_id, ts, token, st.trials[localId]).catch(() => null)
     if (!counts) {
       results.push(false)
       continue
@@ -100,19 +164,40 @@ async function pushTrial(
   trial_id: string,
   ts: TrialState,
   token: string,
+  doc?: Pick<TrialDoc, 'plotLabels'>,
 ): Promise<{ scores: number; corrections: number; photos: number; spray: number } | null> {
-  const assessment = ts.assessIdx + 1
+  // rows carry the plot number the office knows (strip demos number plots
+  // 1..n; the phone's grid id for those is 100 + n)
+  const plotOf = (pid: number | string) => officePlot(doc, pid)
+  // Scores sync under their round: the round being scored now (ts.round,
+  // 1 when the install predates rounds) plus every finished round stashed in
+  // ts.rounds. assessIdx is the WALK POSITION, never the round.
+  const roundSets: Array<[number, TrialState['scores']]> = [[ts.round ?? 1, ts.scores], ...Object.entries(ts.rounds ?? {}).map(([r, s]) => [Number(r), s] as [number, TrialState['scores']])]
+  // assessor = the signed-in auth uid (same id as the people row) from the JWT
+  const assessor = (() => {
+    try {
+      return (JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))) as { sub?: string }).sub ?? null
+    } catch {
+      return null
+    }
+  })()
   const scoreRows: unknown[] = []
-  for (const [pid, sc] of Object.entries(ts.scores)) {
+  for (const [assessment, scores] of roundSets) for (const [pid, sc] of Object.entries(scores)) {
     for (const [measure, value] of Object.entries(sc.v)) {
+      // plant-level readings travel in the note, same shape the transcript
+      // parser writes ("plants 20/25/45 — …"), so the portal's per-plant
+      // chips pick them up unchanged
+      const plants = sc.plants?.[measure]
+      const note = [plants?.length ? `plants ${plants.join('/')}` : null, sc.note || null].filter(Boolean).join(' — ') || null
       scoreRows.push({
-        id: stableId(trial_id, assessment, pid, measure),
+        id: stableId(trial_id, assessment, plotOf(pid), measure),
         trial_id,
         assessment,
-        plot: Number(pid),
+        plot: plotOf(pid),
         measure,
         value,
-        note: sc.note ?? null,
+        note,
+        assessor,
         recorded_at: new Date(sc.ts).toISOString(),
       })
     }
@@ -120,17 +205,17 @@ async function pushTrial(
 
   const correctionRows: unknown[] = [
     ...Object.entries(ts.relabel).map(([pid, t]) => ({
-      id: stableId(trial_id, 'relabel', pid),
+      id: stableId(trial_id, 'relabel', plotOf(pid)),
       trial_id,
-      plot: Number(pid),
+      plot: plotOf(pid),
       kind: 'relabel',
       effective_t: t,
       made_at: new Date().toISOString(),
     })),
     ...ts.excluded.map((pid) => ({
-      id: stableId(trial_id, 'exclude', pid),
+      id: stableId(trial_id, 'exclude', plotOf(pid)),
       trial_id,
-      plot: pid,
+      plot: plotOf(pid),
       kind: 'exclude',
       made_at: new Date().toISOString(),
     })),
@@ -139,10 +224,14 @@ async function pushTrial(
   const photoRows = ts.photos.map((p) => ({
     id: stableId(trial_id, 'photo', p.id),
     trial_id,
-    plot: p.pid,
-    storage_path: `photos/${p.id}.jpg`,
-    taken_at: new Date().toISOString(),
-    meta: { flagged: p.flagged, trt: p.trt, sizeKB: p.sizeKB ?? null, label: p.date },
+    plot: plotOf(p.pid),
+    // Org-partitioned path: migration 004 scopes the bucket policy on the
+    // first segment, so blobs can only ever be read within their own org.
+    storage_path: `${ORG_ID}/${trial_id}/${p.id}.jpg`,
+    // the moment the photo was taken (the id ends in its epoch ms), never the
+    // sync time: rows are upserted on every push
+    taken_at: new Date(Number(p.id.split('-').pop()) || Date.now()).toISOString(),
+    meta: { flagged: p.flagged, trt: p.trt, sizeKB: p.sizeKB ?? null, label: p.date, lat: p.lat ?? null, lng: p.lng ?? null },
   }))
 
   // Spray-day record: one operations row per timing, upserted on every push —

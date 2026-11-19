@@ -68,9 +68,12 @@ test('plot spec + water rate parsed', () => {
 
 // ---- walk orders -----------------------------------------------------------
 console.log('walk orders')
-test('assessment serpentine = 72 stops, starts 101…1201, then 1202 back down', () => {
+test('assessment serpentine = 72 treatment plots + 5 crossed-out plots, starts 101…1201, then 1202 back down', () => {
   const order = assessmentOrder(doc)
-  assert.equal(order.length, 72)
+  // out plots (106, 107, 1103, 1104, 1105) stay in the walk so a harvest
+  // weight or photo can still be recorded against them
+  assert.equal(order.length, 77)
+  assert.equal(order.filter((p) => doc.cells[p] === 'out').length, 5)
   assert.equal(order[0], 101)
   assert.equal(order[11], 1201)
   assert.equal(order[12], 1202)

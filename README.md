@@ -27,7 +27,7 @@ node test/walkthrough.mjs   # Playwright end-to-end walkthrough (needs `npm run 
 
 Deploy `dist/` to any static host. The service worker caches the app shell + assets on first visit; everything after that works with no signal. Install to home screen from the browser menu.
 
-**Sign in:** any email/password works (offline auth stub — see *Backend* below). The app boots into the seeded Matong trial with demo scores; **Storage & sync → reset demo data** clears to a clean season.
+**Sign in:** a password of 6+ characters signs in against the live Supabase project (see *Backend* below); anything shorter enters the offline demo without touching the backend. The app boots into the seeded Matong trial with demo scores; **Storage & sync → reset demo data** clears to a clean season.
 
 ## The 14 screens
 
@@ -76,7 +76,9 @@ test/
   walkthrough.mjs      Playwright drive-through of every screen and key flow
 ```
 
-**Offline-first**: all writes land in IndexedDB immediately; the sync queue tracks what still needs the portal. **Backend**: not wired — the queue shape, role model and entity types are laid out for the handoff's recommended Supabase/Postgres backend (auth, row-level security, file storage); `syncNow()` is the single integration point. Conflict policy per the spec: last-write-wins per field with full history.
+**Offline-first**: all writes land in IndexedDB immediately; the sync queue tracks what still needs the portal. **Backend**: Supabase (Postgres + Auth + Storage) is wired for the field app — real sign-in, and `Sync now` pushes scores, corrections, photo *metadata* and spray records as idempotent upserts under org-scoped row-level security (`shared/supa.ts`, `src/lib/backend.ts`, `docs/portal/BACKEND.md`). Still outstanding: photo *blobs* stay on the phone, and the portal renders fixture data rather than reading Postgres. Conflict policy per the spec: last-write-wins per field with full history.
+
+**Not production-ready yet** — see [`docs/HOSTING-BRIEF.md`](docs/HOSTING-BRIEF.md) for the open access-control, hosting and governance items to settle before this runs on real trials beyond the pilot.
 
 ## Decisions & deviations
 

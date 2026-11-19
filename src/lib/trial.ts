@@ -3,6 +3,12 @@ import type { CellKind, MeasureDef, MeasureLib, TrialDoc } from '../store/types'
 export const rowOf = (pid: number) => Math.floor(pid / 100)
 export const posOf = (pid: number) => pid % 100
 
+/** What to call a plot on screen: the office's own plot number for a
+ * strip-numbered trial, otherwise the phone id (which is the plot number). */
+export const plotLabel = (doc: TrialDoc, pid: number) => String(doc.plotLabels?.[pid] ?? pid)
+/** The plot number the office knows a phone plot id by (see TrialDoc.plotLabels). */
+export const officePlot = (doc: Pick<TrialDoc, 'plotLabels'> | undefined, pid: number | string) => doc?.plotLabels?.[String(pid)] ?? Number(pid)
+
 export function repOf(doc: TrialDoc, pid: number): number {
   if (doc.trial.blocking === 'row') {
     // Row-blocked trials (Ringwood): the allocation list is authoritative —
@@ -27,7 +33,13 @@ export function repOf(doc: TrialDoc, pid: number): number {
 
 export const isTreatmentCell = (v: CellKind | undefined): v is number => typeof v === 'number'
 
-/** Serpentine assessment order: pos 1 rows 1→12, pos 2 rows 12→1, … treatment cells only. */
+/** A plot that can take a score: a treatment plot, or one crossed out on
+ * the plan ('out'). Out plots stay in the walk so a bucket weight or a
+ * photo can still go on the record; the office keeps them out of the
+ * analysis. Spare, skip and reserve cells have nothing to score. */
+export const isScorableCell = (v: CellKind | undefined): boolean => typeof v === 'number' || v === 'out'
+
+/** Serpentine assessment order: pos 1 rows 1→12, pos 2 rows 12→1, … treatment and out cells. */
 export function assessmentOrder(doc: TrialDoc): number[] {
   const { rows, positions } = doc.trial.grid
   const order: number[] = []
@@ -36,7 +48,7 @@ export function assessmentOrder(doc: TrialDoc): number[] {
     if (pos % 2 === 0) rr = rr.reverse()
     for (const r of rr) {
       const pid = r * 100 + pos
-      if (isTreatmentCell(doc.cells[pid])) order.push(pid)
+      if (isScorableCell(doc.cells[pid])) order.push(pid)
     }
   }
   return order
@@ -86,9 +98,38 @@ export function measureFlat(lib: MeasureLib): Record<string, MeasureDef> {
   return flat
 }
 
-/** Value cap while keying scores: % measures cap at 100, counts at 999. */
+/** Value cap while keying scores: % measures cap at 100, counts at 999,
+ * LAI at 9.9 (one decimal — see src/lib/lai.ts for the entry scheme). */
 export function capFor(m: MeasureDef): number {
-  return m[2] === '/m2' || m[2] === '/m²' ? 999 : m[2] === 'GS' ? 99 : 100
+  return m[2] === '/m2' || m[2] === '/m²' ? 999 : m[2] === 'GS' ? 99 : m[2] === 'LAI' ? 9.9 : m[2] === 'kg/plot' ? 999.99 : 100
+}
+
+/** Decimal places the keypad enters as fixed point: the measure's own
+ * setting from the office library, LAI's tenths, else whole numbers. */
+export function decimalsFor(m: MeasureDef): number {
+  return m[3] ?? (m[2] === 'LAI' ? 1 : m[2] === 'kg/plot' ? 2 : 0)
+}
+
+/** Fixed-point keypad: with 2 decimals "7", "8", "5" reads 7.85 — the way a
+ * scale display fills from the right. */
+export function fixedKeyDigit(cur: number | undefined, d: number, dp: number, cap: number): number {
+  const scale = 10 ** dp
+  const units = Math.round((cur ?? 0) * scale)
+  return Math.min(cap, (units * 10 + d) / scale)
+}
+
+export function fixedBackspace(cur: number | undefined, dp: number): number | undefined {
+  const scale = 10 ** dp
+  const units = Math.round((cur ?? 0) * scale)
+  const next = Math.floor(units / 10)
+  return next > 0 ? next / scale : undefined
+}
+
+/** Score value as the assessor should read it — LAI always shows one decimal. */
+export function fmtVal(m: MeasureDef, v: number | undefined): string {
+  if (v === undefined) return '–'
+  const dp = decimalsFor(m)
+  return dp > 0 ? v.toFixed(dp) : String(v)
 }
 
 /** Per-batch mixing note for the Mix checklist, derived from recipe + perBatchMl. */

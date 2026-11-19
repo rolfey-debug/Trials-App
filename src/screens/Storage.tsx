@@ -65,7 +65,13 @@ export function Storage() {
                 new Date(st.lastSyncTs).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
               : 'up to date'}
           </div>
-          <div style={{ fontSize: 11.5, color: C.grey }}>Portal, team and client views are up to date.</div>
+          <div style={{ fontSize: 11.5, color: C.grey, marginBottom: 10 }}>Portal, team and client views are up to date.</div>
+          <div
+            onClick={syncNow}
+            style={{ textAlign: 'center', padding: '11px 0', borderRadius: 11, border: `1.5px solid ${C.green}`, color: C.greenDark, background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          >
+            Sync again anyway
+          </div>
         </div>
       )}
 
