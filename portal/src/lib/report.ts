@@ -75,6 +75,8 @@ export interface Round {
 }
 
 const fmt = (n: number, d = 1) => (Number.isFinite(n) ? n.toFixed(d) : '—')
+/** Decimal places for a measure's numbers: its library setting, else one. */
+const dpOf = (m: string | undefined, measures: Map<string, MeasureDef>) => (m ? measures.get(m)?.decimals ?? 1 : 1)
 const dateAu = (iso: string) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 /** Calendar day in the viewer's time zone (a 10:47 am count in Corowa is not the day before). */
 const dayOf = (iso: string) => {
@@ -199,7 +201,7 @@ function ramp(t: number, green: boolean): string {
   return `rgb(${mix(0)},${mix(1)},${mix(2)})`
 }
 
-function barsSvg(stats: TrtStat[], anova: Anova | null, better: boolean, unit: string, blind: boolean): string {
+function barsSvg(stats: TrtStat[], anova: Anova | null, better: boolean, unit: string, blind: boolean, dp = 1): string {
   const rows = stats.filter((s) => s.mean !== null).sort((a, b) => (better ? b.mean! - a.mean! : a.mean! - b.mean!))
   if (!rows.length) return ''
   const max = Math.max(...rows.map((r) => r.mean! + (r.sd ?? 0)), 1)
@@ -216,11 +218,11 @@ function barsSvg(stats: TrtStat[], anova: Anova | null, better: boolean, unit: s
     return `<text x="${labelW - 6}" y="${y + 13}" text-anchor="end" font-size="10.5" fill="#141414" font-weight="${untreated ? 400 : 600}">${esc(blind ? `T${r.n}` : `T${r.n} ${r.name}`.slice(0, 38))}</text>
       <rect x="${labelW}" y="${y + 3}" width="${w.toFixed(1)}" height="${h - 6}" rx="2" fill="${untreated ? '#B9BBB9' : '#007749'}"/>
       ${sdw ? `<line x1="${(labelW + w - sdw).toFixed(1)}" x2="${(labelW + w + sdw).toFixed(1)}" y1="${y + h / 2}" y2="${y + h / 2}" stroke="#141414" stroke-width="1"/>` : ''}
-      <text x="${(labelW + w + sdw + 6).toFixed(1)}" y="${y + 13}" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#141414">${fmt(r.mean!)}${letter ? ` <tspan fill="#58585B">${esc(letter)}</tspan>` : ''}</text>`
+      <text x="${(labelW + w + sdw + 6).toFixed(1)}" y="${y + 13}" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#141414">${fmt(r.mean!, dp)}${letter ? ` <tspan fill="#58585B">${esc(letter)}</tspan>` : ''}</text>`
   })
   return `<svg viewBox="0 0 ${W} ${rows.length * h + 18}" width="100%" style="max-width:${W}px;display:block">
     ${lines.join('')}
-    <text x="${labelW}" y="${rows.length * h + 14}" font-size="9.5" fill="#8A8C8A">${esc(unit)} · ${better ? 'higher' : 'lower'} is better${anova ? ` · LSD 5% = ${fmt(anova.lsd05)} · CV ${fmt(anova.cv, 0)}% · treatments sharing a letter do not differ` : ' · unbalanced, no LSD'}</text>
+    <text x="${labelW}" y="${rows.length * h + 14}" font-size="9.5" fill="#8A8C8A">${esc(unit)} · ${better ? 'higher' : 'lower'} is better${anova ? ` · LSD 5% = ${fmt(anova.lsd05, dp)} · CV ${fmt(anova.cv, 0)}% · treatments sharing a letter do not differ` : ' · unbalanced, no LSD'}</text>
   </svg>`
 }
 
@@ -458,7 +460,7 @@ export function trialReportHtml(d: ReportData): string {
       const unt = stats.find((s) => /untreated|nil|control/i.test(s.name)) ?? stats[0]
       const top = ranked.slice(0, 3)
       const untExtra = unt && unt.extraPlots.length && an ? lsdBetween(an, unt.plots.length, unt.values.length) : null
-      return `<p><b>${esc(r.label)}, ${esc(labelOf(pm, measures))}</b>: untreated ${unt?.mean != null ? fmt(unt.mean) : '—'}${unt?.extraPlots.length ? ` (${unt.values.length} plots, ${unt.extraPlots.length} beyond the design)` : ''}; best ${top.map((s) => `${blind ? `T${s.n}` : esc(s.name)} ${fmt(s.mean!)}${an?.letters[`T${s.n}`] ? ` ${an.letters[`T${s.n}`]}` : ''}`).join(', ')}${an ? `. LSD 5% ${fmt(an.lsd05)}${untExtra ? ` (${fmt(untExtra)} against the untreated with its extra plots)` : ''}, CV ${fmt(an.cv, 0)}%${an.missing ? `, ${an.missing} missing plot${an.missing === 1 ? '' : 's'} estimated` : ''}.` : '. Plot means only (unbalanced, no LSD).'}</p>`
+      return `<p><b>${esc(r.label)}, ${esc(labelOf(pm, measures))}</b>: untreated ${unt?.mean != null ? fmt(unt.mean, dpOf(pm, measures)) : '—'}${unt?.extraPlots.length ? ` (${unt.values.length} plots, ${unt.extraPlots.length} beyond the design)` : ''}; best ${top.map((s) => `${blind ? `T${s.n}` : esc(s.name)} ${fmt(s.mean!, dpOf(pm, measures))}${an?.letters[`T${s.n}`] ? ` ${an.letters[`T${s.n}`]}` : ''}`).join(', ')}${an ? `. LSD 5% ${fmt(an.lsd05, dpOf(pm, measures))}${untExtra ? ` (${fmt(untExtra, dpOf(pm, measures))} against the untreated with its extra plots)` : ''}, CV ${fmt(an.cv, 0)}%${an.missing ? `, ${an.missing} missing plot${an.missing === 1 ? '' : 's'} estimated` : ''}.` : '. Plot means only (unbalanced, no LSD).'}</p>`
     }).join('') : '<p class="muted">No assessment scores have synced for this trial.</p>'}
     ${out.size ? `<p class="muted" style="margin-top:6px">${out.size} plot${out.size === 1 ? '' : 's'} excluded from the analysis (${[...out].sort((a, b) => a - b).join(', ')}); see the corrections log.</p>` : ''}
     ${outByMeasure.size ? `<p class="muted" style="margin-top:6px">Excluded from one measure only: ${[...outByMeasure.entries()].filter(([m]) => m !== 'yield_t_ha' || !outByMeasure.has('plot_weight_kg')).map(([m, s]) => `${esc(labelOf(m, measures))} plot${s.size === 1 ? '' : 's'} ${[...s].sort((a, b) => a - b).join(', ')}`).join('; ')}; see the corrections log.</p>` : ''}
@@ -492,12 +494,12 @@ export function trialReportHtml(d: ReportData): string {
       <p class="muted">${plotsScored} of ${plotsN} plots scored · ${cols.map((m) => esc(labelOf(m, measures))).join(', ')}${method ? ` · ${esc(method)}` : ''}</p>
       <h2>Treatment means</h2>
       <table><thead><tr><th>#</th><th>Treatment</th>${cols.map((m) => `<th class="num" colspan="2">${esc(labelOf(m, measures))}${measures.get(m)?.unit ? `<br><span class="muted" style="font-weight:400">${esc(measures.get(m)!.unit!)}</span>` : ''}</th>`).join('')}</tr></thead><tbody>
-        ${treatments.map((t) => `<tr><td class="mono">T${t.n}</td><td>${blind ? `T${t.n}` : esc(t.name)}</td>${cols.map((m) => { const s = statsBy.get(m)!.find((x) => x.n === t.n)!; const l = anovaBy.get(m)?.letters[`T${t.n}`] ?? ''; return `<td class="num"><b>${s.mean == null ? '—' : fmt(s.mean)}</b>${s.sd != null ? ` <span class="muted">±${fmt(s.sd)}</span>` : ''}${s.values.length && s.values.length !== s.plots.length ? ` <span class="muted">(${s.values.length}/${s.plots.length + s.extraPlots.length})</span>` : ''}</td><td style="width:28px;color:#58585B">${esc(l)}</td>` }).join('')}</tr>`).join('')}
-        <tr><th colspan="2">LSD 5% · CV</th>${cols.map((m) => { const a = anovaBy.get(m); return `<th class="num" colspan="2" style="font-weight:600">${a ? `${fmt(a.lsd05)} · ${a.cv > 200 ? 'CV n/a (near zero)' : `${fmt(a.cv, 0)}%`}${a.missing ? `<br><span class="muted" style="font-weight:400">${a.missing} est.</span>` : ''}` : '<span class="muted">unbalanced</span>'}</th>` }).join('')}</tr>
+        ${treatments.map((t) => `<tr><td class="mono">T${t.n}</td><td>${blind ? `T${t.n}` : esc(t.name)}</td>${cols.map((m) => { const s = statsBy.get(m)!.find((x) => x.n === t.n)!; const l = anovaBy.get(m)?.letters[`T${t.n}`] ?? ''; return `<td class="num"><b>${s.mean == null ? '—' : fmt(s.mean, dpOf(m, measures))}</b>${s.sd != null ? ` <span class="muted">±${fmt(s.sd, dpOf(m, measures))}</span>` : ''}${s.values.length && s.values.length !== s.plots.length ? ` <span class="muted">(${s.values.length}/${s.plots.length + s.extraPlots.length})</span>` : ''}</td><td style="width:28px;color:#58585B">${esc(l)}</td>` }).join('')}</tr>`).join('')}
+        <tr><th colspan="2">LSD 5% · CV</th>${cols.map((m) => { const a = anovaBy.get(m); return `<th class="num" colspan="2" style="font-weight:600">${a ? `${fmt(a.lsd05, dpOf(m, measures))} · ${a.cv > 200 ? 'CV n/a (near zero)' : `${fmt(a.cv, 0)}%`}${a.missing ? `<br><span class="muted" style="font-weight:400">${a.missing} est.</span>` : ''}` : '<span class="muted">unbalanced</span>'}</th>` }).join('')}</tr>
       </tbody></table>
       <p class="muted" style="margin-top:4px">Mean ± SD across reps. Letters from RCBD ANOVA with LSD at 5%: treatments sharing a letter do not differ. A fraction after a mean is plots scored of plots allocated, extra plots beyond the design included in the mean but not in the ANOVA.${[...anovaBy.values()].some((a) => a?.missing) ? ' Where plots are missing or excluded, the ANOVA fills them by Yates\' missing-plot estimate, drops one error df per estimate and widens the LSD for pairs involving an estimated plot; means shown are of the scored plots only.' : ''}</p>
       <div class="keep"><h2>Ranked · ${esc(labelOf(pm, measures))}</h2>
-      ${barsSvg(primaryStats, primaryAnova, better, measures.get(pm)?.unit ?? '', blind)}</div>
+      ${barsSvg(primaryStats, primaryAnova, better, measures.get(pm)?.unit ?? '', blind, dpOf(pm, measures))}</div>
       <div class="keep"><h2>Plot map · ${esc(labelOf(pm, measures))}</h2>
       ${plotMapHtml(trial, treatments, r.scores, pm, better)}</div>
       ${footerLine(trial)}`
