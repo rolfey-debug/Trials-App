@@ -159,10 +159,15 @@ export interface TrtStat {
 export function treatmentStats(trts: TreatmentRow[], scores: ScoreRow[], measure: string, excluded?: Set<number>): TrtStat[] {
   const byPlot = new Map<number, number>()
   for (const s of scores) if (s.measure === measure && s.value != null && !excluded?.has(s.plot)) byPlot.set(s.plot, Number(s.value))
+  // When the record says which rep each plot sits in, blocks line up by rep
+  // across treatments, so a treatment with a plot short on the plan (sprayed
+  // out, reassigned) is a missing cell in that rep, not an unbalanced table.
+  const repKeys = [...new Set(trts.flatMap((t) => Object.keys(t.components?.plotsByRep ?? {})))].sort((a, b) => Number(a) - Number(b))
   return trts.map((t) => {
     const plots = t.components?.plots ?? []
     const extraPlots = ((t.components as { extraPlots?: number[] } | null)?.extraPlots ?? []).filter((p) => !plots.includes(p))
-    const byBlock = plots.map((p) => byPlot.get(p) ?? null)
+    const byRep = t.components?.plotsByRep
+    const byBlock = repKeys.length && byRep ? repKeys.map((k) => (byRep[k] != null && !excluded?.has(Number(byRep[k])) ? byPlot.get(Number(byRep[k])) ?? null : null)) : plots.map((p) => byPlot.get(p) ?? null)
     const values = [...byBlock.filter((v): v is number => v !== null), ...extraPlots.map((p) => byPlot.get(p)).filter((v): v is number => v !== undefined)]
     const mean = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
     const sd = values.length > 1 && mean !== null ? Math.sqrt(values.reduce((a, v) => a + (v - mean) ** 2, 0) / (values.length - 1)) : null
@@ -172,8 +177,8 @@ export function treatmentStats(trts: TreatmentRow[], scores: ScoreRow[], measure
 
 /** ANOVA when every treatment has the same complete set of reps. */
 export function anovaFor(stats: TrtStat[]): Anova | null {
-  const r = stats[0]?.plots.length ?? 0
-  if (r < 2 || stats.some((s) => s.plots.length !== r)) return null
+  const r = stats[0]?.byBlock.length ?? 0
+  if (r < 2 || stats.some((s) => s.byBlock.length !== r)) return null
   if (stats.every((s) => s.values.length === 0)) return null
   const data: Record<string, Array<number | null>> = {}
   for (const s of stats) data[`T${s.n}`] = s.byBlock

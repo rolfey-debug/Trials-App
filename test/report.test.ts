@@ -89,4 +89,11 @@ const exclHtml = trialReportHtml({ ...d, corrections: [{ plot: 303, kind: 'exclu
 check('measure-scoped exclusion is noted and drops the plot from that measure only', exclHtml.includes('Excluded from one measure only') && exclHtml.includes('plot 303'))
 const dpHtml = trialReportHtml({ ...d, scores: [...d.scores, sc(2, '2026-11-18', 101, 'yield_t_ha', 1.234), sc(2, '2026-11-18', 202, 'yield_t_ha', 1.456), sc(2, '2026-11-18', 303, 'yield_t_ha', 1.6), sc(2, '2026-11-18', 102, 'yield_t_ha', 2.1), sc(2, '2026-11-18', 203, 'yield_t_ha', 2.2), sc(2, '2026-11-18', 301, 'yield_t_ha', 2.3), sc(2, '2026-11-18', 103, 'yield_t_ha', 1.0), sc(2, '2026-11-18', 201, 'yield_t_ha', 1.1), sc(2, '2026-11-18', 302, 'yield_t_ha', 1.2)], measures: new Map([...measures, ['yield_t_ha', { key: 'yield_t_ha', label: 'Grain yield', rating: 'yield', unit: 't/ha', target: null, part: 'plot', sample: null, higher_better: true, min: 0, max: null, decimals: 2, group_key: 'yield', canonical: null, note: null, taxa: null }]]) })
 check('report prints a measure to its own decimals', dpHtml.includes('1.43') && dpHtml.includes('2.20'))
+const shortTrts: TreatmentRow[] = [
+  { ...trts[0], components: { plots: [101, 202, 303], plotsByRep: { '1': 101, '2': 202, '3': 303 } } },
+  { ...trts[1], components: { plots: [203, 301], plotsByRep: { '2': 203, '3': 301 } } },
+  { ...trts[2], components: { plots: [103, 201, 302], plotsByRep: { '1': 103, '2': 201, '3': 302 } } },
+]
+const shortStats = treatmentStats(shortTrts, rounds[0].scores, 'sept_a1')
+check('a treatment short a plot is a missing cell in its rep, not unbalanced', shortStats[1].byBlock.length === 3 && shortStats[1].byBlock[0] === null && shortStats[1].byBlock[1] === 12 && anovaFor(shortStats) !== null && anovaFor(shortStats)!.missing === 1)
 console.log(`report: ${passed} checks passed`)
