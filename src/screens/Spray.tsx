@@ -7,7 +7,7 @@ import type { Issue } from '../store/types'
 
 /** Spray day (design screens 2d + 2e) — Mix / Order / Record / Issues. */
 export function Spray() {
-  const { st, doc, ts, mutTrial, mut } = useApp()
+  const { st, doc, ts, mutTrial, mut, go } = useApp()
   const tab = st.sprayTab
   const openCount = ts.issues.filter((i) => i.status === 'open').length
   const pbt = plotsByTreatment(doc)
@@ -120,6 +120,16 @@ export function Spray() {
         title="Spray day — App A"
         sub={`6 Aug ${doc.trial.season} · hand boom 2 m · ${doc.trial.waterRateLPerHa} L/ha · ${doc.trial.sprayVolumePerPlotMl} mL/plot`}
       />
+      <div
+        onClick={() => go('guide')}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.ink, color: '#fff', borderRadius: 12, padding: '11px 14px', marginBottom: 10, cursor: 'pointer' }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800 }}>Bike guidance</div>
+          <div style={{ font: `500 10.5px ${MONO}`, color: '#B9BCBA' }}>LIGHTBAR · SPEED HOLD · SPRAYED MAP · 6 M + 2 M BOOMS</div>
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>›</div>
+      </div>
       <div style={{ display: 'flex', background: '#E0E1E0', borderRadius: 10, padding: 3, marginBottom: 12 }}>
         {(
           [

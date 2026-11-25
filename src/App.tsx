@@ -16,6 +16,8 @@ import { Team } from './screens/Team'
 import { Reports } from './screens/Reports'
 import { Account } from './screens/Account'
 import { Walk } from './screens/Walk'
+import { Guidance } from './screens/Guidance'
+import { BaseStation } from './screens/BaseStation'
 import type { Screen } from './store/types'
 
 const SECONDARY: Screen[] = ['site', 'photos', 'storage', 'team', 'reports', 'setup', 'add', 'account']
@@ -35,14 +37,22 @@ const SCREENS: Record<Screen, React.ComponentType> = {
   reports: Reports,
   walk: Walk,
   account: Account,
+  guide: Guidance,
+  base: BaseStation,
 }
 
 export default function App() {
   const { st, go } = useApp()
-  const screen: Screen = st.session.email ? st.screen : 'login'
+  // ?base=123456 — the link the bike's phone shares to turn a second phone into its GPS base
+  React.useEffect(() => {
+    if (new URLSearchParams(location.search).has('base')) go('base')
+  }, [go])
+  // the base station needs no account: it only relays its own GPS wander
+  const screen: Screen = st.session.email || st.screen === 'base' ? st.screen : 'login'
   const Body = SCREENS[screen]
   const showBack = SECONDARY.includes(screen)
-  const showNav = screen !== 'login'
+  // guidance and the base station are full-screen, glance-at-arm's-length tools
+  const showNav = screen !== 'login' && screen !== 'guide' && screen !== 'base'
 
   return (
     <div style={{ height: '100%', display: 'flex', justifyContent: 'center', background: '#EDEEED' }}>
