@@ -78,6 +78,8 @@ export interface TrialDoc {
   /** What each position across the grid is, for a species x herbicide matrix:
    * position → species name, shown beside the plot number on screens. */
   positionLabels?: Record<string, string>
+  /** Short code per position for the map cells (W, KBO, LUP …). */
+  positionCodes?: Record<string, string>
 }
 
 export interface Score {

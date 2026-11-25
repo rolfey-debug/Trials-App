@@ -8,6 +8,7 @@ export const posOf = (pid: number) => pid % 100
 export const plotLabel = (doc: TrialDoc, pid: number) => String(doc.plotLabels?.[pid] ?? pid)
 /** The species (or whatever the position stands for) at a plot's position, when the trial has them. */
 export const positionLabel = (doc: TrialDoc, pid: number): string | undefined => doc.positionLabels?.[String(posOf(pid))]
+export const positionCode = (doc: TrialDoc, pid: number): string | undefined => doc.positionCodes?.[String(posOf(pid))]
 /** The plot number the office knows a phone plot id by (see TrialDoc.plotLabels). */
 export const officePlot = (doc: Pick<TrialDoc, 'plotLabels'> | undefined, pid: number | string) => doc?.plotLabels?.[String(pid)] ?? Number(pid)
 

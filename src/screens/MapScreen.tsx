@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { C, MONO } from '../theme'
 import { useApp } from '../store/store'
 import { ScreenTitle } from '../components/bits'
-import { posOf, repOf, rowOf, treatmentByN, measureFlat, plotLabel, positionLabel } from '../lib/trial'
+import { posOf, repOf, rowOf, treatmentByN, measureFlat, plotLabel, positionLabel, positionCode } from '../lib/trial'
 
 /** Spray map (design screen 2c) — the real layout grid with all cell states,
  * tap → sticky bottom sheet with status + issue logging. */
@@ -18,7 +18,7 @@ export function MapScreen() {
     const v = doc.cells[pid]
     const base: React.CSSProperties = {
       flex: positions > 12 ? '0 0 calc(12.5% - 2px)' : 1, height: 26, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      font: `600 10.5px ${MONO}`, cursor: 'pointer', boxSizing: 'border-box',
+      font: `600 ${doc.positionCodes ? 8.5 : 10.5}px ${MONO}`, cursor: 'pointer', boxSizing: 'border-box',
     }
     let s: React.CSSProperties = { ...base }
     let t = ''
@@ -40,7 +40,9 @@ export function MapScreen() {
       t = 'R'
     } else if (typeof v === 'number') {
       const e = eff(pid) as number
-      t = String(e)
+      // a species x herbicide matrix shows the species code in the cell; the
+      // herbicide is the row and the selection panel names it
+      t = positionCode(doc, pid) ?? String(e)
       if (ts.scores[pid]) {
         s.background = C.assessedFill
         s.color = C.greenDark
@@ -230,7 +232,7 @@ export function MapScreen() {
       </div>
       {doc.positionLabels && (
         <div style={{ marginTop: 8, fontSize: 10.5, color: C.grey, lineHeight: 1.5 }}>
-          <b style={{ color: C.body }}>Positions:</b> {Object.entries(doc.positionLabels).sort((a, b) => Number(a[0]) - Number(b[0])).map(([p, l]) => `${p} ${l}`).join(' · ')}
+          <b style={{ color: C.body }}>Positions:</b> {Object.entries(doc.positionLabels).sort((a, b) => Number(a[0]) - Number(b[0])).map(([p, l]) => `${p} ${doc.positionCodes?.[p] ? `${doc.positionCodes[p]} ` : ''}${l}`).join(' · ')}
         </div>
       )}
       {sheet}
