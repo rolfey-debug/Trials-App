@@ -1,6 +1,6 @@
 /** Harvest: yield derived in the office from the phone's bucket weights. */
 import { deriveYield, harvestedAreaM2, moistureStandard, yieldFromBucket } from '../portal/src/lib/harvest'
-import { decimalsFor, fixedBackspace, fixedKeyDigit, fmtVal } from '../src/lib/trial'
+import { capFor, decimalsFor, fixedBackspace, fixedKeyDigit, fmtVal } from '../src/lib/trial'
 import type { ScoreRow } from '../portal/src/lib/db'
 
 let passed = 0
@@ -44,4 +44,5 @@ check('then 0 reads 78.50', v === 78.5 && fmtVal(bucket, v) === '78.50')
 check('backspace steps back', fixedBackspace(78.5, 2) === 7.85 && fixedBackspace(0.07, 2) === undefined)
 check('moisture tenths: 1, 1, 2 reads 11.2', fixedKeyDigit(fixedKeyDigit(fixedKeyDigit(undefined, 1, 1, 100), 1, 1, 100), 2, 1, 100) === 11.2)
 check('cap holds', fixedKeyDigit(99.9, 9, 1, 100) === 100)
+check('a 0 to N scale caps the keypad at N', capFor(['x', 'x', '0 to 5']) === 5 && capFor(['x', 'x', '0 to 10']) === 10 && capFor(['x', 'x', '%']) === 100)
 console.log(`harvest: ${passed} checks passed`)

@@ -101,6 +101,8 @@ export function measureFlat(lib: MeasureLib): Record<string, MeasureDef> {
 /** Value cap while keying scores: % measures cap at 100, counts at 999,
  * LAI at 9.9 (one decimal — see src/lib/lai.ts for the entry scheme). */
 export function capFor(m: MeasureDef): number {
+  const scale = /^(\d+) to (\d+)$/.exec(m[2])
+  if (scale) return Number(scale[2])
   return m[2] === '/m2' || m[2] === '/m²' ? 999 : m[2] === 'GS' ? 99 : m[2] === 'LAI' ? 9.9 : m[2] === 'kg/plot' ? 999.99 : 100
 }
 
