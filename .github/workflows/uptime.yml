@@ -1,0 +1,40 @@
+name: Uptime + keep-alive
+
+# Daily ping of the Supabase REST API (keeps the free-tier project from
+# auto-pausing after ~1 week idle) and both deployed apps. A non-2xx from
+# any of them fails the job, which emails the repo owner — so this doubles
+# as basic uptime monitoring until the Pro-tier move (S4).
+on:
+  schedule:
+    - cron: '17 19 * * *' # 06:17 AEDT daily, jittered off the hour
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Supabase REST (keep-alive)
+        run: |
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' \
+            "https://ebhsnggwekhfcpgnyxxs.supabase.co/rest/v1/trials?select=id&limit=1" \
+            -H "apikey: sb_publishable_jqRJrNZiyAqE5wcH23Oo3g_JlQqcFWk")
+          echo "Supabase REST -> $code"
+          # 200 = alive; 401 would also prove the API is up, but the
+          # publishable key is meant to work here, so require 200.
+          [ "$code" = "200" ] || { cat /tmp/body; exit 1; }
+
+      - name: Field app (GitHub Pages)
+        run: |
+          code=$(curl -sSL -o /dev/null -w '%{http_code}' \
+            "https://rolfey-debug.github.io/Trials-App/")
+          echo "Field app -> $code"
+          [ "$code" = "200" ] || exit 1
+
+      - name: Office portal (GitHub Pages)
+        run: |
+          code=$(curl -sSL -o /dev/null -w '%{http_code}' \
+            "https://rolfey-debug.github.io/Trials-App/office/")
+          echo "Office portal -> $code"
+          [ "$code" = "200" ] || exit 1

@@ -14,12 +14,13 @@ import { Photos } from './screens/Photos'
 import { Storage } from './screens/Storage'
 import { Team } from './screens/Team'
 import { Reports } from './screens/Reports'
+import { Account } from './screens/Account'
 import { Walk } from './screens/Walk'
 import { Guidance } from './screens/Guidance'
 import { BaseStation } from './screens/BaseStation'
 import type { Screen } from './store/types'
 
-const SECONDARY: Screen[] = ['site', 'photos', 'storage', 'team', 'reports', 'setup', 'add']
+const SECONDARY: Screen[] = ['site', 'photos', 'storage', 'team', 'reports', 'setup', 'add', 'account']
 
 const SCREENS: Record<Screen, React.ComponentType> = {
   login: Login,
@@ -35,6 +36,7 @@ const SCREENS: Record<Screen, React.ComponentType> = {
   team: Team,
   reports: Reports,
   walk: Walk,
+  account: Account,
   guide: Guidance,
   base: BaseStation,
 }

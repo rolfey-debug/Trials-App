@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { C, MONO } from '../theme'
 import { useApp } from '../store/store'
 import { ScreenTitle } from '../components/bits'
-import { posOf, repOf, rowOf, treatmentByN, measureFlat } from '../lib/trial'
+import { posOf, repOf, rowOf, treatmentByN, measureFlat, plotLabel, positionLabel, positionCode } from '../lib/trial'
 
 /** Spray map (design screen 2c) — the real layout grid with all cell states,
  * tap → sticky bottom sheet with status + issue logging. */
@@ -17,8 +17,8 @@ export function MapScreen() {
   const cellStyle = (pid: number): [React.CSSProperties, string] => {
     const v = doc.cells[pid]
     const base: React.CSSProperties = {
-      flex: 1, height: 26, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      font: `600 10.5px ${MONO}`, cursor: 'pointer', boxSizing: 'border-box',
+      flex: positions > 12 ? '0 0 calc(12.5% - 2px)' : 1, height: 26, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      font: `600 ${doc.positionCodes ? 8.5 : 10.5}px ${MONO}`, cursor: 'pointer', boxSizing: 'border-box',
     }
     let s: React.CSSProperties = { ...base }
     let t = ''
@@ -40,7 +40,9 @@ export function MapScreen() {
       t = 'R'
     } else if (typeof v === 'number') {
       const e = eff(pid) as number
-      t = String(e)
+      // a species x herbicide matrix shows the species code in the cell; the
+      // herbicide is the row and the selection panel names it
+      t = positionCode(doc, pid) ?? String(e)
       if (ts.scores[pid]) {
         s.background = C.assessedFill
         s.color = C.greenDark
@@ -133,7 +135,7 @@ export function MapScreen() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={{ font: `700 20px ${MONO}` }}>{sel}</div>
+          <div style={{ font: `700 20px ${MONO}` }}>{plotLabel(doc, sel)}{positionLabel(doc, sel) && <span style={{ fontSize: 13, color: C.grey, marginLeft: 8, fontFamily: 'inherit' }}>{positionLabel(doc, sel)}</span>}</div>
           <div onClick={() => setSel(null)} style={{ fontSize: 11, fontWeight: 700, color: C.muted, cursor: 'pointer', padding: '4px 6px' }}>
             CLOSE ✕
           </div>
@@ -150,7 +152,7 @@ export function MapScreen() {
         {canFlag && (
           <div
             onClick={() =>
-              mutTrial({ kind: 'issue', label: `Issue flagged · plot ${sel}` }, (t) => {
+              mutTrial({ kind: 'issue', label: `Issue flagged · plot ${plotLabel(doc, sel)}` }, (t) => {
                 t.issues.push({
                   id: Date.now(),
                   pid: sel,
@@ -166,7 +168,7 @@ export function MapScreen() {
               border: `1.5px solid ${C.burnt}`, color: C.burnt, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
             }}
           >
-            ⚑ Log spray issue on {sel}
+            ⚑ Log spray issue on {plotLabel(doc, sel)}
           </div>
         )}
       </div>
@@ -211,7 +213,7 @@ export function MapScreen() {
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {Array.from({ length: rows }, (_, ri) => ri + 1).map((r) => (
-          <div key={r} style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <div key={r} style={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: positions > 12 ? 'wrap' : 'nowrap' }}>
             <div style={{ width: rowBlocked ? 38 : 22, font: `500 9.5px ${MONO}`, color: rowBlocked && rowBandLabel(r) === '1' ? C.greenDark : C.muted, flex: 'none' }}>
               R{r}
               {rowBlocked && rowBandLabel(r) && <span style={{ color: C.disabled }}>·{rowBandLabel(r)}</span>}
@@ -228,6 +230,11 @@ export function MapScreen() {
           </div>
         ))}
       </div>
+      {doc.positionLabels && (
+        <div style={{ marginTop: 8, fontSize: 10.5, color: C.grey, lineHeight: 1.5 }}>
+          <b style={{ color: C.body }}>Positions:</b> {Object.entries(doc.positionLabels).sort((a, b) => Number(a[0]) - Number(b[0])).map(([p, l]) => `${p} ${doc.positionCodes?.[p] ? `${doc.positionCodes[p]} ` : ''}${l}`).join(' · ')}
+        </div>
+      )}
       {sheet}
     </div>
   )
