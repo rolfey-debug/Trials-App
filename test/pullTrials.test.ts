@@ -1,6 +1,6 @@
 /** Office → phone mapping: a builder-made trial and a workbook-shaped one
  * both become a usable TrialDoc; stored plot polygons become a locate grid. */
-import { isStripNumbered, measureLibFor, plotList, storedPlotsFrom, trialDocFromOffice, isUuid, type OfficeMeasure, type OfficeTrial } from '../src/lib/pullTrials'
+import { isStripNumbered, measureLibFor, plotList, storedPlotsFrom, trialDocFromOffice, isUuid, type OfficeMeasure, type OfficeTrial, refreshedOfficeDocs } from '../src/lib/pullTrials'
 import { officePlot, plotLabel, positionLabel, assessmentOrder } from '../src/lib/trial'
 
 let passed = 0
@@ -129,6 +129,11 @@ const outDoc = trialDocFromOffice({ ...builder, design: { ...builder.design, out
 check('a sprayed plot stays a treatment cell even if listed out', outDoc.cells['103'] === 3 && outDoc.cells['104'] === 3)
 const matrixDoc = trialDocFromOffice({ ...builder, design: { ...builder.design, species: [{ n: 1, crop: 'Wheat', variety: 'Rio' }, { n: 2, crop: 'Barley' }] } }, lib)
 check('species codes for the map, initials when the office has none', trialDocFromOffice({ ...builder, design: { ...builder.design, species: [{ n: 1, crop: 'Wheat', code: 'W' }, { n: 4, crop: 'Oats imi' }, { n: 19, crop: 'Fescue/Cocksfoot/brome' }] } }, lib).positionCodes?.['4'] === 'OI' && trialDocFromOffice({ ...builder, design: { ...builder.design, species: [{ n: 1, crop: 'Wheat', code: 'W' }, { n: 19, crop: 'Fescue/Cocksfoot/brome' }] } }, lib).positionCodes?.['19'] === 'FCB')
+check('sync refresh rebuilds only office trials the phone already holds', (() => {
+  const local = { [builder.id]: matrixDoc, 'matong-2026': matrixDoc }
+  const fresh = refreshedOfficeDocs(local, [{ ...builder, design: { ...builder.design, species: [{ n: 1, crop: 'Wheat', code: 'W' }] } }, { ...builder, id: '11111111-2222-4333-8444-555555555555' }], lib)
+  return fresh.length === 1 && fresh[0].id === builder.id && fresh[0].positionCodes?.['1'] === 'W'
+})())
 check('species strips become position labels', matrixDoc.positionLabels?.['1'] === 'Wheat' && matrixDoc.positionLabels?.['2'] === 'Barley' && positionLabel(matrixDoc, 302) === 'Barley' && positionLabel(doc, 302) === undefined)
 check('normal trials carry no labels', doc.plotLabels === undefined && wd.plotLabels === undefined)
 const sp = storedPlotsFrom([{ plot: 50, geojson: { type: 'Polygon', coordinates: [[[146.315, -36.172], [146.31502, -36.172], [146.31502, -36.17189], [146.315, -36.17189], [146.315, -36.172]]] } }], sd)

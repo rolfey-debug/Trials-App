@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import type { AppState, Screen, SyncItem, TrialDoc, TrialState } from './types'
 import { idb } from './idb'
 import { FLUTRI_ID, MATONG_ID, RINGWOOD_ID, flutriDoc, flutriTrialState, matongDoc, ringwoodDoc, ringwoodTrialState, seedState } from './seed'
-import { logout as backendLogout, pushToBackend, uploadPendingPhotos } from '../lib/backend'
+import { logout as backendLogout, pushToBackend, refreshOfficeTrials, uploadPendingPhotos } from '../lib/backend'
 
 interface StoreCtx {
   st: AppState
@@ -171,6 +171,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         mut(null, (d) => {
           for (const ts of Object.values(d.trialState))
             for (const p of ts.photos) if (up.has(p.id)) p.uploaded = true
+        })
+      })
+      .catch(() => {})
+    // trial layouts come back down: an office change to a trial this phone
+    // holds (species codes, a re-ordered matrix, measures) replaces the
+    // TrialDoc only — scores, photos and surveyed corners stay put
+    void refreshOfficeTrials(cur)
+      .then((fresh) => {
+        if (!fresh.length) return
+        mut(null, (d) => {
+          for (const f of fresh) {
+            if (!d.trials[f.doc.id]) continue
+            d.trials[f.doc.id] = f.doc
+            const ts = d.trialState[f.doc.id]
+            if (ts && f.plots.length) {
+              ts.site.storedPlots = f.plots
+              ts.site.storedAt = new Date().toISOString()
+            }
+          }
         })
       })
       .catch(() => {})

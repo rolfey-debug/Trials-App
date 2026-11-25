@@ -5,7 +5,8 @@
  */
 import { insert, refresh, select, signInOrUp, stableId, updatePassword, uploadObject, ORG_ID, TRIAL_IDS, type AuthResult, type Session } from '../../shared/supa'
 import { idb } from '../store/idb'
-import type { AppState, TrialDoc, TrialState } from '../store/types'
+import type { AppState, StoredPlot, TrialDoc, TrialState } from '../store/types'
+import { isUuid, listOfficeTrials, loadOfficeMeasures, loadOfficePlots, refreshedOfficeDocs, storedPlotsFrom } from './pullTrials'
 import { officePlot } from './trial'
 
 const KEY = 'tw.supaSession'
@@ -264,3 +265,21 @@ async function pushTrial(
   if (!ok.every(Boolean)) return null
   return { scores: scoreRows.length, corrections: correctionRows.length, photos: photoRows.length, spray: operationRows.length }
 }
+
+/** Pull the current office design for every office trial on this phone.
+ * Returns nothing offline or when nothing is signed in. */
+export async function refreshOfficeTrials(st: AppState): Promise<Array<{ doc: TrialDoc; plots: StoredPlot[] }>> {
+  if (!Object.keys(st.trials).some(isUuid)) return []
+  const token = await activeToken()
+  if (!token) return []
+  const [office, lib] = await Promise.all([listOfficeTrials(token), loadOfficeMeasures(token)])
+  if (!office) return []
+  const docs = refreshedOfficeDocs(st.trials, office, lib ?? [])
+  const out: Array<{ doc: TrialDoc; plots: StoredPlot[] }> = []
+  for (const doc of docs) {
+    const rows = await loadOfficePlots(doc.id, token).catch(() => null)
+    out.push({ doc, plots: storedPlotsFrom(rows ?? [], doc) })
+  }
+  return out
+}
+

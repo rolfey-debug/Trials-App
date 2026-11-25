@@ -279,3 +279,15 @@ export function storedPlotsFrom(rows: OfficePlot[], doc?: Pick<TrialDoc, 'plotLa
   }
   return out
 }
+
+/** Office trials the phone already holds, rebuilt from the current office
+ * design. Sync calls this so a layout change in the office (species codes,
+ * a re-ordered matrix, an added measure) reaches every phone without anyone
+ * re-pulling the trial by hand. Scores, photos and surveyed corners live in
+ * trialState and are never touched — only the TrialDoc is swapped. */
+export function refreshedOfficeDocs(local: Record<string, TrialDoc>, office: OfficeTrial[], lib: OfficeMeasure[]): TrialDoc[] {
+  const out: TrialDoc[] = []
+  for (const t of office) if (local[t.id] && isUuid(t.id)) out.push(trialDocFromOffice(t, lib))
+  return out
+}
+
