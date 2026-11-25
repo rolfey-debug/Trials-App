@@ -1,7 +1,7 @@
 /** Office → phone mapping: a builder-made trial and a workbook-shaped one
  * both become a usable TrialDoc; stored plot polygons become a locate grid. */
 import { isStripNumbered, measureLibFor, plotList, storedPlotsFrom, trialDocFromOffice, isUuid, type OfficeMeasure, type OfficeTrial } from '../src/lib/pullTrials'
-import { officePlot, plotLabel, assessmentOrder } from '../src/lib/trial'
+import { officePlot, plotLabel, positionLabel, assessmentOrder } from '../src/lib/trial'
 
 let passed = 0
 function check(name: string, cond: boolean) {
@@ -127,6 +127,8 @@ check('strip rule and walk text', /strip number/.test(sd.plotIdRule ?? '') && /s
 check('extra sprayed plots join the treatment', plotList({ plots: { '1': 102, '2': 1204 }, extraPlots: [104] }).join() === '102,104,1204')
 const outDoc = trialDocFromOffice({ ...builder, design: { ...builder.design, outPlots: [103, 104] }, treatments: [{ ...builder.treatments[2], components: { plots: [103, 201, 302], extraPlots: [104] } }] }, lib)
 check('a sprayed plot stays a treatment cell even if listed out', outDoc.cells['103'] === 3 && outDoc.cells['104'] === 3)
+const matrixDoc = trialDocFromOffice({ ...builder, design: { ...builder.design, species: [{ n: 1, crop: 'Wheat', variety: 'Rio' }, { n: 2, crop: 'Barley' }] } }, lib)
+check('species strips become position labels', matrixDoc.positionLabels?.['1'] === 'Wheat' && matrixDoc.positionLabels?.['2'] === 'Barley' && positionLabel(matrixDoc, 302) === 'Barley' && positionLabel(doc, 302) === undefined)
 check('normal trials carry no labels', doc.plotLabels === undefined && wd.plotLabels === undefined)
 const sp = storedPlotsFrom([{ plot: 50, geojson: { type: 'Polygon', coordinates: [[[146.315, -36.172], [146.31502, -36.172], [146.31502, -36.17189], [146.315, -36.17189], [146.315, -36.172]]] } }], sd)
 check('stored polygons re-keyed to phone ids', sp.length === 1 && sp[0].pid === 150)

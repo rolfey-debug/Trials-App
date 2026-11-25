@@ -6,7 +6,7 @@ import { analyzeCanopyPhoto } from '../lib/lai'
 import { idb } from '../store/idb'
 import { photoUrl, saveAllWatermarked, saveWatermarked } from '../lib/photo'
 import type { PhotoMeta } from '../store/types'
-import { plotLabel } from '../lib/trial'
+import { plotLabel, positionLabel } from '../lib/trial'
 
 const STRIPES = 'repeating-linear-gradient(45deg,#DCE4DE 0 8px,#D0DAD3 8px 16px)'
 
@@ -166,7 +166,7 @@ export function Photos() {
           <Tile
             key={p.id}
             p={p}
-            label={plotLabel(doc, p.pid)}
+            label={positionLabel(doc, p.pid) ? `${plotLabel(doc, p.pid)} ${positionLabel(doc, p.pid)}` : plotLabel(doc, p.pid)}
             trialName={doc.trial.name.split('—')[0].trim()}
             onFlag={() =>
               mutTrial(null, (t) => {

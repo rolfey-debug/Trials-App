@@ -75,6 +75,9 @@ export interface TrialDoc {
    * The phone keeps its own ids for the grid; screens show these and sync
    * writes them, so the office never sees a renumbered plot. */
   plotLabels?: Record<string, number>
+  /** What each position across the grid is, for a species x herbicide matrix:
+   * position → species name, shown beside the plot number on screens. */
+  positionLabels?: Record<string, string>
 }
 
 export interface Score {

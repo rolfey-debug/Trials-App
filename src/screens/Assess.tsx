@@ -3,7 +3,7 @@ import { C, MONO, SANS } from '../theme'
 import { useApp } from '../store/store'
 import { useGps } from '../gps/useGps'
 import { fetchRecheckList, type RecheckItem } from '../lib/backend'
-import { assessmentOrder, capFor, decimalsFor, fixedBackspace, fixedKeyDigit, fmtVal, isScorableCell, measureFlat, measureGroups, repOf, rowOf, posOf, treatmentByN, unitOf, plotLabel } from '../lib/trial'
+import { assessmentOrder, capFor, decimalsFor, fixedBackspace, fixedKeyDigit, fmtVal, isScorableCell, measureFlat, measureGroups, repOf, rowOf, posOf, positionLabel, treatmentByN, unitOf, plotLabel } from '../lib/trial'
 import { analyzeCanopyPhoto, laiBackspace, laiKeyDigit, type CanopyAnalysis } from '../lib/lai'
 import { gridFromCorners, gridFromStored, locate } from '../gps/geo'
 import { compressAndStore } from '../lib/photo'
@@ -340,7 +340,7 @@ export function Assess() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 5, margin: '2px 0 8px' }}>
-          {[`REP ${rep}`, `ROW ${row}`, `POS ${pos}`].map((c) => (
+          {[...(doc.positionLabels ? [] : [`REP ${rep}`]), `ROW ${row}`, positionLabel(doc, pid) ? `POS ${pos} · ${positionLabel(doc, pid)!.toUpperCase()}` : `POS ${pos}`].map((c) => (
             <span key={c} style={{ font: `500 10px ${MONO}`, background: C.chipBg, padding: '3px 7px', borderRadius: 5, color: C.grey }}>
               {c}
             </span>

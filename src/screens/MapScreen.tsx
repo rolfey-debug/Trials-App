@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { C, MONO } from '../theme'
 import { useApp } from '../store/store'
 import { ScreenTitle } from '../components/bits'
-import { posOf, repOf, rowOf, treatmentByN, measureFlat, plotLabel } from '../lib/trial'
+import { posOf, repOf, rowOf, treatmentByN, measureFlat, plotLabel, positionLabel } from '../lib/trial'
 
 /** Spray map (design screen 2c) — the real layout grid with all cell states,
  * tap → sticky bottom sheet with status + issue logging. */
@@ -133,7 +133,7 @@ export function MapScreen() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={{ font: `700 20px ${MONO}` }}>{plotLabel(doc, sel)}</div>
+          <div style={{ font: `700 20px ${MONO}` }}>{plotLabel(doc, sel)}{positionLabel(doc, sel) && <span style={{ fontSize: 13, color: C.grey, marginLeft: 8, fontFamily: 'inherit' }}>{positionLabel(doc, sel)}</span>}</div>
           <div onClick={() => setSel(null)} style={{ fontSize: 11, fontWeight: 700, color: C.muted, cursor: 'pointer', padding: '4px 6px' }}>
             CLOSE ✕
           </div>
@@ -228,6 +228,11 @@ export function MapScreen() {
           </div>
         ))}
       </div>
+      {doc.positionLabels && (
+        <div style={{ marginTop: 8, fontSize: 10.5, color: C.grey, lineHeight: 1.5 }}>
+          <b style={{ color: C.body }}>Positions:</b> {Object.entries(doc.positionLabels).sort((a, b) => Number(a[0]) - Number(b[0])).map(([p, l]) => `${p} ${l}`).join(' · ')}
+        </div>
+      )}
       {sheet}
     </div>
   )

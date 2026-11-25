@@ -52,6 +52,8 @@ export interface OfficeTrial {
     outPlots?: number[]
     notes?: string[]
     source?: string
+    /** Species strips of a matrix trial, one per position. */
+    species?: Array<{ n: number; crop: string; variety?: string | null }>
   } | null
   spraying: {
     waterRateLPerHa?: number
@@ -227,6 +229,7 @@ export function trialDocFromOffice(t: OfficeTrial, lib: OfficeMeasure[]): TrialD
       fieldDay: d.type === 'Demo' || strips ? 'Walk the single row in treatment order.' : 'Rep 1 display walk across the front rows.',
     },
     ...(strips ? { plotLabels } : {}),
+    ...(d.species?.length ? { positionLabels: Object.fromEntries(d.species.map((s) => [String(s.n), s.crop])) } : {}),
     measures: measureLibFor(t, lib),
     notes: [...(t.aim ? [`Aim: ${t.aim}`] : []), ...(d.notes ?? [])],
     assessments: t.assessments
