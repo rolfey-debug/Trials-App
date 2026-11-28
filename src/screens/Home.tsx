@@ -113,6 +113,8 @@ export function Home() {
           <span onClick={() => go('reports')} style={{ cursor: 'pointer', padding: '4px 0' }}>Reports</span>
           <span style={{ color: C.ghostBorder }}>·</span>
           <span onClick={() => go('team')} style={{ cursor: 'pointer', padding: '4px 0' }}>Team</span>
+          <span style={{ color: C.ghostBorder }}>·</span>
+          <span onClick={() => go('account')} style={{ cursor: 'pointer', padding: '4px 0' }}>Account</span>
         </div>
       </div>
 
