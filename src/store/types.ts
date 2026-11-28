@@ -17,6 +17,8 @@ export type Screen =
   | 'team'
   | 'reports'
   | 'walk'
+  | 'guide'
+  | 'base'
 
 export interface Treatment {
   n: number
