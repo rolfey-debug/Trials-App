@@ -1,0 +1,617 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Trial work training modules</title><style>
+@page { size: A4; margin: 14mm 15mm 16mm; }
+body { font-family: Arial, Helvetica, sans-serif; color: #141414; font-size: 11px; line-height: 1.4; margin: 0; }
+section.page { page-break-after: always; }
+section.page:last-child { page-break-after: auto; }
+.band { height: 6px; background: #007749; margin: -14mm -15mm 14mm; }
+.logo { height: 48px; display: block; margin-left: auto; }
+.eyebrow { font-size: 10px; letter-spacing: .08em; color: #58585B; margin-top: 40mm; }
+h1.big { font-size: 34px; color: #58585B; margin: 6px 0 0; font-weight: 700; }
+.rule { width: 140px; height: 4px; background: #cf4520; margin: 10px 0 16px; }
+.lead { font-size: 14px; max-width: 150mm; }
+.toc { font-size: 13px; line-height: 1.8; padding-left: 20px; }
+.meta { font-size: 10.5px; color: #58585B; margin-top: 30mm; }
+h1.t { font-size: 24px; color: #58585B; font-weight: 700; margin: 0 0 4px; padding-bottom: 8px; border-bottom: 4px solid #cf4520; }
+h2 { font-size: 14px; color: #cf4520; font-weight: 700; margin: 13px 0 5px; page-break-after: avoid; break-after: avoid; }
+.keep { break-inside: avoid; page-break-inside: avoid; }
+h3 { font-size: 12.5px; color: #007749; margin: 10px 0 4px; }
+p { margin: 0 0 7px; }
+ul, ol { margin: 0 0 8px; padding-left: 20px; }
+li { margin: 0 0 4px; }
+table { border-collapse: collapse; width: 100%; margin: 4px 0 8px; font-size: 10px; page-break-inside: auto; }
+th { background: #007749; color: #fff; text-align: left; padding: 5px 7px; font-weight: 700; }
+td { padding: 5px 7px; border-bottom: 1px solid #E4E4E6; vertical-align: top; }
+tr { page-break-inside: avoid; }
+.formula { font-family: "IBM Plex Mono", Consolas, monospace; background: #E3F1EA; padding: 8px 12px; border-radius: 4px; margin: 6px 0 10px; font-size: 12px; }
+.box { display: inline-block; width: 11px; height: 11px; border: 1.5px solid #58585B; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
+strong { color: #141414; }
+</style></head><body><section class="page cover">
+<div class="band"></div>
+<img class="logo" src="data:image/png;base64,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" alt="AGnVET">
+<div class="eyebrow">AGnVET SERVICES · TRIAL WORK</div>
+<h1 class="big">Trial work training modules</h1><div class="rule"></div>
+<p class="lead">Seven practical modules for anyone who sprays, pegs, counts or photographs plots on an AGnVET trial site. Written under the Trials SOP (July 2024) and the AGnVET Trial Work app, with worked examples from the 2026 Junee and Corowa trials.</p>
+<ol class="toc"><li>Overview and the rules the modules sit under</li><li>Module 1 · Hand boom application</li><li>Module 2 · Mixing and batches</li><li>Module 3 · Running a spray day</li><li>Module 4 · Plot layout and marking</li><li>Module 5 · Assessing plots</li><li>Module 6 · Photos and records</li><li>Module 7 · WHS on trial sites</li></ol>
+<p class="meta">Draft for review · 2 November 2026 · Andrew Rolfe · internal, not for distribution outside AGnVET</p>
+</section><section class="page"><h1 class="t">Trial work training modules</h1>
+<h2>Who these are for and how to use them</h2>
+<p>These modules are for anyone who helps on an AGnVET trial site: agronomists, store staff and casuals who spray, peg, count or photograph plots. Each one is a 20 to 30 minute read plus a practical sign-off with Andrew Rolfe or the trial lead on the next site visit. Work through them in order the first time. Modules 1 to 3 cover application, 4 covers layout, 5 and 6 cover assessment and records, and 7 covers safety and applies to every visit.</p>
+<p>Every module ends with a sign-off checklist. The person signing you off ticks it in this doc or on a printed copy. Rates and products in the worked examples are from the 2026 Junee and Corowa trials and are there to practise on, not to recommend.</p>
+<h2>The rules these modules sit under</h2>
+<p>The AGnVET Standard Operating Procedure for conducting and spraying agri-chemical trials with a hand boom (Trials SOP, July 2024) is the policy. These modules are the practical training it calls for and do not replace it. The points from the SOP that every trial worker must know:</p>
+<ul>
+<li><strong>No approval, no trial.</strong> The agronomist presents the trial and protocol to the Field Service Manager before any work. Local boom spray trials and demos need the Field Service Manager's approval; trials needing third-party application need the Head of Agronomy as well.</li>
+<li><strong>Prohibited chemicals.</strong> AGnVET employees do not use acetylcholinesterase inhibitors (Group 1A carbamates and Group 1B organophosphates) or Group 22 pyridinium herbicides (diquat and paraquat, sold as Reglone, Alliance, Gramoxone and Spray-Seed) in field trials. A protocol that needs one goes to the Field Service Manager before it is approved, not to the shed.</li>
+<li><strong>PPE for everyone on site</strong>, not only the boom operator: coveralls, chemical-resistant gloves, goggles or face shield, respiratory protection where the Safety Data Sheet asks, chemical-resistant boots. A PPE checklist is completed before every application.</li>
+<li><strong>Training.</strong> New trial workers do the orientation with the Field Service Manager, signed off by both and filed on FARMGATE, watch the Brolga Boom Guide, Spray Procedure Guide and CO2 Pressure Pack Guide, and complete a certified chemical safety course. Everyone doing applications attends the refresher twice a year, and extra training follows any incident or near miss.</li>
+<li><strong>Records.</strong> Every application is recorded with date, time, location, weather and people; training and incidents are recorded too. The field app and the office portal are where application records live.</li>
+</ul>
+<h2>The modules</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>After it you can</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 Hand boom application</td>
+<td>Calibrate a hand boom to the plan's water rate, walk a plot at the right speed and put the right dose on every plot</td>
+</tr>
+<tr>
+<td>2 Mixing and batches</td>
+<td>Work out per-plot volume, batch size and product per batch, mix in the right order and label every batch</td>
+</tr>
+<tr>
+<td>3 Running a spray day</td>
+<td>Run the spray plan from the app, tick plots off as they are sprayed, handle a spare or a deviation and record conditions</td>
+</tr>
+<tr>
+<td>4 Plot layout and marking</td>
+<td>Read the plot map, peg a block, trim plot ends, place spares and signs, and put the block on the site planner</td>
+</tr>
+<tr>
+<td>5 Assessing plots</td>
+<td>Count a quadrat, score a plot by eye, calibrate against another assessor and record notes and flags in the right round</td>
+</tr>
+<tr>
+<td>6 Photos and records</td>
+<td>Take plot photos the office can use, sync the phone, and correct a record without deleting anything</td>
+</tr>
+<tr>
+<td>7 WHS on trial sites</td>
+<td>Prepare for chemicals, lone work, heat, vehicles and stock, and use the WHS site pack and sign-on</td>
+</tr>
+</tbody>
+</table></section><section class="page"><h1 class="t">Module 1 · Hand boom application</h1>
+<p>A hand boom puts a known volume of spray on a known area, and the whole trial depends on that volume being right on every plot. This module gets you to 100 L/ha, plus or minus 5%, at a steady walk, with the boom primed off the plot and cleaned out between products.</p>
+<h2>The kit we use</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Our standard</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Boom</td>
+<td>2 m hand boom, 4 nozzles at 50 cm spacing, CO2 pressure pack</td>
+<td>Covers one 2 m plot in a single pass</td>
+</tr>
+<tr>
+<td>Pressure bottles</td>
+<td>Bottles rated to 10 lb pressure, under 6 months old, no cracks or damage, connections checked before spraying (Trials SOP)</td>
+<td>A failed bottle under pressure is the main injury risk on the boom</td>
+</tr>
+<tr>
+<td>Nozzles</td>
+<td>AIXR 01 (orange) for pre-ems and post-ems at 100 L/ha; 02 (yellow) when the plan asks for 200 L/ha</td>
+<td>Air induction keeps drift down; the size sets the volume</td>
+</tr>
+<tr>
+<td>Pressure</td>
+<td>3 bar (about 40 psi) at the nozzle, read off the gauge with the boom running</td>
+<td>Pressure changes output: 2 bar drops it 18%, 4 bar lifts it 15%</td>
+</tr>
+<tr>
+<td>Walking speed</td>
+<td>4.6 km/h</td>
+<td>10 m plot in 7.8 s, 12 m plot in 9.4 s</td>
+</tr>
+<tr>
+<td>Measuring kit</td>
+<td>1 L jug marked in 10 mL, stopwatch, 50 m tape, two pegs for the speed course</td>
+<td>Calibration and the walk check</td>
+</tr>
+<tr>
+<td>Water</td>
+<td>Clean water, not dam water, in a labelled carrier</td>
+<td>Residue and blockages</td>
+</tr>
+<tr>
+<td>PPE</td>
+<td>Coveralls, chemical-resistant gloves and boots, goggles or face shield, respirator where the SDS asks, for everyone on site; PPE checklist done before the first batch</td>
+<td>Trials SOP minimum, whatever the product</td>
+</tr>
+</tbody>
+</table>
+<h2>The maths</h2>
+<p>Output per nozzle in L/min sets the water rate once speed and spacing are fixed:</p>
+<div class="formula">L/ha = (L/min per nozzle × 600) ÷ (speed km/h × spacing m)</div>
+
+<p>For 100 L/ha at 4.6 km/h with 50 cm spacing, each nozzle needs 0.383 L/min, which is what an 01 nozzle gives at 3 bar. For 200 L/ha an 02 nozzle at the same pressure and speed gives 0.77 L/min. Change any one of nozzle, pressure or speed and the rate moves, so the plan fixes all three and you check them, not adjust them.</p>
+<p>Per plot, a 2 m by 12 m plot is 24 m², so 100 L/ha is 240 mL on the plot. A 2 m by 10 m plot is 20 m² and takes 200 mL. The app's spray plan prints both numbers for the trial you are on.</p>
+<h2>Calibrating before every spray day</h2>
+<ol>
+<li>Fill with clean water only and run the boom for a minute to flush and prime.</li>
+<li>Catch each nozzle for 60 seconds into the jug at 3 bar on the gauge. Write all four down.</li>
+<li>Pass if every nozzle is within 5% of 0.383 L/min (365 to 400 mL) and the four are within 10% of each other. Replace any nozzle outside that; do not clean and reuse a worn one.</li>
+<li>Peg a 25 m course on flat ground beside the trial. Walk it with the boom up and the pack full of water, the way you will walk the plots. 25 m at 4.6 km/h is 19.6 s. Walk it three times and settle into the pace; everyone is faster on the first lap.</li>
+<li>Spray one blank plot length with water and time it. 12 m should take 9.4 s and use about 240 mL from the tank.</li>
+<li>Record the nozzle outputs, pressure and course time in the app under the application's conditions before you mix anything.</li>
+</ol>
+<h2>Walking a plot</h2>
+<ul>
+<li>Start the boom running a metre before the front peg, at full speed, with the boom level at 50 cm above the target (soil for a pre-em, the top of the crop for a post-em).</li>
+<li>Walk the centre line of the plot. The outer nozzles sit over the plot edges; do not swing the boom to reach wider.</li>
+<li>Hold the pace through the plot and shut off a metre past the back peg. Never slow down or stop inside a plot, and never go back over a patch you think you missed.</li>
+<li>Keep the boom at the same height through the whole plot. A drooping end nozzle doubles the dose on one side.</li>
+<li>Wind over 15 km/h, or any wind onto a neighbouring plot you have not sprayed yet, means stop. Pre-em drift onto the wrong plot cannot be undone.</li>
+</ul>
+<h2>Priming and clean-out</h2>
+<ul>
+<li>Prime every new batch off the trial, on the headland, until the colour or foam of the new mix comes through all four nozzles. Priming on a plot damaged plot 404 at Junee this year and it is flagged in that trial's record.</li>
+<li>Between treatments, run clean water through until the lines run clear, then prime with the next batch off the plot. Between chemistry groups, triple rinse the tank and lines.</li>
+<li>At the end of the day, rinse the tank three times, run rinsate through the boom onto a fallow area approved by the grower, and remove and clean the nozzles and filters.</li>
+</ul>
+<div class="keep"><h2>What went wrong this season and what we changed</h2><table>
+<thead>
+<tr>
+<th>What happened</th>
+<th>Where</th>
+<th>What we do now</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Water rate recorded as 200 L/ha in the plan and 100 L/ha in the day book, and it cannot be settled now</td>
+<td>Junee wheat IBS</td>
+<td>The as-sprayed water rate goes into the app on the day, in the application's conditions, before the first plot</td>
+</tr>
+<tr>
+<td>Blocked nozzles and some off-line passes, with the last treatments sprayed into the dark</td>
+<td>Junee knockdown, 28 June</td>
+<td>Nozzle check at every refill; spraying stops 30 minutes before dark</td>
+</tr>
+<tr>
+<td>A low-rate knockdown treatment went on at 92% of the planned rate and was only worked out afterwards</td>
+<td>Junee knockdown</td>
+<td>Measure the batch left over after each treatment and write it down; the app's Mix tab has a space for it</td>
+</tr>
+<tr>
+<td>Crop damage where the boom was primed on the plot</td>
+<td>Junee wheat, plot 404</td>
+<td>Prime on the headland every time</td>
+</tr>
+<tr>
+<td>Drift from the grower's sprayer wiped out a row of plots</td>
+<td>Corowa canola</td>
+<td>Talk to the grower about buffers before the season and flag the plots as excluded in the app, never delete them</td>
+</tr>
+</tbody>
+</table></div>
+<div class="keep"><h2>Sign-off</h2><ul>
+<li><span class="box"></span>Catches all four nozzles within 5% of target and within 10% of each other, and knows what to do with one outside that</li>
+<li><span class="box"></span>Walks the 25 m course at 4.6 km/h, three laps within one second of each other</li>
+<li><span class="box"></span>Sprays a blank 12 m plot in 9.4 s plus or minus 0.5 s with a level boom</li>
+<li><span class="box"></span>Primes on the headland and shuts off past the back peg without being reminded</li>
+<li><span class="box"></span>Enters nozzle outputs, pressure, speed and water rate into the app before mixing</li>
+<li><span class="box"></span>Can say when to stop for wind, light or a blocked nozzle</li>
+</ul></div></section><section class="page"><h1 class="t">Module 2 · Mixing and batches</h1>
+<p>Every treatment gets its own batch, mixed to the plan, measured, labelled and used up on its plots. The app's Mix checklist does the arithmetic; this module is so you can check it and catch a mistake before it goes on a plot.</p>
+<h2>The three numbers</h2>
+<ol>
+<li><strong>Per-plot volume</strong> = water rate (L/ha) × plot area (m²) ÷ 10. At 100 L/ha a 24 m² plot takes 240 mL.</li>
+<li><strong>Batch volume</strong> = per-plot volume × plots in the treatment × (1 + overage). Three plots at 240 mL with 30% overage is 0.94 L. The overage covers priming, the rinse that stays in the lines and a touch of overlap; it is not spare to go back over a plot.</li>
+<li><strong>Product in the batch</strong> = rate per hectare × the hectares the batch covers. The batch above covers 72 m² × 1.3 = 0.0094 ha, so Sakura at 118 g/ha is 1.10 g and Boxer Gold at 2.5 L/ha is 23.4 mL. Adjuvants given as % v/v or per 100 L go off the batch volume, not the area: Hasten at 1% v/v in 0.94 L is 9.4 mL.</li>
+</ol>
+<h2>Worked example: three programs from Junee 2026</h2>
+<table>
+<thead>
+<tr>
+<th>Treatment</th>
+<th>Plots</th>
+<th>Batch (30% over)</th>
+<th>Products in the batch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sakura 118 g/ha</td>
+<td>3 × 24 m²</td>
+<td>0.94 L</td>
+<td>Sakura 1.10 g</td>
+</tr>
+<tr>
+<td>TriflurX 2 L/ha + Avadex 2 L/ha</td>
+<td>3 × 24 m²</td>
+<td>0.94 L</td>
+<td>TriflurX 18.7 mL, Avadex 18.7 mL</td>
+</tr>
+<tr>
+<td>Luximax 500 mL/ha fb Platinum Xtra 330 mL/ha + Hasten 1%</td>
+<td>3 × 24 m², two timings</td>
+<td>0.94 L each timing</td>
+<td>A: Luximax 4.7 mL. B: Platinum 3.1 mL, Hasten 9.4 mL</td>
+</tr>
+</tbody>
+</table>
+<p>Amounts this small need a 0.01 g balance and 1 mL and 10 mL syringes. Granules under 2 g are better made as a stock: weigh 11.0 g of Sakura into 1 L of water, shake, and 100 mL of that stock carries 1.10 g. Write the stock on the label and tip it out at the end of the day; do not keep it.</p>
+<h2>Mixing order</h2>
+<p>Water first, half the batch, then products in label order, agitating after each: water-dispersible granules and wettable powders, then suspension concentrates, then emulsifiable concentrates and solutions, adjuvants last. Top up to the batch volume and shake again. Two products with a label warning against mixing are not mixed, even in a trial; ring the trial lead.</p>
+<h2>Labels and the Mix tab</h2>
+<ul>
+<li>Every batch carries a label with the trial, treatment number, timing (A or B), products and amounts, and the mixer's initials. A bottle without a label is tipped out.</li>
+<li>In the app, Spray day → Mix lists every treatment with its per-batch amounts. Tick the treatment as mixed when the bottle is labelled and shaken, not before. The spray plan printout from the office carries the same numbers if the phone is out of reach.</li>
+<li>Keep batches in treatment order in a crate out of the sun. Batches are mixed on the day; a pre-em mixed the night before is a different treatment.</li>
+<li>Measure what is left in each bottle after its plots and write it on the Mix tab. That is how a low or high dose gets found on the day rather than at harvest.</li>
+</ul>
+<div class="keep"><h2>What went wrong this season and what we changed</h2><table>
+<thead>
+<tr>
+<th>What happened</th>
+<th>Where</th>
+<th>What we do now</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One fungicide arm was mixed with a different partner product from the plan</td>
+<td>Matong wheat, treatment 6</td>
+<td>The label on the bottle is written from the Mix tab, then checked against the plan by a second person before the lid goes on</td>
+</tr>
+<tr>
+<td>A knockdown treatment went on 8% light and was only found when the leftover was measured afterwards</td>
+<td>Junee knockdown</td>
+<td>Leftover measured and recorded for every batch</td>
+</tr>
+<tr>
+<td>Late-sown plots needed a third timing on one treatment that was never labelled on the plan</td>
+<td>Junee canola, treatment 30</td>
+<td>Any extra pass is added to the plan in the app before it is mixed, with its date</td>
+</tr>
+</tbody>
+</table></div>
+<div class="keep"><h2>Sign-off</h2><ul>
+<li><span class="box"></span>Works out per-plot volume, batch volume and product per batch for a given treatment without the app, then matches the app</li>
+<li><span class="box"></span>Makes a stock solution for a small granule amount and labels it</li>
+<li><span class="box"></span>Mixes in label order and can say why the order matters</li>
+<li><span class="box"></span>Labels every batch and ticks the Mix tab only when the bottle is ready</li>
+<li><span class="box"></span>Measures and records the leftover after each treatment</li>
+</ul></div></section><section class="page"><h1 class="t">Module 3 · Running a spray day</h1>
+<p>A spray day is run off the spray plan and ticked off in the app plot by plot, so that at the end of the day the record says exactly what went on where, including anything that did not go to plan.</p>
+<h2>Before you leave</h2>
+<ul>
+<li><span class="box"></span>Spray plan printed from the office portal (Plans and signs → Spray and mixing plan) for the timing you are applying, and the same trial open on the phone with the plot map loaded</li>
+<li><span class="box"></span>Boom calibrated (Module 1) and the figures entered under the application's conditions</li>
+<li><span class="box"></span>Products for every treatment on the plan, checked against the plan's product list, plus clean water, measuring kit, labels and PPE</li>
+<li><span class="box"></span>Weather checked: wind under 15 km/h and not rising, no rain for the hours the label asks, Delta T between 2 and 8 for a post-em</li>
+<li><span class="box"></span>Grower told the day and the timing, and asked about anything they are spraying nearby</li>
+</ul>
+<h2>On site</h2>
+<ol>
+<li>Walk the block before anything is mixed. Check the pegs and plot numbers against the map, and look for damage, stock or anything that has changed since the last visit. Photograph anything odd and note it against the plot in the app.</li>
+<li>Record the start conditions in the app: time, temperature, humidity, wind speed and direction, cloud, soil surface and crop stage. Record them again at the end and whenever the wind changes.</li>
+<li>Mix in the plan's order (Module 2). Tick each treatment on the Mix tab as its bottle is labelled.</li>
+<li>Spray in the walk order the plan gives. Rep 1 runs the treatment list in order across the front of the block; the other reps are randomised, so read the plot number off the map for every plot and say it out loud before the boom starts.</li>
+<li>Tick each plot in the app as it is sprayed, not at the end of the row. The home screen shows how many of the timing's treatments are done.</li>
+<li>Treatments that are A-only get skipped at B, and the map marks them. Untreated plots are never walked over with a running boom.</li>
+<li>Stop for wind over 15 km/h, wind onto unsprayed plots, rain, a blocked nozzle until it is replaced, or 30 minutes before dark. A half-done timing with the stop recorded is a trial; a timing finished badly is not.</li>
+</ol>
+<h2>Deviations, spares and swaps</h2>
+<p>Sometimes a plot cannot be sprayed as planned: it is damaged, a bottle is short, or a spare has to come in for a written-off position. The rule is that the plan is never edited in the field. The plot is sprayed as it was, or left, and what happened goes into the app on the day as a note against the plot and a deviation on the application. The office then records a correction with the old value, the new value, the reason, who and when, and the original stays in the audit log. This season's example: at Matong plot 104 was sprayed as treatment 13 from the spares, 201 as treatment 14 and 1103 brought in for a written-off position, all recorded on the day and relabelled in the office.</p>
+<h2>What the record must hold by the time you leave</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Where it goes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Every plot sprayed, ticked, with the time</td>
+<td>App, Spray day tab</td>
+</tr>
+<tr>
+<td>Water rate, nozzle, pressure, speed, boom, operator and helpers</td>
+<td>App, application conditions</td>
+</tr>
+<tr>
+<td>Start and finish conditions, and any change</td>
+<td>App, application conditions</td>
+</tr>
+<tr>
+<td>Leftover from each batch</td>
+<td>App, Mix tab</td>
+</tr>
+<tr>
+<td>Any plot not sprayed, sprayed differently or damaged</td>
+<td>App, note on the plot, and the application's note</td>
+</tr>
+<tr>
+<td>A photo of any damage, drift or odd plot</td>
+<td>App, Photos, tagged to the plot</td>
+</tr>
+</tbody>
+</table>
+<p>Sync the phone before you drive out of coverage, and again at the office.</p>
+<div class="keep"><h2>What went wrong this season and what we changed</h2><table>
+<thead>
+<tr>
+<th>What happened</th>
+<th>Where</th>
+<th>What we do now</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One treatment missed on all three reps and only found at assessment</td>
+<td>Junee knockdown, treatment 10</td>
+<td>Plots ticked as they are sprayed, and the home screen count checked against the plan before packing up</td>
+</tr>
+<tr>
+<td>A pass sprayed on one day and dated in the record the day before, from a paper note</td>
+<td>Matong wheat A pass</td>
+<td>Conditions entered in the app on the day, not transcribed later</td>
+</tr>
+<tr>
+<td>Rep 1 sprayed in treatment order while the other reps were sprayed by plot order from memory</td>
+<td>Early season</td>
+<td>Plot number read from the map and said aloud before every plot</td>
+</tr>
+</tbody>
+</table></div>
+<div class="keep"><h2>Sign-off</h2><ul>
+<li><span class="box"></span>Prints the spray plan and opens the same trial and timing on the phone</li>
+<li><span class="box"></span>Walks the block, records start conditions and mixes in plan order before the first plot</li>
+<li><span class="box"></span>Reads the plot number off the map for every plot and ticks it as sprayed</li>
+<li><span class="box"></span>Knows the stop conditions and records a stop properly</li>
+<li><span class="box"></span>Records a deviation on the day without editing the plan</li>
+</ul></div></section><section class="page"><h1 class="t">Module 4 · Plot layout and marking</h1>
+<p>A block that is pegged straight, numbered the same way as the map and placed on the site planner is a block anyone can spray, assess or photograph without the person who laid it out. This module covers a standard 12 row by 8 position block of 2 m by 12 m plots, as at Junee and Corowa.</p>
+<h2>Reading the plot map</h2>
+<ul>
+<li>Plot numbers are row × 100 + position: 101 is row 1, position 1; 1208 is row 12, position 8. Rows run along the sowing direction, positions across it.</li>
+<li>Each rep is a band of positions. With 32 treatments in a 12 by 8 block, rep 1 is rows 1 to 4, rep 2 rows 5 to 8, rep 3 rows 9 to 12, and every treatment appears once in each band.</li>
+<li>The map marks spares, reserves, marginal plots and out plots. A spare is sown and can be brought in if a position is written off; a reserve is held for a late treatment; marginal plots sit against a hazard and are only used if they look even; an out plot is never analysed.</li>
+<li>The office prints the map at A4 with plot numbers and treatment numbers; take two copies to the site, one for the ute and one in your pocket.</li>
+</ul>
+<h2>Pegging the block</h2>
+<ol>
+<li>Set the front line first, square to the sowing direction, with a peg at the start of every row. Use the tape, not paces, and check the line by sighting along the pegs.</li>
+<li>Measure plot length down the first and last rows and peg the back line, then sight across. A 12 row block is 24 m wide; the diagonals of a 24 m by 96 m block should match within 20 cm.</li>
+<li>Number the front peg of every plot with the plot number on the row side facing the alley, in marker on a plastic tag. Pencil fades and tape peels.</li>
+<li>Walk the block with the map and read every peg number. A wrong number on a peg is the most expensive mistake on a trial site, and the cheapest to find on day one.</li>
+<li>Plot signs with the treatment name go in only after the plan is approved and the office prints them; until then plots carry numbers only.</li>
+</ol>
+<h2>Buffers, alleys and trims</h2>
+<ul>
+<li>Leave a sown but unpegged buffer plot at each end of every row and a sown row either side of the block, so edge plots are not edge crop.</li>
+<li>Alleys between reps are cut after emergence at the width the plan gives, usually one plot length of 2 m, so every rep can be walked and sprayed without stepping into plots.</li>
+<li>Plots are trimmed to their harvest length, normally 12 m down to 10 m, by spraying out the ends with a knockdown once the crop is up. Record the trim date and the new length in the app so area-based figures use the right plot size; the Junee plots were trimmed on 23 July and the record carries that.</li>
+</ul>
+<h2>Placing the block in the site planner</h2>
+<p>Open the site in the office portal's Site planner, drop the block on the paddock from the satellite image, set the row bearing from a GPS reading at the front corners and the number of rows and positions, and save. The field app then shows every plot on the map, photos tag to the right plot, and the report draws the plot map over the imagery. Until it is placed, the report has to fit the block to photo positions, which is only good to about a metre.</p>
+<div class="keep"><h2>Sign-off</h2><ul>
+<li><span class="box"></span>Reads any plot number into its row, position and rep</li>
+<li><span class="box"></span>Pegs a front line square and checks a block by its diagonals</li>
+<li><span class="box"></span>Writes and checks every peg number against the map</li>
+<li><span class="box"></span>Knows the difference between a spare, a reserve, a marginal plot and an out plot</li>
+<li><span class="box"></span>Places a block in the site planner with the row bearing set</li>
+</ul></div></section><section class="page"><h1 class="t">Module 5 · Assessing plots</h1>
+<p>An assessment is only as good as the least careful assessor on the day. This module covers the three kinds of reading we take, how to stay consistent with the person in the next row, and how to record them so the office can analyse them without guessing.</p>
+<h2>Before you start</h2>
+<ul>
+<li>Open the trial in the app and check the round in the header chip before the first plot. The chip switches rounds; a count entered under the wrong round has to be moved by the office. This year's Junee canola count went in under round 1 and was moved to round 3.</li>
+<li>Read the assessment's measures on the chip: what is being scored, the unit and the sample. If the plan says two 0.1 m² quadrats, it is two quadrats on every plot, not one on the easy plots.</li>
+<li>Walk the untreated plots first and agree with the other assessors what full pressure looks like. Score one plot together, compare, and only then split up.</li>
+</ul>
+<h2>Quadrat counts</h2>
+<ol>
+<li>Throw the quadrat from the alley to the same spot in every plot, for example two metres in from the front peg and two from the back, between the same drill rows. Do not choose a spot by eye.</li>
+<li>Count what the plan asks for: plants at an early count, tillers or heads at a late one. A tiller count counts every stem with its own crown, not every leaf.</li>
+<li>Enter each quadrat as its own number in the app. Tillers per square metre for two 0.1 m² quadrats is the two counts added and multiplied by five; the office derives that, you do not.</li>
+<li>A quadrat with nothing in it is entered as 0, never left blank. A blank means not counted, and the plot drops out of the analysis as missing.</li>
+<li>If you cannot count a plot, say so in the note on the plot (stock damage, crop lodged, drift) and move on.</li>
+</ol>
+<h2>Visual scores</h2>
+<ul>
+<li>Control %, biomass % and phytotoxicity % are scored against the nearest untreated plot in the same rep, not against your memory of the best plot.</li>
+<li>Walk to the middle of the plot and look at the whole plot, then score. Standing at the peg scores the first two metres.</li>
+<li>Score in steps of 5. A score of 73 is not more accurate than 75; it is just harder to analyse.</li>
+<li>Phytotoxicity is crop damage only. Thinner crop from weed competition is not phytotoxicity.</li>
+<li>Disease on leaves is scored as percentage leaf area per leaf layer on the plants the plan names, three plants per plot this year, and the app takes each plant separately.</li>
+</ul>
+<h2>Staying calibrated</h2>
+<p>Every hour, or at the start of each rep, score one plot that another assessor has already scored and compare. If you differ by more than one step, rescore the last few plots together. When several people assess one trial, the office checks each assessor against the shared plots and can rescale, as it did for the Matong barley scores this year, but only if there are shared plots to work from.</p>
+<h2>Notes and flags</h2>
+<ul>
+<li>A note on the plot is for what you saw: wild oats present, ryegrass in head, crop damaged, brome, stock track. Short and factual; the report lists them.</li>
+<li>Flag a plot when something about it should make the office look twice before using its number: damage, drift, a count you are unsure of, a plot you could not find.</li>
+<li>A plot that should not be in the analysis is not deleted or skipped; it is scored if it can be, flagged, and the office marks it out with the reason.</li>
+</ul>
+<div class="keep"><h2>Sign-off</h2><ul>
+<li><span class="box"></span>Checks and sets the round chip before the first plot</li>
+<li><span class="box"></span>Throws a quadrat to the same place in every plot and counts tillers, not leaves</li>
+<li><span class="box"></span>Enters 0 for an empty quadrat and a note for a plot that cannot be counted</li>
+<li><span class="box"></span>Scores against the rep's untreated plot in steps of 5 and keeps phytotoxicity separate from competition</li>
+<li><span class="box"></span>Does a calibration plot with another assessor each rep</li>
+</ul></div></section><section class="page"><h1 class="t">Module 6 · Photos and records</h1>
+<p>Photos are the record of what a plot looked like on the day, and the app ties each one to its plot, its time and its position. The data rules are simple: nothing is deleted, everything is corrected with a reason, and the phone is the source of truth for anything scored on it.</p>
+<h2>The plot photo standard</h2>
+<ol>
+<li>Take the photo from the app, from the plot's own screen, so it is tagged to that plot. A photo from the camera roll has no plot and no position and the office cannot place it.</li>
+<li>Stand at the front peg, in the alley, and shoot down the plot at chest height so the whole plot is in frame with the neighbour either side for comparison. For a disease or weed close-up take a second photo and leave the first.</li>
+<li>One photo per plot per assessment as a minimum; the report prints the latest photo of each plot, so the plot photo is the one that goes in last.</li>
+<li>Keep people, utes and the quadrat out of the plot photo. A photo of a person counting is not a photo of the plot.</li>
+<li>Flag a photo (tap the tile) when it shows something the office must see: damage, drift, a plot that looks wrong, a mislabelled peg. A note on the plot says what the flag is for.</li>
+<li>If a photo is wrong, take another; say in the note which to use, as the 408 note did this year. Do not delete it.</li>
+</ol>
+<h2>Syncing</h2>
+<ul>
+<li>Sync before you leave the site if there is coverage, and again at the office. The home screen shows what is waiting to go up.</li>
+<li>A plot's scores, notes and photos all carry the same plot and time, so an unsynced phone is a hole in the record for everyone else. Two phones scoring the same trial each sync their own plots.</li>
+<li>Never clear the app's site data or reinstall it to fix a problem. That wipes anything not yet synced. Ring the office first.</li>
+</ul>
+<h2>Corrections, not deletions</h2>
+<ul>
+<li>A wrong number is corrected, not overwritten and not deleted. In the field, enter the right value and put the old one in the note: "was 12, recounted 8". The office records the correction with the old value, the new value, the reason, who and when, and the audit log keeps both.</li>
+<li>A plot that should come out of the analysis is flagged with the reason and the office marks it out. Its scores stay on the record. The six Corowa canola plots lost to drift this year are on the record as excluded, not missing.</li>
+<li>Spray and score records are never deleted. A treatment that was sprayed as the wrong treatment is relabelled by the office with the original kept.</li>
+<li>A count entered under the wrong round is moved by the office; tell them the day it happened so they can move it before anyone uses it.</li>
+</ul>
+<h2>What the office needs after the day</h2>
+<table>
+<thead>
+<tr>
+<th>Within</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Same day</td>
+<td>Phone synced; any deviation, damage or unsure count messaged to the trial lead</td>
+</tr>
+<tr>
+<td>Next working day</td>
+<td>Paper notes typed into the plot notes if anything was written on paper; spray day conditions complete</td>
+</tr>
+<tr>
+<td>Before the report</td>
+<td>Flags resolved with the office: which plots are out, which counts were rechecked</td>
+</tr>
+</tbody>
+</table>
+<div class="keep"><h2>Sign-off</h2><ul>
+<li><span class="box"></span>Takes a plot photo from the plot's screen, framed to the standard</li>
+<li><span class="box"></span>Flags a photo and writes the note that explains it</li>
+<li><span class="box"></span>Syncs before leaving coverage and can say what happens to unsynced data</li>
+<li><span class="box"></span>Corrects a wrong value the right way and never deletes a record</li>
+<li><span class="box"></span>Knows what to send the office the same day</li>
+</ul></div></section><section class="page"><h1 class="t">Module 7 · WHS on trial sites</h1>
+<p>Trial sites are remote, chemical work is routine on them, and most days there are only one or two people. This module is the Trials SOP (July 2024) applied to a day on a site, plus the hazards specific to small-plot work. The SOP is the policy; read it first and sign the orientation with the Field Service Manager before your first site day.</p>
+<h2>Chemicals and PPE</h2>
+<ul>
+<li>Everyone on site wears the SOP minimum while chemicals are being handled or applied: coveralls, chemical-resistant gloves and boots, goggles or face shield, and a respirator where the Safety Data Sheet asks. Helpers and observers included.</li>
+<li>Complete the PPE checklist before the first batch. Damaged PPE is replaced before work starts and reported to the Field Service Manager for replacement.</li>
+<li>Read the label and SDS for every product on the plan before the day. The office portal's WHS site pack lists the products for the trial.</li>
+<li>Mix in the open, upwind, with wash water and soap on the ute. Chemicals travel and are stored in a labelled, locked container, out of the sun.</li>
+<li>Carbamates, organophosphates and Group 22 pyridiniums (diquat, paraquat) are not used by AGnVET employees in field trials. If a protocol lists one, it goes back to the Field Service Manager before approval.</li>
+</ul>
+<h2>If something goes wrong</h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spill</td>
+<td>Move everyone clear, contain it with the spill kit, clean up in full PPE per the product's SDS, tell the Field Service Manager, record it as an incident</td>
+</tr>
+<tr>
+<td>Skin contact</td>
+<td>Remove contaminated clothing, wash with soap and water for at least 15 minutes</td>
+</tr>
+<tr>
+<td>Eye contact</td>
+<td>Rinse with water for at least 15 minutes, then medical attention</td>
+</tr>
+<tr>
+<td>Inhalation</td>
+<td>Fresh air at once; medical attention if symptoms continue</td>
+</tr>
+<tr>
+<td>Swallowed</td>
+<td>Do not induce vomiting; immediate medical attention</td>
+</tr>
+<tr>
+<td>Emergency</td>
+<td>000. Poisons Information Centre 13 11 26</td>
+</tr>
+</tbody>
+</table>
+<p>The WHS site pack for each trial carries the property, nearest town, coordinates, the gate and the phone coverage note, so the person on the phone can direct help. Fill it in at the first visit and keep a printed copy in the ute.</p>
+<h2>Site hazards and controls</h2>
+<table>
+<thead>
+<tr>
+<th>Hazard</th>
+<th>Risk</th>
+<th>Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vehicles and machinery</td>
+<td>Ute and plot boom on uneven ground, reversing, moving parts</td>
+<td>Walk the site first; spotter when reversing near people; guards in place; no loose clothing</td>
+</tr>
+<tr>
+<td>Heat, sun and dehydration</td>
+<td>Heat stress, sunburn</td>
+<td>Water on hand, hat and sunscreen, shade breaks; reschedule heavy work above 35 °C</td>
+</tr>
+<tr>
+<td>Remote and lone work</td>
+<td>Delayed help after an injury</td>
+<td>Tell the office the plan and expected return; phone or UHF checked for coverage at the gate; first aid kit in the ute</td>
+</tr>
+<tr>
+<td>Fatigue and driving</td>
+<td>Long days and early starts</td>
+<td>Share driving on long runs; no spraying after a full day of travel</td>
+</tr>
+<tr>
+<td>Uneven ground, holes, stubble</td>
+<td>Trips, ankle injuries</td>
+<td>Boots; walk, do not run, between plots; mark holes found</td>
+</tr>
+<tr>
+<td>Livestock and dogs</td>
+<td>Charging stock, bites</td>
+<td>Check with the grower; keep vehicles between you and stock; gates closed</td>
+</tr>
+<tr>
+<td>Fire danger</td>
+<td>Hot exhausts in dry stubble, total fire ban days</td>
+<td>Check the fire danger rating; no vehicles in long dry grass on high days; extinguisher on the ute</td>
+</tr>
+<tr>
+<td>Snakes and insects</td>
+<td>Bites and stings</td>
+<td>Boots and long trousers; pressure bandage in the kit; know the nearest hospital</td>
+</tr>
+<tr>
+<td>Overhead power lines, dams and channels</td>
+<td>Contact, drowning</td>
+<td>Drawn on the site plan in the office portal so they print in the site pack; booms and loader arms down under lines; no vehicles on dam banks</td>
+</tr>
+</tbody>
+</table>
+<h2>Sign-on and field days</h2>
+<p>Everyone on site signs on in the WHS site pack with the time in and out. At a field day the trial lead walks the group through the emergency plan before the first plot, keeps visitors out of marked hazard areas and off plots that were sprayed inside the re-entry period, and has the product list to hand for any question about what was applied.</p>
+<div class="keep"><h2>Sign-off</h2><ul>
+<li><span class="box"></span>Orientation with the Field Service Manager signed and filed on FARMGATE; the three Brolga boom videos watched</li>
+<li><span class="box"></span>Can list the SOP minimum PPE and completes the PPE checklist unprompted</li>
+<li><span class="box"></span>Knows the spill and exposure steps and the two emergency numbers</li>
+<li><span class="box"></span>Fills in the WHS site pack and tells the office the plan and return time before a lone site day</li>
+<li><span class="box"></span>Knows which chemical groups are off limits and what to do if a protocol lists one</li>
+</ul></div></section></body></html>
